@@ -50,3 +50,6 @@ db.sqlite3
 # Environment variables
 .env
 .flaskenv
+
+# Serverless directories
+.serverless
