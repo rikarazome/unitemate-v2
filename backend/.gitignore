@@ -1,0 +1,52 @@
+# Distribution / packaging
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Byte-code
+__pycache__/
+*.pyc
+
+# OS-generated files
+.DS_Store
+thumbs.db
+
+# IDE-generated files
+.idea/
+.vscode/
+
+# Virtual environments
+venv/
+.venv/
+
+# Test-related files
+.pytest_cache/
+.coverage
+
+# Log files
+*.log
+
+# Database files
+*.sqlite3
+db.sqlite3
+
+# Temporary files
+*~
+.#*
+
+# Environment variables
+.env
+.flaskenv

@@ -1,0 +1,15 @@
+org: fukusumi
+app: unitemate-v2
+service: unitemate-v2
+
+provider:
+  name: aws
+  runtime: python3.13
+
+functions:
+  hello:
+    handler: handler.hello
+    events:
+      - httpApi:
+          path: /
+          method: get
