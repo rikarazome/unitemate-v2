@@ -1,7 +1,9 @@
 import json
+from typing import Any
 
 
-def hello(event, context):
+def hello(event: dict[str, Any], context: Any) -> dict[str, Any]:
+    """Lambdaハンドラー関数"""
     body = {
         "message": "Go Serverless v4.0! Your function executed successfully!",
     }
