@@ -1,0 +1,52 @@
+[project]
+name = "unitemate-backend"
+version = "0.1.0"
+description = "Backend for Unitemate v2"
+authors = [{ name = "Shun Fukusumi", email = "shun.fukusumi@gmail.com" }]
+requires-python = "==3.13.*"
+dependencies = [
+    # Add your project dependencies here, e.g.,
+    # "fastapi",
+    # "uvicorn",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff==0.11.13",
+    "mypy==1.16.0",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "T201",   # print() の使用を許可
+    "D400",   # docstringの末尾がピリオド.の強制を無効化
+    "D415",   # docstringの末尾がピリオド.の強制を無効化
+    "INP001", # __init__.py の設定不要
+    "ERA001", # コメントアウトされたコードをOK
+    "RET504", # 直接returnしなくてもOK
+    "D100",   # Missing docstring in public module
+    "D104",   # Missing docstring in public package
+    "D105",   # Missing docstring in magic method
+    "D107",   # Missing docstring in __init__
+    "ANN101", # Missing type annotation for `self` in method
+    "ANN102", # Missing type annotation for `cls` in classmethod
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+plugins = ["pydantic.mypy"]
+disallow_untyped_defs = true
