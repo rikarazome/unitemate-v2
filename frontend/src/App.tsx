@@ -15,7 +15,7 @@ function App() {
     setUser({
       id: "demo-user",
       username: "デモユーザー",
-      avatar: "/demo-avatar.png"
+      avatar: "/demo-avatar.png",
     });
   };
 
@@ -28,11 +28,13 @@ function App() {
       <div className="welcome-section">
         <h1>Unitemate v2へようこそ</h1>
         <p>ポケモンユナイト向けの対戦マッチングサービスです。</p>
-        
+
         {user ? (
           <div className="user-welcome">
             <h2>ようこそ、{user.username}さん！</h2>
-            <p>マッチングを開始して、あなたにぴったりの対戦相手を見つけましょう。</p>
+            <p>
+              マッチングを開始して、あなたにぴったりの対戦相手を見つけましょう。
+            </p>
           </div>
         ) : (
           <div className="guest-welcome">

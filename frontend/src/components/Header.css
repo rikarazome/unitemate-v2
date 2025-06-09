@@ -1,5 +1,11 @@
 .header {
-  background: linear-gradient(135deg, #ffb380 0%, #ffa366 25%, #b380d3 75%, #9966cc 100%);
+  background: linear-gradient(
+    135deg,
+    #ffb380 0%,
+    #ffa366 25%,
+    #b380d3 75%,
+    #9966cc 100%
+  );
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   position: sticky;
   top: 0;
@@ -194,24 +200,24 @@
   .header {
     padding: 0 1rem;
   }
-  
+
   .header-container {
     height: 56px;
   }
-  
+
   .nav-links {
     gap: 1rem;
   }
-  
+
   .nav-link {
     padding: 0.25rem 0.5rem;
     font-size: 0.9rem;
   }
-  
+
   .logo-text {
     font-size: 1.25rem;
   }
-  
+
   .username {
     display: none;
   }

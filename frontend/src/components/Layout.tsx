@@ -1,6 +1,6 @@
-import React from 'react';
-import Header from './Header';
-import './Layout.css';
+import React from "react";
+import Header from "./Header";
+import "./Layout.css";
 
 interface User {
   id: string;
@@ -15,13 +15,16 @@ interface LayoutProps {
   onLogout?: () => void;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, user, onLogin, onLogout }) => {
+const Layout: React.FC<LayoutProps> = ({
+  children,
+  user,
+  onLogin,
+  onLogout,
+}) => {
   return (
     <div className="layout">
       <Header user={user} onLogin={onLogin} onLogout={onLogout} />
-      <main className="main-content">
-        {children}
-      </main>
+      <main className="main-content">{children}</main>
     </div>
   );
 };
