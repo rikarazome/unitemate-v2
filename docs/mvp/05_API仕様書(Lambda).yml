@@ -1,0 +1,199 @@
+openapi: 3.0.0
+info:
+  title: Unitemate backend API
+  version: 1.0.0
+  description: |-
+    バックエンドでユーザーデータを管理するためのAPI。
+    このLambda関数は通常、ユーザー認証成功後にNetlify Functionsから呼び出され、
+    データベース内のユーザーレコードを作成または更新します。
+
+servers:
+  # 実際のLambda関数用のAPI Gateway URLに置き換えてください
+  - url: https://{api-gateway-id}.execute-api.{region}.amazonaws.com/{stage}
+    description: Lambda用 AWS API Gateway エンドポイント
+
+components:
+  schemas:
+    UserPayload:
+      type: object
+      # discordId と username は認証プロバイダからほぼ確実に取得できるため必須とする
+      required:
+        - discordId
+        - username
+      properties:
+        discordId:
+          type: string
+          description: Discord ID。
+          example: "123456789012345678"
+        username:
+          type: string
+          description: "Discordユーザー名（例: user#1234）。Netlify Functionsから渡される想定。"
+          example: "discord_user#1234"
+        twitterId:
+          type: string
+          nullable: true
+          description: Twitter ID。
+          example: "twitter_user"
+        desiredRoles:
+          type: array
+          items:
+            type: string
+          nullable: true
+          description: 希望ロールのリスト。
+          example: ["上キャリー", "上学習"]
+        description:
+          type: string
+          nullable: true
+          description: 自己紹介文。
+          example: "よろしくお願いします！"
+        preferredPokemon:
+          type: array
+          items:
+            type: string
+          nullable: true
+          description: 得意ポケモンのリスト。
+          example: ["ピカチュウ", "リザードン"]
+        # badges, rate, max_rate, match_count, win_count, penalty_count, match_history, last_match_at
+        # これらは通常、ユーザーが直接入力するものではなく、システムが更新するか、
+        # 別のAPIエンドポイントで管理されることが多いため、UserPayloadからは除外。
+        # もしユーザー登録・更新時にこれらの情報も受け付ける場合は追加する。
+
+    UserResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+          description: システム内のユーザーの一意のID（例：バックエンドで生成されたUUID）。
+          example: "user-uuid-12345"
+        discordId:
+          type: string
+          description: Discord ID。
+        username:
+          type: string
+          description: Discordユーザー名。
+        twitterId:
+          type: string
+          nullable: true
+          description: Twitter ID。
+        desiredRoles:
+          type: array
+          items:
+            type: string
+          nullable: true
+          description: 希望ロールのリスト。
+        description:
+          type: string
+          nullable: true
+          description: 自己紹介文。
+        preferredPokemon:
+          type: array
+          items:
+            type: string
+          nullable: true
+          description: 得意ポケモンのリスト。
+        badges:
+          type: array
+          items:
+            type: string
+          nullable: true
+          description: 獲得した勲章のリスト。
+        rate:
+          type: number
+          description: 現在のレート。
+        maxRate:
+          type: number
+          description: 最大レート。
+        matchCount:
+          type: number
+          description: 試合回数。
+        winCount:
+          type: number
+          description: 勝ち数。
+        penaltyCount:
+          type: number
+          description: ペナルティ回数。
+        matchHistory:
+          type: array
+          items:
+            # 試合履歴の具体的な型を定義するか、objectとする
+            type: object # or $ref: '#/components/schemas/MatchHistoryItem'
+          nullable: true
+          description: 試合履歴のリスト。
+        lastMatchAt:
+          type: number # or string (format: date-time)
+          nullable: true
+          description: 最後の試合日時 (Unixタイムスタンプなど)。
+        createdAt:
+          type: string
+          format: date-time
+          description: ユーザー作成時のタイムスタンプ。
+        updatedAt:
+          type: string
+          format: date-time
+          description: ユーザー最終更新時のタイムスタンプ。
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          description: エラーメッセージ。
+        details:
+          type: string
+          nullable: true
+          description: エラー詳細。
+
+  # Lambdaが保護されている場合（例：APIキーやIAMオーソライザーによる）
+  # ここでsecuritySchemesを定義します。Netlifyによって呼び出される内部APIの場合、
+  # IAM認証またはヘッダー経由の事前共有シークレットを使用することがあります。
+  # 簡単のため、この例ではオープンエンドポイント、またはNetlify Functionレベルか
+  # API Gatewayレベルで直接処理される認証を想定しています。
+  # securitySchemes:
+  #   ApiKeyAuth:
+  #     type: apiKey
+  #     in: header
+  #     name: x-api-key
+
+paths:
+  /users:
+    post:
+      summary: ユーザー作成または更新
+      description: |-
+        ユーザー情報（例：Netlify Functions経由のDiscord情報）を受け取り、
+        Discord IDに基づいて新しいユーザーレコードを作成するか、既存のレコードを更新します。
+        これは冪等な操作です。
+      tags:
+        - ユーザー管理
+      # security:
+      #   - ApiKeyAuth: [] # APIキーを使用する場合はコメント解除
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserPayload"
+      responses:
+        "200":
+          description: ユーザーの更新に成功しました。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "201":
+          description: ユーザーの作成に成功しました。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          description: 不正なリクエスト（例：無効な入力データ）。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: 内部サーバーエラー（例：データベースエラー）。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
