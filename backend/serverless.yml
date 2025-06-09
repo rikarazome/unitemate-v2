@@ -5,7 +5,7 @@ service: unitemate-v2
 provider:
   name: aws
   region: ap-northeast-1
-  runtime: python3.13
+  runtime: python3.12
   stackName: ${sls:stage}-${self:service}-stack
   deploymentBucket:
     name: juv-shun.sls-deployment-store
@@ -34,3 +34,6 @@ custom:
     number: 3
   pythonRequirements:
     dockerizePip: true
+  serverless-offline:
+    httpPort: 3000
+    useChildProcesses: false

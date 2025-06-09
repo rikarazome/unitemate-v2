@@ -3,7 +3,7 @@ name = "unitemate-backend"
 version = "0.1.0"
 description = "Backend for Unitemate v2"
 authors = [{ name = "Shun Fukusumi", email = "shun.fukusumi@gmail.com" }]
-requires-python = "==3.13.*"
+requires-python = ">=3.12,<3.13"
 dependencies = [
     # Add your project dependencies here, e.g.,
     # "fastapi",
