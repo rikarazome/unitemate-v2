@@ -12,9 +12,6 @@ Unitemate v2 は、ポケモンユナイト向けの対戦マッチングサー�
 
 - **フロントエンド** (`frontend/`): React + TypeScript + Vite
 - **バックエンド** (`backend/`): AWS Lambda + Serverless Framework (Python 3.12)
-- **アーキテクチャ**: 
-  - Netlify Functions: フロントエンドとの直接連携、認証処理
-  - AWS Lambda: データベースアクセス、管理者権限でのバックエンド処理
 
 ## 開発コマンド
 
@@ -55,24 +52,26 @@ uv run mypy .
 ## コード規約
 
 ### Python (バックエンド)
+
 - パッケージ管理: `uv`
 - Linter/Formatter: `ruff`
 - TypeChecker: `mypy`
 - 型ヒント必須
-- Python 3.12対応
+- Python 3.12 対応
 
 ### TypeScript/React (フロントエンド)
+
 - Linter: ESLint
 - Formatter: Prettier
 - React 19 + TypeScript
-- Viteを使用したビルド
+- Vite を使用したビルド
 
 ## 主要機能
 
 - マッチング機能と試合結果報告
 - レート計算システム
 - ランキング表示
-- ユーザー管理（Discord認証）
+- ユーザー管理（Discord 認証）
 - 管理者機能（試合結果修正）
 
 ## データベース設計

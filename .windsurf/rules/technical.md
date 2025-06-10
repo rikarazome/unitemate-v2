@@ -7,10 +7,13 @@ description: 使用技術の要件
 
 ### フロントエンド
 
-- React (Typescript) で実装し、Netlify にデプロイする。
-- Netlify Identity と Netlify Functions がユーザー認証機能は持たないバックエンドとの中間サーバ的役割を担う。
+- React (Typescript) で実装し、Vercel にデプロイする。
 - Linter として、ESLint を使用すること。
 - Formatter として、Prettier を使用すること。
+
+### 認証機能
+
+- Auth0 を採用する。
 
 ### バックエンド
 
@@ -30,11 +33,7 @@ unitemate-v2/
 ├── frontend/                 # Reactアプリ + Netlify Functions
 │   ├── node_modules/
 │   ├── public/
-│   ├── src/                  # Reactのソースコード
-│   ├── netlify/
-│   │   └── functions/        # Netlify Functions (BFF) のコード
-│   │       ├── api-proxy.js  # バックエンドへのプロキシなど
-│   │       └── identity-signup.js
+│   ├── src/                  # Reactのソースコード (BFF) のコード
 │   ├── package.json          # フロントエンドの依存関係
 │   └── ...
 │
@@ -49,6 +48,5 @@ unitemate-v2/
 │   └── ...
 │
 ├── .gitignore
-├── netlify.toml              # Netlifyの全体設定
 └── package.json              # (推奨) モノレポ管理ツール用
 ```
