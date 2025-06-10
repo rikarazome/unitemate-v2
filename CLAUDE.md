@@ -18,7 +18,7 @@ Unitemate v2 は、ポケモンユナイト向けの対戦マッチングサー�
 ### フロントエンド (`frontend/`)
 
 ```bash
-# 開発サーバー起動
+# 開発サーバー起動 (http://localhost:5173)
 npm run dev
 
 # ビルド
@@ -37,16 +37,21 @@ npm run preview
 ### バックエンド (`backend/`)
 
 ```bash
-# ローカル開発サーバー起動
+# ローカル開発サーバー起動 (http://localhost:3000)
 npm run dev
 # または
 npm run start
 
-# Python関連 (uvを使用)
+# Python依存関係のインストール
 uv sync --dev
+
+# Python関連 (uvを使用)
 uv run ruff check .
 uv run ruff format .
 uv run mypy .
+
+# AWS Lambda デプロイ
+npx sls deploy
 ```
 
 ## コード規約
