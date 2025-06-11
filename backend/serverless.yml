@@ -15,6 +15,19 @@ provider:
   iam:
     role:
       name: ${self:service}-role-${sls:stage}
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource:
+            - !GetAtt UsersTable.Arn
+            - !Join ["", [!GetAtt UsersTable.Arn, "/index/*"]]
+            - !GetAtt MatchesTable.Arn
 
 functions:
   hello:
@@ -29,6 +42,9 @@ plugins:
   - serverless-python-requirements
   - serverless-offline
 custom:
+  tableName:
+    users: ${self:service}-users-${sls:stage}
+    matches: ${self:service}-matches-${sls:stage}
   prune:
     automatic: true
     number: 3
@@ -37,3 +53,64 @@ custom:
   serverless-offline:
     httpPort: 3000
     useChildProcesses: false
+
+resources:
+  Resources:
+    UsersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tableName.users}
+        AttributeDefinitions:
+          - AttributeName: user_id
+            AttributeType: S
+          - AttributeName: discord_id
+            AttributeType: S
+          - AttributeName: rate
+            AttributeType: "N"
+          - AttributeName: pk_constant
+            AttributeType: S
+          - AttributeName: inqueue_status
+            AttributeType: S
+        KeySchema:
+          - AttributeName: pk_constant
+            KeyType: HASH
+          - AttributeName: user_id
+            KeyType: RANGE
+        LocalSecondaryIndexes:
+          - IndexName: discord-id-index
+            KeySchema:
+              - AttributeName: pk_constant
+                KeyType: HASH
+              - AttributeName: discord_id
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+          - IndexName: rate-index
+            KeySchema:
+              - AttributeName: pk_constant
+                KeyType: HASH
+              - AttributeName: rate
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+          - IndexName: inqueue-status-rate-index
+            KeySchema:
+              - AttributeName: pk_constant
+                KeyType: HASH
+              - AttributeName: inqueue_status
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+        BillingMode: PAY_PER_REQUEST
+
+    MatchesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tableName.matches}
+        AttributeDefinitions:
+          - AttributeName: match_id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: match_id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
