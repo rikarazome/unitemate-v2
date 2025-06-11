@@ -41,6 +41,8 @@ plugins:
   - serverless-prune-plugin
   - serverless-python-requirements
   - serverless-offline
+  - serverless-dynamodb-local
+
 custom:
   tableName:
     users: ${self:service}-users-${sls:stage}
@@ -53,6 +55,22 @@ custom:
   serverless-offline:
     httpPort: 3000
     useChildProcesses: false
+  dynamodb:
+    start:
+      port: 8000
+      inMemory: true
+      heapInitial: 200m
+      heapMax: 1g
+      migrate: true
+      seed: true
+      convertEmptyValues: true
+    seed:
+      domain:
+        sources:
+          - table: ${self:custom.tableName.users}
+            sources: [./migrations/users-seed.json]
+          - table: ${self:custom.tableName.matches}
+            sources: [./migrations/matches-seed.json]
 
 resources:
   Resources:
