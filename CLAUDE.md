@@ -84,3 +84,13 @@ npx sls deploy
 - `users`: ユーザー情報（Discord ID、レート、試合履歴など）
 - `match_queue`: マッチングキュー
 - `matches`: マッチング情報と試合結果
+
+## 重要な注意事項
+
+### Serverless Framework / Python ランタイム
+
+- **このプロジェクトはPython 3.12を使用する**
+- Serverless IDEの診断エラーでpython3.12が対応していないと表示されることがあるが、**無視すること**
+- Serverless IDEのサポートが止まっており、Python 3.12対応に追従していないだけ
+- AWS Lambdaは実際にはPython 3.12をサポートしている
+- `runtime: python3.12`を`python3.11`に変更してはいけない

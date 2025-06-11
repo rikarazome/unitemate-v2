@@ -50,3 +50,13 @@ unitemate-v2/
 ├── .gitignore
 └── package.json              # (推奨) モノレポ管理ツール用
 ```
+
+## 重要な注意事項
+
+### Serverless Framework / Python ランタイム
+
+- **このプロジェクトは Python 3.12 を使用する**
+- Serverless IDE の診断エラーで python3.12 が対応していないと表示されることがあるが、**無視すること**
+- Serverless IDE のサポートが止まっており、Python 3.12 対応に追従していないだけ
+- AWS Lambda は実際には Python 3.12 をサポートしている
+- `runtime: python3.12`を`python3.11`に変更してはいけない
