@@ -99,6 +99,9 @@ jobs:
           aws-region: ap-northeast-1
 
       - name: Deploy to AWS
+        env:
+          AUTH0_DOMAIN: ${{ secrets.AUTH0_DOMAIN }}
+          AUTH0_AUDIENCE: ${{ secrets.AUTH0_AUDIENCE }}
         run: |
           cd backend
           npx serverless deploy -s prd
