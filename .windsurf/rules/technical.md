@@ -30,7 +30,7 @@ unitemate-v2/
 ├── .github/
 │   └── workflows/            # CI/CD設定
 │
-├── frontend/                 # Reactアプリ + Netlify Functions
+├── frontend/                 # Reactアプリ
 │   ├── node_modules/
 │   ├── public/
 │   ├── src/                  # Reactのソースコード (BFF) のコード

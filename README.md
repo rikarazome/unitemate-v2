@@ -10,7 +10,7 @@
 
 - **フロントエンド**: React + TypeScript + Vite
 - **バックエンド**: 
-  - **Netlify Functions**: フロントエンドとの直接連携、Netlify Identityによる認証処理
+  - **Lambda関数**: フロントエンドとの直接連携、AWS Cognitoによる認証処理
   - **AWS Lambda**: データベースアクセス、管理者権限でのバックエンド処理
 
 ## 機能

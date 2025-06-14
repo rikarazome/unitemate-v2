@@ -3,9 +3,7 @@ info:
   title: Unitemate backend API
   version: 1.0.0
   description: |-
-    バックエンドでユーザーデータを管理するためのAPI。
-    このLambda関数は通常、ユーザー認証成功後にNetlify Functionsから呼び出され、
-    データベース内のユーザーレコードを作成または更新します。
+    ユナメイトのバックエンドAPI仕様書
 
 servers:
   # 実際のLambda関数用のAPI Gateway URLに置き換えてください
@@ -27,7 +25,7 @@ components:
           example: "123456789012345678"
         username:
           type: string
-          description: "Discordユーザー名（例: user#1234）。Netlify Functionsから渡される想定。"
+          description: "Discordユーザー名（例: user#1234）"
           example: "discord_user#1234"
         twitterId:
           type: string
@@ -143,11 +141,6 @@ components:
           nullable: true
           description: エラー詳細。
 
-  # Lambdaが保護されている場合（例：APIキーやIAMオーソライザーによる）
-  # ここでsecuritySchemesを定義します。Netlifyによって呼び出される内部APIの場合、
-  # IAM認証またはヘッダー経由の事前共有シークレットを使用することがあります。
-  # 簡単のため、この例ではオープンエンドポイント、またはNetlify Functionレベルか
-  # API Gatewayレベルで直接処理される認証を想定しています。
   # securitySchemes:
   #   ApiKeyAuth:
   #     type: apiKey
@@ -159,8 +152,7 @@ paths:
     post:
       summary: ユーザー作成または更新
       description: |-
-        ユーザー情報（例：Netlify Functions経由のDiscord情報）を受け取り、
-        Discord IDに基づいて新しいユーザーレコードを作成するか、既存のレコードを更新します。
+        ユーザー情報を受け取り、Discord IDに基づいて新しいユーザーレコードを作成するか、既存のレコードを更新します。
         これは冪等な操作です。
       tags:
         - ユーザー管理
