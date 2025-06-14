@@ -5,9 +5,9 @@ description = "Backend for Unitemate v2"
 authors = [{ name = "Shun Fukusumi", email = "shun.fukusumi@gmail.com" }]
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    # Add your project dependencies here, e.g.,
-    # "fastapi",
-    # "uvicorn",
+    "pyjwt[crypto]==2.10.1",
+    "requests==2.32.3",
+    "boto3==1.35.88",
 ]
 
 [project.optional-dependencies]

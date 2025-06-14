@@ -36,6 +36,17 @@ functions:
       - httpApi:
           path: /
           method: get
+  
+  getMe:
+    handler: src/handlers/users.get_me
+    environment:
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+      AUTH0_DOMAIN: ${env:AUTH0_DOMAIN}
+      AUTH0_AUDIENCE: ${env:AUTH0_AUDIENCE}
+    events:
+      - httpApi:
+          path: /api/users/me
+          method: get
 
 plugins:
   - serverless-prune-plugin
