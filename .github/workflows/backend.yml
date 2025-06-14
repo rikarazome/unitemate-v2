@@ -93,5 +93,6 @@ jobs:
         env:
           AUTH0_DOMAIN: ${{ secrets.AUTH0_DOMAIN }}
           AUTH0_AUDIENCE: ${{ secrets.AUTH0_AUDIENCE }}
+          SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
         run: |
           npx serverless deploy -s prd
