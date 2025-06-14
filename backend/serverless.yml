@@ -7,6 +7,7 @@ provider:
   region: ap-northeast-1
   runtime: python3.12
   stackName: ${sls:stage}-${self:service}-stack
+  timeout: 30
   deploymentBucket:
     name: juv-shun.sls-deployment-store
     maxPreviousDeploymentArtifacts: 3
@@ -36,7 +37,7 @@ functions:
       - httpApi:
           path: /
           method: get
-  
+
   getMe:
     handler: src/handlers/users.get_me
     environment:
@@ -66,6 +67,8 @@ custom:
   serverless-offline:
     httpPort: 3000
     useChildProcesses: false
+    environment:
+      IS_OFFLINE: true
   dynamodb:
     start:
       port: 8000
