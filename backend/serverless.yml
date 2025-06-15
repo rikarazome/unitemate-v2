@@ -28,7 +28,6 @@ provider:
           Resource:
             - !GetAtt UsersTable.Arn
             - !Join ["", [!GetAtt UsersTable.Arn, "/index/*"]]
-            - !GetAtt MatchesTable.Arn
 
 functions:
   getMe:
