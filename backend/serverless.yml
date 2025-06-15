@@ -42,6 +42,17 @@ functions:
           path: /api/users/me
           method: get
 
+  createUser:
+    handler: src/handlers/users.create_user
+    environment:
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+      AUTH0_DOMAIN: ${env:AUTH0_DOMAIN}
+      AUTH0_AUDIENCE: ${env:AUTH0_AUDIENCE}
+    events:
+      - httpApi:
+          path: /api/users
+          method: post
+
 plugins:
   - serverless-prune-plugin
   - serverless-python-requirements
@@ -86,47 +97,33 @@ resources:
       Properties:
         TableName: ${self:custom.tableName.users}
         AttributeDefinitions:
-          - AttributeName: user_id
+          - AttributeName: user_id     # Table Partition Key (Discord ID)
             AttributeType: S
-          - AttributeName: discord_id
+          - AttributeName: auth0_sub   # GSI Partition Key
             AttributeType: S
-          - AttributeName: rate
-            AttributeType: "N"
-          - AttributeName: pk_constant
-            AttributeType: S
-          - AttributeName: inqueue_status
-            AttributeType: S
+          # --- オプションのGSIで将来的に必要になる可能性のある属性定義 ---
+          # - AttributeName: queue_status
+          #   AttributeType: S
+          # - AttributeName: rating
+          #   AttributeType: N
+          # ---------------------------------------------------------
         KeySchema:
-          - AttributeName: pk_constant
-            KeyType: HASH
           - AttributeName: user_id
-            KeyType: RANGE
-        LocalSecondaryIndexes:
-          - IndexName: discord-id-index
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: Auth0SubIndex
             KeySchema:
-              - AttributeName: pk_constant
+              - AttributeName: auth0_sub
                 KeyType: HASH
-              - AttributeName: discord_id
-                KeyType: RANGE
             Projection:
-              ProjectionType: ALL
-          - IndexName: rate-index
-            KeySchema:
-              - AttributeName: pk_constant
-                KeyType: HASH
-              - AttributeName: rate
-                KeyType: RANGE
-            Projection:
-              ProjectionType: ALL
-          - IndexName: inqueue-status-rate-index
-            KeySchema:
-              - AttributeName: pk_constant
-                KeyType: HASH
-              - AttributeName: inqueue_status
-                KeyType: RANGE
-            Projection:
-              ProjectionType: ALL
-        BillingMode: PAY_PER_REQUEST
+              ProjectionType: ALL # アプリケーションの要件に応じて 'KEYS_ONLY' や 'INCLUDE' も検討
+            # ProvisionedThroughput や BillingMode は環境やコスト戦略に合わせて設定
+            # 例: プロビジョニングスループットの場合 (開発環境では低めに設定)
+            # ProvisionedThroughput:
+            #   ReadCapacityUnits: 1
+            #   WriteCapacityUnits: 1
+        # テーブル自体のBillingMode (既存の設定を維持するか、新規に設定)
+        BillingMode: PAY_PER_REQUEST # 現在の設定が PAY_PER_REQUEST なので、それを維持
 
     MatchesTable:
       Type: AWS::DynamoDB::Table
