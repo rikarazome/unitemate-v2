@@ -31,13 +31,6 @@ provider:
             - !GetAtt MatchesTable.Arn
 
 functions:
-  hello:
-    handler: src/handlers/hello.hello
-    events:
-      - httpApi:
-          path: /
-          method: get
-
   getMe:
     handler: src/handlers/users.get_me
     environment:
