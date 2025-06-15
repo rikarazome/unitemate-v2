@@ -87,8 +87,6 @@ custom:
         sources:
           - table: ${self:custom.tableName.users}
             sources: [./migrations/users-seed.json]
-          - table: ${self:custom.tableName.matches}
-            sources: [./migrations/matches-seed.json]
 
 resources:
   Resources:
@@ -97,9 +95,9 @@ resources:
       Properties:
         TableName: ${self:custom.tableName.users}
         AttributeDefinitions:
-          - AttributeName: user_id     # Table Partition Key (Discord ID)
+          - AttributeName: user_id # Table Partition Key (Discord ID)
             AttributeType: S
-          - AttributeName: auth0_sub   # GSI Partition Key
+          - AttributeName: auth0_sub # GSI Partition Key
             AttributeType: S
           # --- オプションのGSIで将来的に必要になる可能性のある属性定義 ---
           # - AttributeName: queue_status
@@ -124,15 +122,3 @@ resources:
             #   WriteCapacityUnits: 1
         # テーブル自体のBillingMode (既存の設定を維持するか、新規に設定)
         BillingMode: PAY_PER_REQUEST # 現在の設定が PAY_PER_REQUEST なので、それを維持
-
-    MatchesTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        TableName: ${self:custom.tableName.matches}
-        AttributeDefinitions:
-          - AttributeName: match_id
-            AttributeType: S
-        KeySchema:
-          - AttributeName: match_id
-            KeyType: HASH
-        BillingMode: PAY_PER_REQUEST
