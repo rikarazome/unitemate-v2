@@ -9,108 +9,86 @@
 ### アーキテクチャ概要
 
 - **フロントエンド**: React + TypeScript + Vite
-- **バックエンド**: 
-  - **Lambda関数**: フロントエンドとの直接連携、AWS Cognitoによる認証処理
-  - **AWS Lambda**: データベースアクセス、管理者権限でのバックエンド処理
+- **バックエンド**: Serverless Framework (Python)
 
 ## 機能
 
 - マッチング機能と試合結果報告
-- レート計算システム  
+- レート計算システム
 - ランキング表示
-- ユーザー管理（Discord認証）
+- ユーザー管理（Discord 認証）
 - 管理者機能（試合結果修正）
 
 ## ローカル開発環境のセットアップ
 
 ### 前提条件
 
-- Node.js (推奨: v18以上)
+- Node.js (推奨: v18 以上)
 - Python 3.12
-- uv (Pythonパッケージ管理)
-- AWS CLI (バックエンド開発時)
+- uv (Python パッケージ管理)
 
-### フロントエンド開発
+### クイックスタート
 
-1. フロントエンドディレクトリに移動
+1. リポジトリをクローン
+
    ```bash
-   cd frontend
+   git clone <repository-url>
+   cd unitemate-v2
    ```
 
-2. 依存関係をインストール
+2. 開発環境をセットアップ
+
    ```bash
-   npm install
+   make setup
    ```
 
 3. 開発サーバーを起動
+
    ```bash
-   npm run dev
+   make dev
    ```
 
-4. ブラウザで `http://localhost:5173` にアクセス
+4. ブラウザでアクセス
+   - フロントエンド: `http://localhost:5173`
+   - バックエンド API: `http://localhost:3000`
 
-#### フロントエンド開発コマンド
+### 個別セットアップ
+
+フロントエンドまたはバックエンドのみをセットアップしたい場合：
 
 ```bash
-# 開発サーバー起動
-npm run dev
+# フロントエンドのみ
+make setup-frontend
 
-# ビルド
-npm run build
-
-# Lint
-npm run lint
-
-# フォーマット
-npm run format
-
-# プレビュー
-npm run preview
+# バックエンドのみ
+make setup-backend
 ```
 
-### バックエンド開発
-
-1. バックエンドディレクトリに移動
-   ```bash
-   cd backend
-   ```
-
-2. Node.js依存関係をインストール（Serverless Framework用）
-   ```bash
-   npm install
-   ```
-
-3. Python依存関係をインストール
-   ```bash
-   uv sync --dev
-   ```
-
-4. ローカル開発サーバーを起動
-   ```bash
-   npm run dev
-   ```
-
-5. API は `http://localhost:3000` で利用可能
-
-#### バックエンド開発コマンド
+### 開発コマンド
 
 ```bash
-# ローカル開発サーバー起動
-npm run dev
-# または
-npm run start
+# 開発環境セットアップ
+make setup
 
-# Python Lint
-uv run ruff check .
+# 開発サーバー起動（フロントエンド + バックエンド）
+make dev
 
-# Python フォーマット
-uv run ruff format .
+# コード品質チェック
+make lint      # 全体のLintチェック
+make format    # 全体のフォーマットチェック
 
-# 型チェック
-uv run mypy .
+# 個別のフロントエンド開発
+cd frontend
+npm run dev    # 開発サーバー
+npm run build  # ビルド
+npm run lint   # Lintチェック
 
-# AWS デプロイ
-npx sls deploy
+# 個別のバックエンド開発
+cd backend
+npm run dev           # 開発サーバー
+uv run ruff check .   # Lintチェック
+uv run ruff format .  # フォーマット
+npx sls deploy        # AWS Lambda デプロイ
 ```
 
 ## プロジェクト構造
@@ -129,23 +107,17 @@ unitemate-v2/
     └── mvp/
 ```
 
-## データベース設計
-
-### テーブル構成
-
-- **users**: ユーザー情報（Discord ID、レート、試合履歴など）
-- **match_queue**: マッチングキュー
-- **matches**: マッチング情報と試合結果
-
 ## 開発規約
 
 ### Python (バックエンド)
+
 - パッケージ管理: `uv`
 - Linter/Formatter: `ruff`
 - TypeChecker: `mypy`
 - 型ヒント必須
 
 ### TypeScript/React (フロントエンド)
+
 - Linter: ESLint
 - Formatter: Prettier
-- React 19 + TypeScript使用
+- React 19 + TypeScript 使用
