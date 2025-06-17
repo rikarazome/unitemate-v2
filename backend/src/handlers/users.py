@@ -3,18 +3,23 @@
 import json
 import os
 from datetime import UTC, datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import boto3
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
-from mypy_boto3_dynamodb.resources import TableResource
-from mypy_boto3_dynamodb.service_resource import DynamoDBServiceResource
 
 from src.auth import get_user_from_event, jwt_required
 
+if TYPE_CHECKING:
+    from mypy_boto3_dynamodb.resources import TableResource  # type: ignore[attr-defined]
+    from mypy_boto3_dynamodb.service_resource import DynamoDBServiceResource  # type: ignore[attr-defined]
+else:
+    TableResource = Any
+    DynamoDBServiceResource = Any
 
-def get_dynamodb() -> DynamoDBServiceResource:
+
+def get_dynamodb() -> "DynamoDBServiceResource":  # Changed to double quotes
     """Get a DynamoDB resource client."""
     if os.environ.get("IS_OFFLINE"):
         return boto3.resource(
@@ -25,9 +30,9 @@ def get_dynamodb() -> DynamoDBServiceResource:
     return boto3.resource("dynamodb")
 
 
-def get_user_table() -> TableResource:
+def get_user_table() -> "TableResource":  # Changed to double quotes
     """Get the DynamoDB table for users."""
-    dynamodb = get_dynamodb()
+    dynamodb: DynamoDBServiceResource = get_dynamodb()  # Changed to double quotes
     table_name = os.environ.get("USERS_TABLE_NAME", "unitemate-v2-users-dev")
     return dynamodb.Table(table_name)
 
