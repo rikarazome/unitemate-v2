@@ -7,24 +7,25 @@ from typing import Any
 
 import boto3
 from boto3.dynamodb.conditions import Key
+from botocore.exceptions import ClientError
+from mypy_boto3_dynamodb.resources import TableResource
+from mypy_boto3_dynamodb.service_resource import DynamoDBServiceResource
 
 from src.auth import get_user_from_event, jwt_required
 
 
-def get_dynamodb() -> Any:
+def get_dynamodb() -> DynamoDBServiceResource:
     """Get a DynamoDB resource client."""
     if os.environ.get("IS_OFFLINE"):
         return boto3.resource(
             "dynamodb",
             endpoint_url="http://localhost:8000",
             region_name="ap-northeast-1",
-            aws_access_key_id="test",
-            aws_secret_access_key="test",
         )
     return boto3.resource("dynamodb")
 
 
-def get_user_table() -> Any:
+def get_user_table() -> TableResource:
     """Get the DynamoDB table for users."""
     dynamodb = get_dynamodb()
     table_name = os.environ.get("USERS_TABLE_NAME", "unitemate-v2-users-dev")
@@ -32,7 +33,7 @@ def get_user_table() -> Any:
 
 
 @jwt_required
-def get_me(event: dict[str, Any], _context: Any) -> dict[str, Any]:
+def get_me(event: dict[str, Any], _context: object) -> dict[str, Any]:
     """Retrieve current user information if it exists."""
     try:
         auth0_user_info = get_user_from_event(event)
@@ -77,7 +78,7 @@ def get_me(event: dict[str, Any], _context: Any) -> dict[str, Any]:
             "body": json.dumps(user),
         }
 
-    except Exception as e:
+    except ClientError as e:
         print(f"Error in get_me: {e}")  # Basic logging
         return {
             "statusCode": 500,
@@ -90,7 +91,7 @@ def get_me(event: dict[str, Any], _context: Any) -> dict[str, Any]:
 
 
 @jwt_required
-def create_user(event: dict[str, Any], _context: Any) -> dict[str, Any]:
+def create_user(event: dict[str, Any], _context: object) -> dict[str, Any]:
     """Create a new user if one doesn't already exist."""
     try:
         auth0_token_info = get_user_from_event(event)
@@ -144,7 +145,7 @@ def create_user(event: dict[str, Any], _context: Any) -> dict[str, Any]:
             "body": json.dumps(new_user_data),
         }
 
-    except Exception as e:
+    except ClientError as e:
         print(f"Error in create_user: {e}")  # Basic logging
         return {
             "statusCode": 500,
