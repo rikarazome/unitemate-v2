@@ -73,13 +73,15 @@ custom:
     environment:
       IS_OFFLINE: true
   dynamodb:
+    stages:
+      - dev
     start:
       port: 8000
       inMemory: true
       heapInitial: 200m
       heapMax: 1g
-      migrate: true
-      seed: true
+      migrate: false
+      seed: false
       convertEmptyValues: true
     seed:
       domain:

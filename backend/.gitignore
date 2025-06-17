@@ -56,3 +56,6 @@ db.sqlite3
 
 # Node.js modules
 node_modules/
+
+# DynamoDB Local
+.dynamodb
