@@ -14,7 +14,13 @@ from src.auth import get_user_from_event, jwt_required
 def get_dynamodb() -> Any:
     """Get a DynamoDB resource client."""
     if os.environ.get("IS_OFFLINE"):
-        return boto3.resource("dynamodb", endpoint_url="http://localhost:8000")
+        return boto3.resource(
+            "dynamodb",
+            endpoint_url="http://localhost:8000",
+            region_name="ap-northeast-1",
+            aws_access_key_id="test",
+            aws_secret_access_key="test",
+        )
     return boto3.resource("dynamodb")
 
 
