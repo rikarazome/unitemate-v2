@@ -10,6 +10,9 @@ interface UserData {
   discord_discriminator?: string | null;
   discord_avatar_url: string;
   app_username: string;
+  rate?: number;
+  match_count?: number;
+  win_count?: number;
   created_at: string;
   updated_at: string;
 }
