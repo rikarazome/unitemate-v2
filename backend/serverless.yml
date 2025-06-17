@@ -56,7 +56,7 @@ plugins:
   - serverless-prune-plugin
   - serverless-python-requirements
   - serverless-offline
-  - serverless-dynamodb-local
+  - serverless-dynamodb
 
 custom:
   tableName:
@@ -72,7 +72,7 @@ custom:
     useChildProcesses: false
     environment:
       IS_OFFLINE: true
-  dynamodb:
+  serverless-dynamodb:
     stages:
       - dev
     start:
@@ -80,8 +80,8 @@ custom:
       inMemory: true
       heapInitial: 200m
       heapMax: 1g
-      migrate: false
-      seed: false
+      migrate: true
+      seed: true
       convertEmptyValues: true
     seed:
       domain:
