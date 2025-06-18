@@ -9,7 +9,9 @@ import boto3
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 
-from src.auth import get_user_from_event, jwt_required
+# オーソライザー使用時は不要
+# from src.auth import get_user_from_event, jwt_required
+from src.utils.response import create_error_response, create_success_response
 
 if TYPE_CHECKING:
     from mypy_boto3_dynamodb.resources import TableResource  # type: ignore[attr-defined]
@@ -37,129 +39,78 @@ def get_user_table() -> "TableResource":  # Changed to double quotes
     return dynamodb.Table(table_name)
 
 
-@jwt_required
 def get_me(event: dict[str, Any], _context: object) -> dict[str, Any]:
-    """Retrieve current user information if it exists."""
+    """ユーザー情報取得(認証済み前提)."""
     try:
-        auth0_user_info = get_user_from_event(event)
-        auth0_user_id = auth0_user_info.get("sub")
+        # オーソライザーから渡されたユーザー情報
+        request_context = event.get("requestContext", {})
+        authorizer = request_context.get("authorizer", {})
 
-        if not auth0_user_id:
-            return {
-                "statusCode": 400,
-                "headers": {
-                    "Content-Type": "application/json",
-                    "Access-Control-Allow-Origin": "*",
-                },
-                "body": json.dumps({"error": "Invalid user information from token"}),
-            }
+        user_id = authorizer.get("user_id")
+        if not user_id:
+            return create_error_response(400, "User ID not found in context")
 
+        # DynamoDBからユーザー情報を取得
         table = get_user_table()
-        # Query GSI Auth0SubIndex using auth0_user_id (which is Auth0 'sub')
         response = table.query(
             IndexName="Auth0SubIndex",
-            KeyConditionExpression=Key("auth0_sub").eq(auth0_user_id),
+            KeyConditionExpression=Key("auth0_sub").eq(user_id),
         )
 
         if not response["Items"]:
-            # User not found
-            return {
-                "statusCode": 404,
-                "headers": {
-                    "Content-Type": "application/json",
-                    "Access-Control-Allow-Origin": "*",
-                },
-                "body": json.dumps({"error": "User not found"}),
-            }
+            return create_error_response(404, "User not found")
 
-        user = response["Items"][0]
-        # pk_constant is no longer used, so no need to pop it.
-        return {
-            "statusCode": 200,
-            "headers": {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*",
-            },
-            "body": json.dumps(user),
-        }
+        return create_success_response(response["Items"][0])
 
     except ClientError as e:
-        print(f"Error in get_me: {e}")  # Basic logging
-        return {
-            "statusCode": 500,
-            "headers": {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*",
-            },
-            "body": json.dumps({"error": "Internal server error"}),
-        }
+        print(f"Error in get_me: {e}")
+        return create_error_response(500, "Internal server error")
 
 
-@jwt_required
 def create_user(event: dict[str, Any], _context: object) -> dict[str, Any]:
-    """Create a new user if one doesn't already exist."""
+    """新しいユーザーを作成(認証済み前提)."""
     try:
-        auth0_token_info = get_user_from_event(event)
-        auth0_user_id = auth0_token_info.get("sub")
+        # オーソライザーから渡されたユーザー情報
+        request_context = event.get("requestContext", {})
+        authorizer = request_context.get("authorizer", {})
 
+        auth0_user_id = authorizer.get("user_id")
         if not auth0_user_id:
-            return {
-                "statusCode": 400,
-                "body": json.dumps({"error": "Auth0 user ID (sub) not found in token"}),
-                "headers": {"Content-Type": "application/json", "Access-Control-Allow-Origin": "*"},
-            }
+            return create_error_response(400, "Auth0 user ID not found in context")
 
-        # Request body from frontend (contains Auth0 user info)
-        # Frontend should send the user profile information obtained from Auth0
+        # Auth0のユーザー詳細情報を取得
+        user_info_json = authorizer.get("user_info", "{}")
+        try:
+            auth0_token_info = json.loads(user_info_json)
+        except json.JSONDecodeError:
+            auth0_token_info = {}
+
+        # Request bodyからAuth0ユーザー情報を取得
         try:
             request_body = json.loads(event.get("body", "{}"))
         except json.JSONDecodeError:
-            return {
-                "statusCode": 400,
-                "body": json.dumps({"error": "Invalid JSON in request body"}),
-                "headers": {"Content-Type": "application/json", "Access-Control-Allow-Origin": "*"},
-            }
+            return create_error_response(400, "Invalid JSON in request body")
 
-        # Extract Discord info primarily from the request_body sent by frontend,
-        # or fall back to token info if necessary. The request_body is more likely
-        # to have the rich profile information immediately after Auth0 login.
+        # Discord情報を抽出
         discord_info = _extract_discord_info_from_auth0(request_body or auth0_token_info)
 
         table = get_user_table()
-        # Check if user already exists using Auth0SubIndex and auth0_user_id (Auth0 'sub')
+        # 既存ユーザーの確認
         existing_user_response = table.query(
             IndexName="Auth0SubIndex",
             KeyConditionExpression=Key("auth0_sub").eq(auth0_user_id),
         )
         if existing_user_response["Items"]:
-            return {
-                "statusCode": 409,  # Conflict
-                "headers": {"Content-Type": "application/json", "Access-Control-Allow-Origin": "*"},
-                "body": json.dumps({"error": "User already exists"}),
-            }
+            return create_error_response(409, "User already exists")
 
-        # auth0_user_id is the Discord ID and will be used as the user_id (PK)
+        # 新しいユーザーを作成
         new_user_data = _create_new_user_in_db(auth0_user_id, discord_info)
 
-        return {
-            "statusCode": 201,  # Created
-            "headers": {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*",
-            },
-            "body": json.dumps(new_user_data),
-        }
+        return create_success_response(new_user_data, 201)
 
     except ClientError as e:
-        print(f"Error in create_user: {e}")  # Basic logging
-        return {
-            "statusCode": 500,
-            "headers": {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*",
-            },
-            "body": json.dumps({"error": "Internal server error"}),
-        }
+        print(f"Error in create_user: {e}")
+        return create_error_response(500, "Internal server error")
 
 
 def _extract_discord_info_from_auth0(auth0_profile_info: dict[str, Any]) -> dict[str, Any]:
