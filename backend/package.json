@@ -1,7 +1,7 @@
 {
   "scripts": {
-    "dev": "sls offline start",
-    "start": "sls offline start"
+    "dev": "PYTHONUNBUFFERED=1 sls offline start --verbose",
+    "start": "PYTHONUNBUFFERED=1 sls offline start --verbose"
   },
   "devDependencies": {
     "serverless-dynamodb": "^0.2.56",
