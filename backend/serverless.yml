@@ -59,6 +59,7 @@ functions:
       - http:
           path: api/users/me
           method: get
+          cors: true
           authorizer:
             name: authHandler
             resultTtlInSeconds: 300  # 5分間キャッシュ
@@ -73,6 +74,7 @@ functions:
       - http:
           path: api/users
           method: post
+          cors: true
           authorizer:
             name: authHandler
             resultTtlInSeconds: 300
