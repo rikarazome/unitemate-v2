@@ -14,30 +14,12 @@ def get_jwks() -> dict[str, Any]:
     """JWKSをキャッシュして取得."""
     domain = os.environ["AUTH0_DOMAIN"]
     jwks_url = f"https://{domain}/.well-known/jwks.json"
-    
-    try:
-        print(f"Fetching JWKS from: {jwks_url}")
-        response = requests.get(jwks_url, timeout=10)
-        response.raise_for_status()
-        print("JWKS fetched successfully")
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        print(f"Failed to fetch JWKS: {e}")
-        # ローカル開発時のフォールバック
-        if os.environ.get("IS_OFFLINE"):
-            print("Using mock JWKS for local development")
-            return {
-                "keys": [
-                    {
-                        "kid": "local-fallback-key",
-                        "kty": "RSA",
-                        "use": "sig",
-                        "n": "mock-n-value",
-                        "e": "AQAB",
-                    }
-                ]
-            }
-        raise
+
+    print(f"Fetching JWKS from: {jwks_url}")
+    response = requests.get(jwks_url, timeout=10)
+    response.raise_for_status()
+    print("JWKS fetched successfully")
+    return response.json()
 
 
 def get_signing_key(kid: str) -> Any:
@@ -53,36 +35,24 @@ def get_signing_key(kid: str) -> Any:
 def authorize(event: dict[str, Any], _context: Any) -> dict[str, Any]:
     """Auth0公式推奨のLambdaオーソライザー実装."""
     print(f"AUTH: Starting authorization for event: {event.get('methodArn', 'unknown')}")
-    
-    try:
-        # トークンの抽出
-        token = extract_token(event)
-        print(f"AUTH: Token extracted successfully: {token[:20]}...")
 
-        # JWT検証 (ローカル開発時は署名検証のみスキップ)
-        payload = verify_jwt_token(token)
-        print(f"AUTH: JWT verification successful for user: {payload.get('sub', 'unknown')}")
+    # トークンの抽出
+    token = extract_token(event)
+    print(f"AUTH: Token extracted successfully: {token[:20]}...")
 
-        # IAMポリシーの生成
-        policy = generate_policy(
-            principal_id=payload["sub"],
-            effect="Allow",
-            resource=event["methodArn"],
-            context=payload,
-        )
-        print("AUTH: Authorization successful, returning Allow policy")
-        return policy
+    # JWT検証 (ローカル開発時は署名検証のみスキップ)
+    payload = verify_jwt_token(token)
+    print(f"AUTH: JWT verification successful for user: {payload.get('sub', 'unknown')}")
 
-    except (ValueError, jwt.InvalidTokenError, jwt.ExpiredSignatureError, jwt.JWTClaimsError) as e:
-        print(f"AUTH: Authorization failed: {e!s}")
-        # 拒否ポリシーを返す
-        policy = generate_policy(
-            principal_id="unauthorized",
-            effect="Deny",
-            resource=event["methodArn"],
-        )
-        print("AUTH: Returning Deny policy")
-        return policy
+    # IAMポリシーの生成
+    policy = generate_policy(
+        principal_id=payload["sub"],
+        effect="Allow",
+        resource=event["methodArn"],
+        context=payload,
+    )
+    print("AUTH: Authorization successful, returning Allow policy")
+    return policy
 
 
 def extract_token(event: dict[str, Any]) -> str:
@@ -100,23 +70,14 @@ def verify_jwt_token(token: str) -> dict[str, Any]:
     """JWTトークンの検証."""
     # ローカル開発時は署名検証をスキップして基本的なJWT解析のみ
     if os.environ.get("IS_OFFLINE"):
-        try:
-            # 署名検証なしでペイロードを取得
-            payload = jwt.decode(token, options={"verify_signature": False})
-            # 最低限の構造チェック
-            if "sub" not in payload:
-                payload["sub"] = f"local-dev-user-{token[-8:]}"
-            if "email" not in payload:
-                payload["email"] = "dev@example.com"
-            return payload
-        except jwt.DecodeError:
-            # JWTとして無効な場合はシンプルなペイロードを生成
-            return {
-                "sub": f"local-dev-user-{token[-8:] if len(token) >= 8 else token}",
-                "email": "dev@example.com",
-                "aud": "local-dev",
-                "iss": "local-dev",
-            }
+        # 署名検証なしでペイロードを取得
+        payload = jwt.decode(token, options={"verify_signature": False})
+        # 最低限の構造チェック
+        if "sub" not in payload:
+            payload["sub"] = f"local-dev-user-{token[-8:]}"
+        if "email" not in payload:
+            payload["email"] = "dev@example.com"
+        return payload
 
     # 本番環境では完全なJWT検証
     # ヘッダーの取得
@@ -156,7 +117,7 @@ def generate_policy(
                     "Action": "execute-api:Invoke",
                     "Effect": effect,
                     "Resource": resource,
-                }
+                },
             ],
         },
     }
