@@ -45,8 +45,11 @@ def get_me(event: dict[str, Any], _context: object) -> dict[str, Any]:
         # オーソライザーから渡されたユーザー情報
         request_context = event.get("requestContext", {})
         authorizer = request_context.get("authorizer", {})
-
-        user_id = authorizer.get("user_id")
+        
+        # HTTP APIの場合、コンテキストは authorizer.lambda 内に格納される
+        lambda_context = authorizer.get("lambda", {})
+        user_id = lambda_context.get("user_id") or authorizer.get("user_id")
+        
         if not user_id:
             return create_error_response(400, "User ID not found in context")
 
@@ -74,12 +77,14 @@ def create_user(event: dict[str, Any], _context: object) -> dict[str, Any]:
         request_context = event.get("requestContext", {})
         authorizer = request_context.get("authorizer", {})
 
-        auth0_user_id = authorizer.get("user_id")
+        # HTTP APIの場合、コンテキストは authorizer.lambda 内に格納される
+        lambda_context = authorizer.get("lambda", {})
+        auth0_user_id = lambda_context.get("user_id") or authorizer.get("user_id")
         if not auth0_user_id:
             return create_error_response(400, "Auth0 user ID not found in context")
 
         # Auth0のユーザー詳細情報を取得
-        user_info_json = authorizer.get("user_info", "{}")
+        user_info_json = lambda_context.get("user_info") or authorizer.get("user_info", "{}")
         try:
             auth0_token_info = json.loads(user_info_json)
         except json.JSONDecodeError:

@@ -34,7 +34,9 @@ def get_signing_key(kid: str) -> Any:
 
 def authorize(event: dict[str, Any], _context: Any) -> dict[str, Any]:
     """Auth0公式推奨のLambdaオーソライザー実装."""
-    print(f"AUTH: Starting authorization for event: {event.get('methodArn', 'unknown')}")
+    # HTTP APIでは routeArn を使用、REST APIでは methodArn を使用
+    route_arn = event.get("routeArn") or event.get("methodArn", "unknown")
+    print(f"AUTH: Starting authorization for event: {route_arn}")
 
     # トークンの抽出
     token = extract_token(event)
@@ -44,15 +46,27 @@ def authorize(event: dict[str, Any], _context: Any) -> dict[str, Any]:
     payload = verify_jwt_token(token)
     print(f"AUTH: JWT verification successful for user: {payload.get('sub', 'unknown')}")
 
-    # IAMポリシーの生成
-    policy = generate_policy(
-        principal_id=payload["sub"],
-        effect="Allow",
-        resource=event["methodArn"],
-        context=payload,
-    )
-    print("AUTH: Authorization successful, returning Allow policy")
-    return policy
+    # HTTP APIかどうかを判定（routeArnまたはversion 2.0の存在で判定）
+    is_http_api = event.get("routeArn") is not None or event.get("version") == "2.0"
+    
+    if is_http_api:
+        # HTTP API用のレスポンス
+        auth_response = generate_http_api_response(
+            principal_id=payload["sub"],
+            effect="Allow",
+            context=payload,
+        )
+    else:
+        # REST API用のレスポンス
+        auth_response = generate_policy(
+            principal_id=payload["sub"],
+            effect="Allow",
+            resource=event["methodArn"],
+            context=payload,
+        )
+    
+    print("AUTH: Authorization successful, returning Allow response")
+    return auth_response
 
 
 def extract_token(event: dict[str, Any]) -> str:
@@ -101,13 +115,41 @@ def verify_jwt_token(token: str) -> dict[str, Any]:
     )
 
 
+def generate_http_api_response(
+    principal_id: str,
+    effect: str,
+    context: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """HTTP API用のオーソライザーレスポンス生成."""
+    # enableSimpleResponses: true の場合のシンプルなレスポンス
+    if effect == "Allow":
+        response = {
+            "isAuthorized": True,
+            "context": {},
+        }
+        
+        # コンテキストの追加 (認証済みユーザー情報)
+        if context:
+            response["context"] = {
+                "user_id": context.get("sub", ""),
+                "email": context.get("email", ""),
+                "user_info": json.dumps(context),
+            }
+    else:
+        response = {
+            "isAuthorized": False,
+        }
+
+    return response
+
+
 def generate_policy(
     principal_id: str,
     effect: str,
     resource: str,
     context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """IAMポリシーの生成."""
+    """REST API用のIAMポリシー生成（後方互換性のため保持）."""
     policy = {
         "principalId": principal_id,
         "policyDocument": {

@@ -27,6 +27,14 @@ provider:
         - DELETE
         - OPTIONS
       allowCredentials: true
+    authorizers:
+      authHandler:
+        type: request
+        functionName: authHandler
+        identitySource:
+          - $request.header.Authorization
+        resultTtlInSeconds: 300
+        enableSimpleResponses: true
   iam:
     role:
       name: ${self:service}-role-${sls:stage}
@@ -56,30 +64,22 @@ functions:
     environment:
       USERS_TABLE_NAME: ${self:custom.tableName.users}
     events:
-      - http:
-          path: api/users/me
+      - httpApi:
+          path: /api/users/me
           method: get
-          cors: true
           authorizer:
             name: authHandler
-            resultTtlInSeconds: 300  # 5分間キャッシュ
-            identitySource: method.request.header.Authorization
-            type: request
 
   createUser:
     handler: src/handlers/users.create_user
     environment:
       USERS_TABLE_NAME: ${self:custom.tableName.users}
     events:
-      - http:
-          path: api/users
+      - httpApi:
+          path: /api/users
           method: post
-          cors: true
           authorizer:
             name: authHandler
-            resultTtlInSeconds: 300
-            identitySource: method.request.header.Authorization
-            type: request
 
 plugins:
   - serverless-prune-plugin
