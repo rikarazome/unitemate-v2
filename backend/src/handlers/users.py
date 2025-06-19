@@ -9,8 +9,6 @@ import boto3
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 
-# オーソライザー使用時は不要
-# from src.auth import get_user_from_event, jwt_required
 from src.utils.response import create_error_response, create_success_response
 
 if TYPE_CHECKING:
