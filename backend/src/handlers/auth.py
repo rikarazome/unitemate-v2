@@ -127,18 +127,6 @@ def verify_jwt_token(token: str) -> dict[str, Any]:
         ValueError: トークンが無効な場合.
 
     """
-    # ローカル開発時は署名検証をスキップして基本的なJWT解析のみ
-    if os.environ.get("IS_OFFLINE"):
-        # 署名検証なしでペイロードを取得
-        payload = jwt.decode(token, options={"verify_signature": False})
-        # 最低限の構造チェック
-        if "sub" not in payload:
-            payload["sub"] = f"local-dev-user-{token[-8:]}"
-        if "email" not in payload:
-            payload["email"] = "dev@example.com"
-        return payload
-
-    # 本番環境では完全なJWT検証
     # ヘッダーの取得
     unverified_header = jwt.get_unverified_header(token)
     kid = unverified_header.get("kid")
