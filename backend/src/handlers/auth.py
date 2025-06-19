@@ -10,11 +10,11 @@ import requests
 
 
 @lru_cache(maxsize=1)
-def get_jwks() -> dict[str, Any]:
+def get_jwks() -> dict:
     """JWKSをキャッシュして取得.
 
     Returns:
-        dict[str, Any]: JWKSデータ.
+        dict: JWKSデータ.
 
     """
     domain = os.environ["AUTH0_DOMAIN"]
@@ -48,15 +48,15 @@ def get_signing_key(kid: str) -> Any:
     raise ValueError(msg)
 
 
-def authorize(event: dict[str, Any], _context: Any) -> dict[str, Any]:
+def authorize(event: dict, _context: Any) -> dict:
     """Auth0公式推奨のLambdaオーソライザー実装.
 
     Args:
-        event (dict[str, Any]): API Gateway Lambda Authorizerイベント.
+        event (dict): API Gateway Lambda Authorizerイベント.
         _context (Any): Lambda実行コンテキスト.
 
     Returns:
-        dict[str, Any]: 認証結果とIAMポリシーまたはHTTP APIレスポンス.
+        dict: 認証結果とIAMポリシーまたはHTTP APIレスポンス.
 
     """
     # HTTP APIでは routeArn を使用、REST APIでは methodArn を使用
@@ -92,11 +92,11 @@ def authorize(event: dict[str, Any], _context: Any) -> dict[str, Any]:
     return auth_response
 
 
-def extract_token(event: dict[str, Any]) -> str:
+def extract_token(event: dict) -> str:
     """イベントからJWTトークンを抽出.
 
     Args:
-        event (dict[str, Any]): API Gatewayイベント.
+        event (dict): API Gatewayイベント.
 
     Returns:
         str: JWTトークン.
@@ -114,14 +114,14 @@ def extract_token(event: dict[str, Any]) -> str:
     return auth_header[7:]  # "Bearer " を除去
 
 
-def verify_jwt_token(token: str) -> dict[str, Any]:
+def verify_jwt_token(token: str) -> dict:
     """JWTトークンの検証.
 
     Args:
         token (str): JWTトークン.
 
     Returns:
-        dict[str, Any]: 検証済みトークンペイロード.
+        dict: 検証済みトークンペイロード.
 
     Raises:
         ValueError: トークンが無効な場合.
@@ -151,17 +151,17 @@ def verify_jwt_token(token: str) -> dict[str, Any]:
 def generate_http_api_response(
     principal_id: str,
     effect: str,
-    context: dict[str, Any] | None = None,
-) -> dict[str, Any]:
+    context: dict | None = None,
+) -> dict:
     """HTTP API用のオーソライザーレスポンス生成.
 
     Args:
         principal_id (str): プリンシパルID.
         effect (str): 認証結果 ("Allow" または "Deny").
-        context (dict[str, Any] | None): 追加のコンテキスト情報.
+        context (dict | None): 追加のコンテキスト情報.
 
     Returns:
-        dict[str, Any]: HTTP API用のレスポンス.
+        dict: HTTP API用のレスポンス.
 
     """
     # enableSimpleResponses: true の場合のシンプルなレスポンス
@@ -189,18 +189,18 @@ def generate_policy(
     principal_id: str,
     effect: str,
     resource: str,
-    context: dict[str, Any] | None = None,
-) -> dict[str, Any]:
+    context: dict | None = None,
+) -> dict:
     """REST API用のIAMポリシー生成(後方互換性のため保持).
 
     Args:
         principal_id (str): プリンシパルID.
         effect (str): 認証結果 ("Allow" または "Deny").
         resource (str): リソースARN.
-        context (dict[str, Any] | None): 追加のコンテキスト情報.
+        context (dict | None): 追加のコンテキスト情報.
 
     Returns:
-        dict[str, Any]: REST API用のIAMポリシー.
+        dict: REST API用のIAMポリシー.
 
     """
     policy = {

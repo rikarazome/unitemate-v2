@@ -47,15 +47,15 @@ def get_user_table() -> "TableResource":  # Changed to double quotes
     return dynamodb.Table(table_name)
 
 
-def get_me(event: dict[str, Any], _context: object) -> dict[str, Any]:
+def get_me(event: dict, _context: object) -> dict:
     """ユーザー情報取得(認証済み前提).
 
     Args:
-        event (dict[str, Any]): Lambdaイベントオブジェクト.
+        event (dict): Lambdaイベントオブジェクト.
         _context (object): Lambda実行コンテキスト.
 
     Returns:
-        dict[str, Any]: ユーザー情報またはエラーレスポンス.
+        dict: ユーザー情報またはエラーレスポンス.
 
     """
     try:
@@ -85,15 +85,15 @@ def get_me(event: dict[str, Any], _context: object) -> dict[str, Any]:
         return create_error_response(500, "Internal server error")
 
 
-def create_user(event: dict[str, Any], _context: object) -> dict[str, Any]:
+def create_user(event: dict, _context: object) -> dict:
     """新しいユーザーを作成(認証済み前提).
 
     Args:
-        event (dict[str, Any]): Lambdaイベントオブジェクト.
+        event (dict): Lambdaイベントオブジェクト.
         _context (object): Lambda実行コンテキスト.
 
     Returns:
-        dict[str, Any]: 作成されたユーザー情報またはエラーレスポンス.
+        dict: 作成されたユーザー情報またはエラーレスポンス.
 
     """
     try:
@@ -142,7 +142,7 @@ def create_user(event: dict[str, Any], _context: object) -> dict[str, Any]:
         return create_error_response(500, "Internal server error")
 
 
-def _extract_discord_info_from_auth0(auth0_profile_info: dict[str, Any]) -> dict[str, Any]:
+def _extract_discord_info_from_auth0(auth0_profile_info: dict) -> dict:
     """Extract Discord related information from Auth0 user profile information.
 
     This function assumes auth0_profile_info could be from id_token claims or
@@ -151,10 +151,10 @@ def _extract_discord_info_from_auth0(auth0_profile_info: dict[str, Any]) -> dict
     The accuracy of this function depends heavily on Auth0 IdP connection and rule settings.
 
     Args:
-        auth0_profile_info (dict[str, Any]): Auth0プロファイル情報.
+        auth0_profile_info (dict): Auth0プロファイル情報.
 
     Returns:
-        dict[str, Any]: 抽出されたDiscord情報.
+        dict: 抽出されたDiscord情報.
 
     """
     # Try to get username, discriminator, and avatar from common Auth0 fields.
@@ -191,15 +191,15 @@ def _extract_discord_info_from_auth0(auth0_profile_info: dict[str, Any]) -> dict
     }
 
 
-def _create_new_user_in_db(discord_user_id: str, discord_info: dict[str, Any]) -> dict[str, Any]:
+def _create_new_user_in_db(discord_user_id: str, discord_info: dict) -> dict:
     """Create and put a new user item into DynamoDB and return the API-friendly user data.
 
     Args:
         discord_user_id (str): DiscordユーザーID.
-        discord_info (dict[str, Any]): Discordユーザー情報.
+        discord_info (dict): Discordユーザー情報.
 
     Returns:
-        dict[str, Any]: 作成されたユーザーデータ.
+        dict: 作成されたユーザーデータ.
 
     """
     table = get_user_table()
