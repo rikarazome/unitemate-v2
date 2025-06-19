@@ -26,6 +26,7 @@ def get_dynamodb() -> "DynamoDBServiceResource":  # Changed to double quotes
 
     Returns:
         DynamoDBServiceResource: DynamoDBリソースクライアント.
+
     """
     if os.environ.get("IS_OFFLINE"):
         return boto3.resource(
@@ -41,6 +42,7 @@ def get_user_table() -> "TableResource":  # Changed to double quotes
 
     Returns:
         TableResource: DynamoDBユーザーテーブル.
+
     """
     dynamodb: DynamoDBServiceResource = get_dynamodb()  # Changed to double quotes
     table_name = os.environ.get("USERS_TABLE_NAME", "unitemate-v2-users-dev")
@@ -56,6 +58,7 @@ def get_me(event: dict[str, Any], _context: object) -> dict[str, Any]:
 
     Returns:
         dict[str, Any]: ユーザー情報またはエラーレスポンス.
+
     """
     try:
         # オーソライザーから渡されたユーザー情報
@@ -93,6 +96,7 @@ def create_user(event: dict[str, Any], _context: object) -> dict[str, Any]:
 
     Returns:
         dict[str, Any]: 作成されたユーザー情報またはエラーレスポンス.
+
     """
     try:
         # オーソライザーから渡されたユーザー情報
@@ -153,6 +157,7 @@ def _extract_discord_info_from_auth0(auth0_profile_info: dict[str, Any]) -> dict
 
     Returns:
         dict[str, Any]: 抽出されたDiscord情報.
+
     """
     # Try to get username, discriminator, and avatar from common Auth0 fields.
     # These fields might be directly available or nested within 'identities' or custom claims.
@@ -197,6 +202,7 @@ def _create_new_user_in_db(discord_user_id: str, discord_info: dict[str, Any]) -
 
     Returns:
         dict[str, Any]: 作成されたユーザーデータ.
+
     """
     table = get_user_table()
     now = datetime.now(UTC).isoformat()

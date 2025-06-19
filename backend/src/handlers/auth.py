@@ -15,6 +15,7 @@ def get_jwks() -> dict[str, Any]:
 
     Returns:
         dict[str, Any]: JWKSデータ.
+
     """
     domain = os.environ["AUTH0_DOMAIN"]
     jwks_url = f"https://{domain}/.well-known/jwks.json"
@@ -37,6 +38,7 @@ def get_signing_key(kid: str) -> Any:
 
     Raises:
         ValueError: 指定されたキーIDが見つからない場合.
+
     """
     jwks = get_jwks()
     for key in jwks.get("keys", []):
@@ -55,6 +57,7 @@ def authorize(event: dict[str, Any], _context: Any) -> dict[str, Any]:
 
     Returns:
         dict[str, Any]: 認証結果とIAMポリシーまたはHTTP APIレスポンス.
+
     """
     # HTTP APIでは routeArn を使用、REST APIでは methodArn を使用
     route_arn = event.get("routeArn") or event.get("methodArn", "unknown")
@@ -100,6 +103,7 @@ def extract_token(event: dict[str, Any]) -> str:
 
     Raises:
         ValueError: Authorizationヘッダーが無効または不足の場合.
+
     """
     auth_header = event.get("headers", {}).get("Authorization") or event.get("headers", {}).get("authorization")
 
@@ -121,6 +125,7 @@ def verify_jwt_token(token: str) -> dict[str, Any]:
 
     Raises:
         ValueError: トークンが無効な場合.
+
     """
     # ローカル開発時は署名検証をスキップして基本的なJWT解析のみ
     if os.environ.get("IS_OFFLINE"):
@@ -169,6 +174,7 @@ def generate_http_api_response(
 
     Returns:
         dict[str, Any]: HTTP API用のレスポンス.
+
     """
     # enableSimpleResponses: true の場合のシンプルなレスポンス
     if effect == "Allow":
@@ -207,6 +213,7 @@ def generate_policy(
 
     Returns:
         dict[str, Any]: REST API用のIAMポリシー.
+
     """
     policy = {
         "principalId": principal_id,
