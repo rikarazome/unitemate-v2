@@ -46,9 +46,8 @@ def authorize(event: dict[str, Any], _context: Any) -> dict[str, Any]:
     payload = verify_jwt_token(token)
     print(f"AUTH: JWT verification successful for user: {payload.get('sub', 'unknown')}")
 
-    # HTTP APIかどうかを判定（routeArnまたはversion 2.0の存在で判定）
+    # HTTP APIかどうかを判定(routeArnまたはversion 2.0の存在で判定)
     is_http_api = event.get("routeArn") is not None or event.get("version") == "2.0"
-    
     if is_http_api:
         # HTTP API用のレスポンス
         auth_response = generate_http_api_response(
@@ -64,7 +63,6 @@ def authorize(event: dict[str, Any], _context: Any) -> dict[str, Any]:
             resource=event["methodArn"],
             context=payload,
         )
-    
     print("AUTH: Authorization successful, returning Allow response")
     return auth_response
 
@@ -127,7 +125,6 @@ def generate_http_api_response(
             "isAuthorized": True,
             "context": {},
         }
-        
         # コンテキストの追加 (認証済みユーザー情報)
         if context:
             response["context"] = {
@@ -149,7 +146,7 @@ def generate_policy(
     resource: str,
     context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """REST API用のIAMポリシー生成（後方互換性のため保持）."""
+    """REST API用のIAMポリシー生成(後方互換性のため保持)."""
     policy = {
         "principalId": principal_id,
         "policyDocument": {

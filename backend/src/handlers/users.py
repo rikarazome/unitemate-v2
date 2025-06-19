@@ -45,11 +45,9 @@ def get_me(event: dict[str, Any], _context: object) -> dict[str, Any]:
         # オーソライザーから渡されたユーザー情報
         request_context = event.get("requestContext", {})
         authorizer = request_context.get("authorizer", {})
-        
         # HTTP APIの場合、コンテキストは authorizer.lambda 内に格納される
         lambda_context = authorizer.get("lambda", {})
         user_id = lambda_context.get("user_id") or authorizer.get("user_id")
-        
         if not user_id:
             return create_error_response(400, "User ID not found in context")
 
