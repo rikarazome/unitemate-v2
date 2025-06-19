@@ -11,7 +11,11 @@ import requests
 
 @lru_cache(maxsize=1)
 def get_jwks() -> dict[str, Any]:
-    """JWKSをキャッシュして取得."""
+    """JWKSをキャッシュして取得.
+
+    Returns:
+        dict[str, Any]: JWKSデータ.
+    """
     domain = os.environ["AUTH0_DOMAIN"]
     jwks_url = f"https://{domain}/.well-known/jwks.json"
 
@@ -23,7 +27,17 @@ def get_jwks() -> dict[str, Any]:
 
 
 def get_signing_key(kid: str) -> Any:
-    """キーIDに基づく署名キーの取得."""
+    """キーIDに基づく署名キーの取得.
+
+    Args:
+        kid (str): キーID.
+
+    Returns:
+        Any: PyJWK署名キー.
+
+    Raises:
+        ValueError: 指定されたキーIDが見つからない場合.
+    """
     jwks = get_jwks()
     for key in jwks.get("keys", []):
         if key["kid"] == kid:
@@ -33,7 +47,15 @@ def get_signing_key(kid: str) -> Any:
 
 
 def authorize(event: dict[str, Any], _context: Any) -> dict[str, Any]:
-    """Auth0公式推奨のLambdaオーソライザー実装."""
+    """Auth0公式推奨のLambdaオーソライザー実装.
+
+    Args:
+        event (dict[str, Any]): API Gateway Lambda Authorizerイベント.
+        _context (Any): Lambda実行コンテキスト.
+
+    Returns:
+        dict[str, Any]: 認証結果とIAMポリシーまたはHTTP APIレスポンス.
+    """
     # HTTP APIでは routeArn を使用、REST APIでは methodArn を使用
     route_arn = event.get("routeArn") or event.get("methodArn", "unknown")
     print(f"AUTH: Starting authorization for event: {route_arn}")
@@ -68,7 +90,17 @@ def authorize(event: dict[str, Any], _context: Any) -> dict[str, Any]:
 
 
 def extract_token(event: dict[str, Any]) -> str:
-    """イベントからJWTトークンを抽出."""
+    """イベントからJWTトークンを抽出.
+
+    Args:
+        event (dict[str, Any]): API Gatewayイベント.
+
+    Returns:
+        str: JWTトークン.
+
+    Raises:
+        ValueError: Authorizationヘッダーが無効または不足の場合.
+    """
     auth_header = event.get("headers", {}).get("Authorization") or event.get("headers", {}).get("authorization")
 
     if not auth_header or not auth_header.startswith("Bearer "):
@@ -79,7 +111,17 @@ def extract_token(event: dict[str, Any]) -> str:
 
 
 def verify_jwt_token(token: str) -> dict[str, Any]:
-    """JWTトークンの検証."""
+    """JWTトークンの検証.
+
+    Args:
+        token (str): JWTトークン.
+
+    Returns:
+        dict[str, Any]: 検証済みトークンペイロード.
+
+    Raises:
+        ValueError: トークンが無効な場合.
+    """
     # ローカル開発時は署名検証をスキップして基本的なJWT解析のみ
     if os.environ.get("IS_OFFLINE"):
         # 署名検証なしでペイロードを取得
@@ -118,7 +160,16 @@ def generate_http_api_response(
     effect: str,
     context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """HTTP API用のオーソライザーレスポンス生成."""
+    """HTTP API用のオーソライザーレスポンス生成.
+
+    Args:
+        principal_id (str): プリンシパルID.
+        effect (str): 認証結果 ("Allow" または "Deny").
+        context (dict[str, Any] | None): 追加のコンテキスト情報.
+
+    Returns:
+        dict[str, Any]: HTTP API用のレスポンス.
+    """
     # enableSimpleResponses: true の場合のシンプルなレスポンス
     if effect == "Allow":
         response = {
@@ -146,7 +197,17 @@ def generate_policy(
     resource: str,
     context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """REST API用のIAMポリシー生成(後方互換性のため保持)."""
+    """REST API用のIAMポリシー生成(後方互換性のため保持).
+
+    Args:
+        principal_id (str): プリンシパルID.
+        effect (str): 認証結果 ("Allow" または "Deny").
+        resource (str): リソースARN.
+        context (dict[str, Any] | None): 追加のコンテキスト情報.
+
+    Returns:
+        dict[str, Any]: REST API用のIAMポリシー.
+    """
     policy = {
         "principalId": principal_id,
         "policyDocument": {

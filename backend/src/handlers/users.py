@@ -22,7 +22,11 @@ else:
 
 
 def get_dynamodb() -> "DynamoDBServiceResource":  # Changed to double quotes
-    """Get a DynamoDB resource client."""
+    """Get a DynamoDB resource client.
+
+    Returns:
+        DynamoDBServiceResource: DynamoDBリソースクライアント.
+    """
     if os.environ.get("IS_OFFLINE"):
         return boto3.resource(
             "dynamodb",
@@ -33,14 +37,26 @@ def get_dynamodb() -> "DynamoDBServiceResource":  # Changed to double quotes
 
 
 def get_user_table() -> "TableResource":  # Changed to double quotes
-    """Get the DynamoDB table for users."""
+    """Get the DynamoDB table for users.
+
+    Returns:
+        TableResource: DynamoDBユーザーテーブル.
+    """
     dynamodb: DynamoDBServiceResource = get_dynamodb()  # Changed to double quotes
     table_name = os.environ.get("USERS_TABLE_NAME", "unitemate-v2-users-dev")
     return dynamodb.Table(table_name)
 
 
 def get_me(event: dict[str, Any], _context: object) -> dict[str, Any]:
-    """ユーザー情報取得(認証済み前提)."""
+    """ユーザー情報取得(認証済み前提).
+
+    Args:
+        event (dict[str, Any]): Lambdaイベントオブジェクト.
+        _context (object): Lambda実行コンテキスト.
+
+    Returns:
+        dict[str, Any]: ユーザー情報またはエラーレスポンス.
+    """
     try:
         # オーソライザーから渡されたユーザー情報
         request_context = event.get("requestContext", {})
@@ -69,7 +85,15 @@ def get_me(event: dict[str, Any], _context: object) -> dict[str, Any]:
 
 
 def create_user(event: dict[str, Any], _context: object) -> dict[str, Any]:
-    """新しいユーザーを作成(認証済み前提)."""
+    """新しいユーザーを作成(認証済み前提).
+
+    Args:
+        event (dict[str, Any]): Lambdaイベントオブジェクト.
+        _context (object): Lambda実行コンテキスト.
+
+    Returns:
+        dict[str, Any]: 作成されたユーザー情報またはエラーレスポンス.
+    """
     try:
         # オーソライザーから渡されたユーザー情報
         request_context = event.get("requestContext", {})
@@ -123,6 +147,12 @@ def _extract_discord_info_from_auth0(auth0_profile_info: dict[str, Any]) -> dict
     the /userinfo endpoint. Auth0's 'nickname' might be Discord's
     username#discriminator. 'picture' is expected to be the Discord avatar URL.
     The accuracy of this function depends heavily on Auth0 IdP connection and rule settings.
+
+    Args:
+        auth0_profile_info (dict[str, Any]): Auth0プロファイル情報.
+
+    Returns:
+        dict[str, Any]: 抽出されたDiscord情報.
     """
     # Try to get username, discriminator, and avatar from common Auth0 fields.
     # These fields might be directly available or nested within 'identities' or custom claims.
@@ -159,7 +189,15 @@ def _extract_discord_info_from_auth0(auth0_profile_info: dict[str, Any]) -> dict
 
 
 def _create_new_user_in_db(discord_user_id: str, discord_info: dict[str, Any]) -> dict[str, Any]:
-    """Create and put a new user item into DynamoDB and return the API-friendly user data."""
+    """Create and put a new user item into DynamoDB and return the API-friendly user data.
+
+    Args:
+        discord_user_id (str): DiscordユーザーID.
+        discord_info (dict[str, Any]): Discordユーザー情報.
+
+    Returns:
+        dict[str, Any]: 作成されたユーザーデータ.
+    """
     table = get_user_table()
     now = datetime.now(UTC).isoformat()
 

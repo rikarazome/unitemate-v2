@@ -5,7 +5,15 @@ from typing import Any
 
 
 def create_success_response(data: Any, status_code: int = 200) -> dict[str, Any]:
-    """成功レスポンスの生成."""
+    """成功レスポンスの生成.
+
+    Args:
+        data (Any): レスポンスデータ.
+        status_code (int): HTTPステータスコード. デフォルトは200.
+
+    Returns:
+        dict[str, Any]: AWS Lambdaプロキシ結果オブジェクト.
+    """
     return {
         "statusCode": status_code,
         "headers": {
@@ -19,7 +27,15 @@ def create_success_response(data: Any, status_code: int = 200) -> dict[str, Any]
 
 
 def create_error_response(status_code: int, message: str) -> dict[str, Any]:
-    """エラーレスポンスの生成."""
+    """エラーレスポンスの生成.
+
+    Args:
+        status_code (int): HTTPエラーステータスコード.
+        message (str): エラーメッセージ.
+
+    Returns:
+        dict[str, Any]: AWS Lambdaプロキシエラーレスポンスオブジェクト.
+    """
     return {
         "statusCode": status_code,
         "headers": {
