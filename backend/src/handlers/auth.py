@@ -75,7 +75,6 @@ def authorize(event: dict, _context: object) -> dict:
     if is_http_api:
         # HTTP API用のレスポンス
         auth_response = generate_http_api_response(
-            principal_id=payload["sub"],
             effect="Allow",
             context=payload,
         )
@@ -148,14 +147,12 @@ def verify_jwt_token(token: str) -> dict:
 
 
 def generate_http_api_response(
-    principal_id: str,
     effect: str,
     context: dict | None = None,
 ) -> dict:
     """HTTP API用のオーソライザーレスポンス生成.
 
     Args:
-        principal_id (str): プリンシパルID.
         effect (str): 認証結果 ("Allow" または "Deny").
         context (dict | None): 追加のコンテキスト情報.
 
