@@ -3,7 +3,6 @@
 import json
 import os
 from functools import lru_cache
-from typing import Any
 
 import jwt
 import requests
@@ -27,14 +26,14 @@ def get_jwks() -> dict:
     return response.json()
 
 
-def get_signing_key(kid: str) -> Any:
+def get_signing_key(kid: str) -> jwt.PyJWK:
     """キーIDに基づく署名キーの取得.
 
     Args:
         kid (str): キーID.
 
     Returns:
-        Any: PyJWK署名キー.
+        jwt.PyJWK: PyJWK署名キー.
 
     Raises:
         ValueError: 指定されたキーIDが見つからない場合.
@@ -48,12 +47,12 @@ def get_signing_key(kid: str) -> Any:
     raise ValueError(msg)
 
 
-def authorize(event: dict, _context: Any) -> dict:
+def authorize(event: dict, _context: object) -> dict:
     """Auth0公式推奨のLambdaオーソライザー実装.
 
     Args:
         event (dict): API Gateway Lambda Authorizerイベント.
-        _context (Any): Lambda実行コンテキスト.
+        _context (object): Lambda実行コンテキスト.
 
     Returns:
         dict: 認証結果とIAMポリシーまたはHTTP APIレスポンス.
