@@ -203,7 +203,7 @@ def _create_new_user_in_db(discord_user_id: str, discord_info: dict) -> dict:
 
     """
     table = get_user_table()
-    now = datetime.now(UTC).isoformat()
+    now = int(datetime.now(UTC).timestamp())
 
     # discord_user_id (from Auth0 'sub') is the primary key for the table
     # and also stored in auth0_sub for GSI querying.
