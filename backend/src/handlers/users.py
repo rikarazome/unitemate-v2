@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any
 
 import boto3
 from boto3.dynamodb.conditions import Key
-from botocore.exceptions import ClientError
 
 from src.utils.response import create_error_response, create_success_response
 
@@ -58,31 +57,26 @@ def get_me(event: dict, _context: object) -> dict:
         dict: ユーザー情報またはエラーレスポンス.
 
     """
-    try:
-        # オーソライザーから渡されたユーザー情報
-        request_context = event.get("requestContext", {})
-        authorizer = request_context.get("authorizer", {})
-        # HTTP APIの場合、コンテキストは authorizer.lambda 内に格納される
-        lambda_context = authorizer.get("lambda", {})
-        user_id = lambda_context.get("user_id") or authorizer.get("user_id")
-        if not user_id:
-            return create_error_response(400, "User ID not found in context")
+    # オーソライザーから渡されたユーザー情報
+    request_context = event.get("requestContext", {})
+    authorizer = request_context.get("authorizer", {})
+    # HTTP APIの場合、コンテキストは authorizer.lambda 内に格納される
+    lambda_context = authorizer.get("lambda", {})
+    user_id = lambda_context.get("user_id") or authorizer.get("user_id")
+    if not user_id:
+        return create_error_response(400, "User ID not found in context")
 
-        # DynamoDBからユーザー情報を取得
-        table = get_user_table()
-        response = table.query(
-            IndexName="Auth0SubIndex",
-            KeyConditionExpression=Key("auth0_sub").eq(user_id),
-        )
+    # DynamoDBからユーザー情報を取得
+    table = get_user_table()
+    response = table.query(
+        IndexName="Auth0SubIndex",
+        KeyConditionExpression=Key("auth0_sub").eq(user_id),
+    )
 
-        if not response["Items"]:
-            return create_error_response(404, "User not found")
+    if not response["Items"]:
+        return create_error_response(404, "User not found")
 
-        return create_success_response(response["Items"][0])
-
-    except ClientError as e:
-        print(f"Error in get_me: {e}")
-        return create_error_response(500, "Internal server error")
+    return create_success_response(response["Items"][0])
 
 
 def create_user(event: dict, _context: object) -> dict:
@@ -96,50 +90,45 @@ def create_user(event: dict, _context: object) -> dict:
         dict: 作成されたユーザー情報またはエラーレスポンス.
 
     """
+    # オーソライザーから渡されたユーザー情報
+    request_context = event.get("requestContext", {})
+    authorizer = request_context.get("authorizer", {})
+
+    # HTTP APIの場合、コンテキストは authorizer.lambda 内に格納される
+    lambda_context = authorizer.get("lambda", {})
+    auth0_user_id = lambda_context.get("user_id") or authorizer.get("user_id")
+    if not auth0_user_id:
+        return create_error_response(400, "Auth0 user ID not found in context")
+
+    # Auth0のユーザー詳細情報を取得
+    user_info_json = lambda_context.get("user_info") or authorizer.get("user_info", "{}")
     try:
-        # オーソライザーから渡されたユーザー情報
-        request_context = event.get("requestContext", {})
-        authorizer = request_context.get("authorizer", {})
+        auth0_token_info = json.loads(user_info_json)
+    except json.JSONDecodeError:
+        auth0_token_info = {}
 
-        # HTTP APIの場合、コンテキストは authorizer.lambda 内に格納される
-        lambda_context = authorizer.get("lambda", {})
-        auth0_user_id = lambda_context.get("user_id") or authorizer.get("user_id")
-        if not auth0_user_id:
-            return create_error_response(400, "Auth0 user ID not found in context")
+    # Request bodyからAuth0ユーザー情報を取得
+    try:
+        request_body = json.loads(event.get("body", "{}"))
+    except json.JSONDecodeError:
+        return create_error_response(400, "Invalid JSON in request body")
 
-        # Auth0のユーザー詳細情報を取得
-        user_info_json = lambda_context.get("user_info") or authorizer.get("user_info", "{}")
-        try:
-            auth0_token_info = json.loads(user_info_json)
-        except json.JSONDecodeError:
-            auth0_token_info = {}
+    # Discord情報を抽出
+    discord_info = _extract_discord_info_from_auth0(request_body or auth0_token_info)
 
-        # Request bodyからAuth0ユーザー情報を取得
-        try:
-            request_body = json.loads(event.get("body", "{}"))
-        except json.JSONDecodeError:
-            return create_error_response(400, "Invalid JSON in request body")
+    table = get_user_table()
+    # 既存ユーザーの確認
+    existing_user_response = table.query(
+        IndexName="Auth0SubIndex",
+        KeyConditionExpression=Key("auth0_sub").eq(auth0_user_id),
+    )
+    if existing_user_response["Items"]:
+        return create_error_response(409, "User already exists")
 
-        # Discord情報を抽出
-        discord_info = _extract_discord_info_from_auth0(request_body or auth0_token_info)
+    # 新しいユーザーを作成
+    new_user_data = _create_new_user_in_db(auth0_user_id, discord_info)
 
-        table = get_user_table()
-        # 既存ユーザーの確認
-        existing_user_response = table.query(
-            IndexName="Auth0SubIndex",
-            KeyConditionExpression=Key("auth0_sub").eq(auth0_user_id),
-        )
-        if existing_user_response["Items"]:
-            return create_error_response(409, "User already exists")
-
-        # 新しいユーザーを作成
-        new_user_data = _create_new_user_in_db(auth0_user_id, discord_info)
-
-        return create_success_response(new_user_data, 201)
-
-    except ClientError as e:
-        print(f"Error in create_user: {e}")
-        return create_error_response(500, "Internal server error")
+    return create_success_response(new_user_data, 201)
 
 
 def _extract_discord_info_from_auth0(auth0_profile_info: dict) -> dict:
