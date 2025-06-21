@@ -105,7 +105,7 @@ def create_user(event: dict, _context: object) -> dict:
 
     # Request bodyからAuth0ユーザー情報を取得
     try:
-        request_body = json.loads(event.get("body", "{}"))
+        request_body = json.loads(event["body"])
     except json.JSONDecodeError:
         return create_error_response(400, "Invalid JSON in request body")
 
