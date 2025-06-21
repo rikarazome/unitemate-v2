@@ -87,30 +87,8 @@ def create_user(event: dict, _context: object) -> dict:
 
     """
     # オーソライザーから渡されたユーザー情報
-    request_context = event.get("requestContext", {})
-    authorizer = request_context.get("authorizer", {})
-
-    # HTTP APIの場合、コンテキストは authorizer.lambda 内に格納される
-    lambda_context = authorizer.get("lambda", {})
-    auth0_user_id = lambda_context.get("user_id") or authorizer.get("user_id")
-    if not auth0_user_id:
-        return create_error_response(400, "Auth0 user ID not found in context")
-
-    # Auth0のユーザー詳細情報を取得
-    user_info_json = lambda_context.get("user_info") or authorizer.get("user_info", "{}")
-    try:
-        auth0_token_info = json.loads(user_info_json)
-    except json.JSONDecodeError:
-        auth0_token_info = {}
-
-    # Request bodyからAuth0ユーザー情報を取得
-    try:
-        request_body = json.loads(event["body"])
-    except json.JSONDecodeError:
-        return create_error_response(400, "Invalid JSON in request body")
-
-    # Discord情報を抽出
-    discord_info = _extract_discord_info_from_auth0(request_body or auth0_token_info)
+    auth0_user_id = event["requestContext"]["authorizer"]["lambda"]["user_id"]
+    discord_info = _extract_discord_info_from_auth0(json.loads(event["body"]))
 
     table = get_user_table()
     # 既存ユーザーの確認
