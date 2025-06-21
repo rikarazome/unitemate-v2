@@ -4,11 +4,7 @@ version = "0.1.0"
 description = "Backend for Unitemate v2"
 authors = [{ name = "Shun Fukusumi", email = "shun.fukusumi@gmail.com" }]
 requires-python = ">=3.12,<3.13"
-dependencies = [
-    "pyjwt[crypto]==2.10.1",
-    "requests==2.32.3",
-    "boto3==1.35.88",
-]
+dependencies = ["pyjwt[crypto]==2.10.1", "requests==2.32.3", "boto3==1.35.88"]
 
 [project.optional-dependencies]
 dev = [
@@ -25,16 +21,16 @@ target-version = "py312"
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
-    "T201", # print() の使用を許可
-    "D400", # docstringの末尾がピリオド.の強制を無効化
-    "D415", # docstringの末尾がピリオド.の強制を無効化
+    "T201",   # print() の使用を許可
+    "D400",   # docstringの末尾がピリオド.の強制を無効化
+    "D415",   # docstringの末尾がピリオド.の強制を無効化
     "INP001", # __init__.py の設定不要
     "ERA001", # コメントアウトされたコードをOK
     "RET504", # 直接returnしなくてもOK
-    "D100", # Missing docstring in public module
-    "D104", # Missing docstring in public package
-    "D105", # Missing docstring in magic method
-    "D107", # Allow unused arguments in function definitions.
+    "D100",   # Missing docstring in public module
+    "D104",   # Missing docstring in public package
+    "D105",   # Missing docstring in magic method
+    "D107",   # Allow unused arguments in function definitions.
     "ANN101", # Missing type annotation for `self` in method
     "ANN102", # Missing type annotation for `cls` in classmethod
     "D203",
