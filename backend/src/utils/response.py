@@ -1,7 +1,22 @@
 """Common response utilities for Lambda functions."""
 
 import json
+from decimal import Decimal
 from typing import Any
+
+
+class CustomJSONEncoder(json.JSONEncoder):
+    """Custom JSON encoder to handle Decimal types."""
+
+    def default(self, o: Any) -> Any:
+        """Handle Decimal types by converting them to int or float."""
+        if isinstance(o, Decimal):
+            # Decimalをintに変換できるか試す
+            if o % 1 == 0:
+                return int(o)
+            # できない場合はfloatに変換
+            return float(o)
+        return super().default(o)
 
 
 def create_success_response(data: Any, status_code: int = 200) -> dict[str, Any]:
@@ -23,7 +38,7 @@ def create_success_response(data: Any, status_code: int = 200) -> dict[str, Any]
             "Access-Control-Allow-Headers": "Content-Type,Authorization",
             "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
         },
-        "body": json.dumps(data),
+        "body": json.dumps(data, cls=CustomJSONEncoder),
     }
 
 
