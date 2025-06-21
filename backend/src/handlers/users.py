@@ -175,6 +175,10 @@ def _create_new_user_in_db(discord_user_id: str, discord_info: dict) -> dict:
         "discord_discriminator": discord_info.get("discord_discriminator"),
         "discord_avatar_url": discord_info.get("discord_avatar_url"),  # Renamed
         "app_username": discord_info["discord_username"],  # Initial app username
+        "rate": 1500,
+        "max_rate": 1500,
+        "match_count": 0,
+        "win_count": 0,
         "created_at": now,
         "updated_at": now,
     }
