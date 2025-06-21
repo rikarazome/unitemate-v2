@@ -6,8 +6,12 @@
     "discord_discriminator": "1234",
     "discord_avatar_url": "https://cdn.discordapp.com/avatars/123456789012345678/example.png",
     "app_username": "discord_user_123456789012345678",
-    "created_at": "2024-01-01T00:00:00Z",
-    "updated_at": "2024-01-01T00:00:00Z"
+    "rate": 1500,
+    "max_rate": 1500,
+    "match_count": 0,
+    "win_count": 0,
+    "created_at": 1704067200,
+    "updated_at": 1704067200
   },
   {
     "user_id": "discord|234567890123456789",
@@ -16,8 +20,12 @@
     "discord_discriminator": "5678",
     "discord_avatar_url": "https://cdn.discordapp.com/avatars/234567890123456789/example.png",
     "app_username": "discord_user_234567890123456789",
-    "created_at": "2024-01-02T00:00:00Z",
-    "updated_at": "2024-01-02T00:00:00Z"
+    "rate": 1500,
+    "max_rate": 1500,
+    "match_count": 0,
+    "win_count": 0,
+    "created_at": 1704153600,
+    "updated_at": 1704153600
   },
   {
     "user_id": "discord|345678901234567890",
@@ -26,8 +34,12 @@
     "discord_discriminator": null,
     "discord_avatar_url": "https://cdn.discordapp.com/avatars/345678901234567890/example.png",
     "app_username": "discord_user_345678901234567890",
-    "created_at": "2024-01-03T00:00:00Z",
-    "updated_at": "2024-01-03T00:00:00Z"
+    "rate": 1500,
+    "max_rate": 1500,
+    "match_count": 0,
+    "win_count": 0,
+    "created_at": 1704240000,
+    "updated_at": 1704240000
   },
   {
     "user_id": "discord|456789012345678901",
@@ -36,8 +48,12 @@
     "discord_discriminator": "0001",
     "discord_avatar_url": "https://cdn.discordapp.com/avatars/456789012345678901/example.png",
     "app_username": "discord_user_456789012345678901",
-    "created_at": "2024-01-04T00:00:00Z",
-    "updated_at": "2024-01-04T00:00:00Z"
+    "rate": 1500,
+    "max_rate": 1500,
+    "match_count": 0,
+    "win_count": 0,
+    "created_at": 1704326400,
+    "updated_at": 1704326400
   },
   {
     "user_id": "discord|567890123456789012",
@@ -46,7 +62,11 @@
     "discord_discriminator": null,
     "discord_avatar_url": "https://cdn.discordapp.com/avatars/567890123456789012/example.png",
     "app_username": "discord_user_567890123456789012",
-    "created_at": "2024-01-05T00:00:00Z",
-    "updated_at": "2024-01-05T00:00:00Z"
+    "rate": 1500,
+    "max_rate": 1500,
+    "match_count": 0,
+    "win_count": 0,
+    "created_at": 1704412800,
+    "updated_at": 1704412800
   }
 ]
