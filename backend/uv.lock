@@ -315,10 +315,6 @@ dev = [
     { name = "mypy" },
     { name = "mypy-boto3-dynamodb" },
     { name = "ruff" },
-]
-
-[package.dev-dependencies]
-dev = [
     { name = "types-requests" },
 ]
 
@@ -326,15 +322,13 @@ dev = [
 requires-dist = [
     { name = "boto3", specifier = "==1.35.88" },
     { name = "mypy", marker = "extra == 'dev'", specifier = "==1.16.0" },
-    { name = "mypy-boto3-dynamodb", marker = "extra == 'dev'" },
+    { name = "mypy-boto3-dynamodb", marker = "extra == 'dev'", specifier = "==1.38.4" },
     { name = "pyjwt", extras = ["crypto"], specifier = "==2.10.1" },
     { name = "requests", specifier = "==2.32.3" },
     { name = "ruff", marker = "extra == 'dev'", specifier = "==0.11.13" },
+    { name = "types-requests", marker = "extra == 'dev'", specifier = ">=2.32.4.20250611" },
 ]
 provides-extras = ["dev"]
-
-[package.metadata.requires-dev]
-dev = [{ name = "types-requests", specifier = ">=2.32.4.20250611" }]
 
 [[package]]
 name = "urllib3"
