@@ -15,43 +15,70 @@ Unitemate v2 は、ポケモンユナイト向けの対戦マッチングサー�
 
 ## 開発コマンド
 
-### フロントエンド (`frontend/`)
+**重要: 全ての開発コマンドは Makefile に統一されています。以下の make コマンドを使用してください。**
+
+### 全体管理（ルートディレクトリ）
+
+```bash
+# 開発環境セットアップ
+make setup
+
+# 開発サーバー起動（フロント + バック同時）
+make dev
+
+# 品質チェック（lint + format + typecheck + build）
+make check
+
+# AWS Lambdaデプロイ
+make deploy
+
+# 使用可能なコマンド一覧
+make help
+```
+
+### フロントエンド単体 (`frontend/`)
 
 ```bash
 # 開発サーバー起動 (http://localhost:5173)
-npm run dev
+make dev
 
 # ビルド
-npm run build
+make build
 
 # Lint
-npm run lint
+make lint
 
 # フォーマット
-npm run format
+make format
 
-# プレビュー
-npm run preview
+# 全体のヘルプ
+make help
 ```
 
-### バックエンド (`backend/`)
+### バックエンド単体 (`backend/`)
 
 ```bash
 # ローカル開発サーバー起動 (http://localhost:3000)
-npm run dev
+make dev
 # または
-npm run start
+make start
 
 # Python依存関係のインストール
-uv sync --dev
+make install
 
-# Python関連 (uvを使用)
-uv run ruff check .
-uv run ruff format .
-uv run mypy .
+# Python関連チェック
+make lint      # ruff check
+make format    # ruff format
+make typecheck # mypy
+
+# 全体チェック
+make check
 
 # AWS Lambda デプロイ
-npx sls deploy
+make deploy
+
+# 全体のヘルプ
+make help
 ```
 
 ## コード規約
@@ -89,8 +116,8 @@ npx sls deploy
 
 ### Serverless Framework / Python ランタイム
 
-- **このプロジェクトはPython 3.12を使用する**
-- Serverless IDEの診断エラーでpython3.12が対応していないと表示されることがあるが、**無視すること**
-- Serverless IDEのサポートが止まっており、Python 3.12対応に追従していないだけ
-- AWS Lambdaは実際にはPython 3.12をサポートしている
+- **このプロジェクトは Python 3.12 を使用する**
+- Serverless IDE の診断エラーで python3.12 が対応していないと表示されることがあるが、**無視すること**
+- Serverless IDE のサポートが止まっており、Python 3.12 対応に追従していないだけ
+- AWS Lambda は実際には Python 3.12 をサポートしている
 - `runtime: python3.12`を`python3.11`に変更してはいけない
