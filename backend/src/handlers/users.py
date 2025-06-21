@@ -42,7 +42,7 @@ def get_user_table() -> "TableResource":  # Changed to double quotes
 
     """
     dynamodb: DynamoDBServiceResource = get_dynamodb()  # Changed to double quotes
-    table_name = os.environ.get("USERS_TABLE_NAME", "unitemate-v2-users-dev")
+    table_name = os.environ["USERS_TABLE_NAME"]
     return dynamodb.Table(table_name)
 
 
