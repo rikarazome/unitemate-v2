@@ -168,8 +168,6 @@ def _create_new_user_in_db(discord_user_id: str, discord_info: dict) -> dict:
     table = get_user_table()
     now = int(datetime.now(UTC).timestamp())
 
-    # discord_user_id (from Auth0 'sub') is the primary key for the table
-    # and also stored in auth0_sub for GSI querying.
     new_user_item = {
         "user_id": discord_user_id,  # PK: Discord's native ID (from Auth0 'sub')
         "auth0_sub": discord_user_id,  # GSI PK: Auth0 'sub' (same as user_id here)
@@ -182,8 +180,4 @@ def _create_new_user_in_db(discord_user_id: str, discord_info: dict) -> dict:
     }
 
     table.put_item(Item=new_user_item)
-
-    # Return a representation of the user, similar to what get_me would return
-    # pk_constant is no longer used.
-    api_response_user_data = new_user_item.copy()
-    return api_response_user_data
+    return new_user_item
