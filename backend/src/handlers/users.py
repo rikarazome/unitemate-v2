@@ -58,15 +58,15 @@ def get_me(event: dict, _context: object) -> dict:
 
     """
     # オーソライザーから渡されたユーザー情報
-    user_id = event["requestContext"]["authorizer"]["lambda"]["user_id"]
-    if not user_id:
+    auth0_user_id = event["requestContext"]["authorizer"]["lambda"]["user_id"]
+    if not auth0_user_id:
         return create_error_response(400, "User ID not found in context")
 
     # DynamoDBからユーザー情報を取得
     table = get_user_table()
     response = table.query(
         IndexName="Auth0SubIndex",
-        KeyConditionExpression=Key("auth0_sub").eq(user_id),
+        KeyConditionExpression=Key("auth0_sub").eq(auth0_user_id),
     )
 
     if not response["Items"]:
