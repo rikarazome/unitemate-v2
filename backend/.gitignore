@@ -59,3 +59,6 @@ node_modules/
 
 # DynamoDB Local
 .dynamodb
+
+# Temporary requirements.txt
+requirements.txt

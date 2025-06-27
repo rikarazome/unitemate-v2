@@ -1,5 +1,5 @@
 # バックエンド用Makefile
-.PHONY: start install check help
+.PHONY: start install check deploy help
 
 # デフォルトターゲット
 .DEFAULT_GOAL := start
@@ -18,6 +18,11 @@ check:
 	uv run ruff check .
 	uv run ruff format .
 
+# AWS Lambda デプロイ
+deploy:
+	uv pip compile pyproject.toml -o requirements.txt
+	sls deploy -s prd
+	rm requirements.txt
 
 # ヘルプ
 help:
@@ -25,3 +30,4 @@ help:
 	@echo "  make start         - ローカル開発サーバー起動 (http://localhost:3000)"
 	@echo "  make install       - Python依存関係をインストール"
 	@echo "  make check         - lint + format の実行"
+	@echo "  make deploy        - AWS Lambdaにデプロイ"

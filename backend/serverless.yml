@@ -51,6 +51,29 @@ provider:
             - !GetAtt UsersTable.Arn
             - !Join ["", [!GetAtt UsersTable.Arn, "/index/*"]]
 
+# デプロイパッケージに含めるファイルのパターン
+package:
+  patterns:
+    - "!.git/**"
+    - "!node_modules/**"
+    - "!build/**"
+    - "!*.log"
+    - "!src/**/*.egg-info/**"
+    - "!uv.lock"
+    - "!pyproject.toml"
+    - "!requirements.txt"
+    - "!package*.json"
+    - "!Makefile"
+    - "!migrations/**"
+    - "!.pytest_cache/**"
+    - "!__pycache__/**"
+    - "!*.pyc"
+    - "!.mypy_cache/**"
+    - "!.ruff_cache/**"
+    - "!.dynamodb/**"
+    - "!.serverless/**"
+    - "!.venv/**"
+
 functions:
   # オーソライザー関数
   authHandler:
