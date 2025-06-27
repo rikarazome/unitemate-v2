@@ -2,7 +2,7 @@ name: Backend Deploy
 
 on:
   push:
-    branches: ['*']
+    branches: ["*"]
     paths:
       - "backend/**"
   workflow_dispatch:
@@ -32,7 +32,7 @@ jobs:
       - name: Install dependencies
         run: |
           uv venv
-          uv pip install .[dev]
+          uv sync --extra dev
 
       - name: Run ruff check
         run: |
