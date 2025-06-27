@@ -17,7 +17,10 @@ export const useApi = () => {
   const { getAccessTokenSilently, isAuthenticated } = useAuth0();
 
   const callApi = useCallback(
-    async <T>(endpoint: string, config: ApiConfig = {}): Promise<ApiResponse<T>> => {
+    async <T>(
+      endpoint: string,
+      config: ApiConfig = {},
+    ): Promise<ApiResponse<T>> => {
       try {
         const headers: Record<string, string> = {
           "Content-Type": "application/json",
@@ -35,7 +38,7 @@ export const useApi = () => {
             method: config.method || "GET",
             headers,
             body: config.body ? JSON.stringify(config.body) : undefined,
-          }
+          },
         );
 
         const data = await response.json();
@@ -52,7 +55,7 @@ export const useApi = () => {
         };
       }
     },
-    [getAccessTokenSilently, isAuthenticated]
+    [getAccessTokenSilently, isAuthenticated],
   );
 
   return { callApi };

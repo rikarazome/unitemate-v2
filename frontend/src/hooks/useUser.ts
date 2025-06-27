@@ -64,7 +64,9 @@ export const useUser = () => {
         setUserData(response.data || null);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch user data");
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch user data",
+      );
     } finally {
       setLoading(false);
     }

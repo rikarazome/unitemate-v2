@@ -10,24 +10,41 @@ interface User {
 }
 
 function App() {
-  const { user: auth0User, isAuthenticated, loginWithRedirect, logout, isLoading } = useAuth0();
-  const { userData, loading: userDataLoading, error: userDataError } = useUser();
+  const {
+    user: auth0User,
+    isAuthenticated,
+    loginWithRedirect,
+    logout,
+    isLoading,
+  } = useAuth0();
+  const {
+    userData,
+    loading: userDataLoading,
+    error: userDataError,
+  } = useUser();
 
   if (isLoading || userDataLoading) {
     return <div>Loading...</div>;
   }
 
-  const user: User | undefined = isAuthenticated && auth0User ? {
-    id: userData?.user_id || auth0User.sub || "",
-    username: userData?.discord_username || auth0User.nickname || auth0User.name || "Unknown User",
-    avatar: userData?.discord_avatar_url || auth0User.picture,
-  } : undefined;
+  const user: User | undefined =
+    isAuthenticated && auth0User
+      ? {
+          id: userData?.user_id || auth0User.sub || "",
+          username:
+            userData?.discord_username ||
+            auth0User.nickname ||
+            auth0User.name ||
+            "Unknown User",
+          avatar: userData?.discord_avatar_url || auth0User.picture,
+        }
+      : undefined;
 
   const handleLogin = () => {
     loginWithRedirect({
       authorizationParams: {
-        connection: 'discord'
-      }
+        connection: "discord",
+      },
     });
   };
 
@@ -55,7 +72,17 @@ function App() {
                 <p>レート: {userData.rate ?? 0}</p>
                 <p>試合数: {userData.match_count ?? 0}</p>
                 <p>勝利数: {userData.win_count ?? 0}</p>
-                <p>勝率: {typeof userData.match_count === 'number' && typeof userData.win_count === 'number' && userData.match_count > 0 ? Math.round((userData.win_count / userData.match_count) * 100) : 0}%</p>
+                <p>
+                  勝率:{" "}
+                  {typeof userData.match_count === "number" &&
+                  typeof userData.win_count === "number" &&
+                  userData.match_count > 0
+                    ? Math.round(
+                        (userData.win_count / userData.match_count) * 100,
+                      )
+                    : 0}
+                  %
+                </p>
               </div>
             )}
             <p>
