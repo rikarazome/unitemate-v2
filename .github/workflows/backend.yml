@@ -78,7 +78,7 @@ jobs:
       - name: Install Python dependencies and generate requirements.txt
         run: |
           uv sync
-          uv pip freeze > requirements.txt
+          uv pip compile pyproject.toml -o requirements.txt
 
       - name: Install Node.js dependencies
         run: |
