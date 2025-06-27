@@ -1,6 +1,6 @@
 # Makefile for unitemate-v2
 
-.PHONY: setup setup-frontend setup-backend dev lint lint-backend lint-frontend format format-backend format-frontend help
+.PHONY: setup setup-frontend setup-backend start check check-backend check-frontend help
 
 # ==============================================================================
 # Setup Commands
@@ -12,59 +12,42 @@ setup: setup-frontend setup-backend
 ## Setup frontend development environment
 setup-frontend:
 	@echo "Setting up frontend development environment..."
-	@cd frontend && npm install
+	@cd frontend && make install
 
 ## Setup backend development environment
 setup-backend:
 	@echo "Setting up backend development environment..."
-	@cd backend && npm install && uv sync --dev
+	@cd backend && make install
 
 # ==============================================================================
 # Development Commands
 # ==============================================================================
 
 ## Start development servers (frontend and backend)
-dev:
+start:
 	@echo "Starting development servers..."
 	@echo "Frontend will be available at http://localhost:5173"
 	@echo "Backend will be available at http://localhost:3000"
 	@echo ""
 	@echo "Starting frontend and backend in parallel..."
-	@(cd frontend && npm run dev) & (cd backend && npm run dev)
+	@(cd frontend && make start) & (cd backend && make start)
 
 # ==============================================================================
-# Lint Commands
+# Check Commands
 # ==============================================================================
 
-## Run all linters
-lint: lint-backend lint-frontend
+## Run all linters & format
+check: check-backend check-frontend
 
-## Run backend linters (ruff check)
-lint-backend:
+## Run backend linters & format
+check-backend:
 	@echo "Running backend linters..."
-	@cd backend && uv run ruff check .
+	@cd backend && make check
 
-## Run frontend linters (eslint)
-lint-frontend:
+## Run frontend linters & format
+check-frontend:
 	@echo "Running frontend linters..."
-	@cd frontend && npm run lint
-
-# ==============================================================================
-# Format Check Commands
-# ==============================================================================
-
-## Run all format checkers
-format: format-backend format-frontend
-
-## Run backend format checker (ruff format --check)
-format-backend:
-	@echo "Checking backend formatting..."
-	@cd backend && uv run ruff format --check .
-
-## Run frontend format checker (prettier --check)
-format-frontend:
-	@echo "Checking frontend formatting..."
-	@cd frontend && npx prettier --check .
+	@cd frontend && make check
 
 # ==============================================================================
 # Help
@@ -76,11 +59,8 @@ help:
 	@echo "  setup            - Setup both frontend and backend development environments"
 	@echo "  setup-frontend   - Setup frontend development environment"
 	@echo "  setup-backend    - Setup backend development environment"
-	@echo "  dev              - Start both development servers in parallel"
-	@echo "  lint             - Run all linters (backend and frontend)"
-	@echo "  lint-backend     - Run backend linters (ruff check)"
-	@echo "  lint-frontend    - Run frontend linters (eslint)"
-	@echo "  format           - Run all format checkers (backend and frontend)"
-	@echo "  format-backend   - Run backend format checker (ruff format --check)"
-	@echo "  format-frontend  - Run frontend format checker (prettier --check)"
+	@echo "  start            - Start both development servers in parallel"
+	@echo "  check            - Run all linters & format (backend and frontend)"
+	@echo "  check-backend    - Run backend linters & format"
+	@echo "  check-frontend   - Run frontend linters & format"
 	@echo "  help             - Show this help message"
