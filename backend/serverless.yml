@@ -73,6 +73,7 @@ package:
     - "!.dynamodb/**"
     - "!.serverless/**"
     - "!.venv/**"
+    - "!.env.sample"
 
 functions:
   # オーソライザー関数
