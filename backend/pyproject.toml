@@ -4,7 +4,12 @@ version = "0.1.0"
 description = "Backend for Unitemate v2"
 authors = [{ name = "Shun Fukusumi", email = "shun.fukusumi@gmail.com" }]
 requires-python = ">=3.12,<3.13"
-dependencies = ["pyjwt[crypto]==2.10.1", "requests==2.32.3", "boto3==1.35.88"]
+dependencies = [
+    "pyjwt[crypto]==2.10.1",
+    "requests==2.32.3",
+    "boto3==1.35.88",
+    "pydantic>=2.11.7",
+]
 
 [project.optional-dependencies]
 dev = [
