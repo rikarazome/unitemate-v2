@@ -12,6 +12,9 @@ start:
 install:
 	uv venv
 	uv sync --extra dev
+	npm install
+	sls dynamodb install
+	sls dynamodb migrate
 
 # lint & formatチェック
 check:
