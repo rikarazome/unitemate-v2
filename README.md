@@ -8,7 +8,7 @@
 
 ### アーキテクチャ概要
 
-- **フロントエンド**: React + TypeScript + Vite
+- **フロントエンド**: React + TypeScript
 - **バックエンド**: Serverless Framework (Python)
 
 ## 機能
@@ -45,50 +45,17 @@
 3. 開発サーバーを起動
 
    ```bash
-   make dev
+   make start
    ```
 
 4. ブラウザでアクセス
    - フロントエンド: `http://localhost:5173`
    - バックエンド API: `http://localhost:3000`
 
-### 個別セットアップ
-
-フロントエンドまたはバックエンドのみをセットアップしたい場合：
+### コード品質チェック
 
 ```bash
-# フロントエンドのみ
-make setup-frontend
-
-# バックエンドのみ
-make setup-backend
-```
-
-### 開発コマンド
-
-```bash
-# 開発環境セットアップ
-make setup
-
-# 開発サーバー起動（フロントエンド + バックエンド）
-make dev
-
-# コード品質チェック
-make lint      # 全体のLintチェック
-make format    # 全体のフォーマットチェック
-
-# 個別のフロントエンド開発
-cd frontend
-npm run dev    # 開発サーバー
-npm run build  # ビルド
-npm run lint   # Lintチェック
-
-# 個別のバックエンド開発
-cd backend
-npm run dev           # 開発サーバー
-uv run ruff check .   # Lintチェック
-uv run ruff format .  # フォーマット
-npx sls deploy        # AWS Lambda デプロイ
+make check
 ```
 
 ## プロジェクト構造
@@ -104,20 +71,4 @@ unitemate-v2/
 │   ├── serverless.yml
 │   └── pyproject.toml
 └── docs/             # ドキュメント
-    └── mvp/
 ```
-
-## 開発規約
-
-### Python (バックエンド)
-
-- パッケージ管理: `uv`
-- Linter/Formatter: `ruff`
-- TypeChecker: `mypy`
-- 型ヒント必須
-
-### TypeScript/React (フロントエンド)
-
-- Linter: ESLint
-- Formatter: Prettier
-- React 19 + TypeScript 使用
