@@ -42,13 +42,46 @@
    make setup
    ```
 
-3. 開発サーバーを起動
+3. 環境変数を設定
+
+   **フロントエンド（frontend/.env）:**
+
+   ```bash
+   cd frontend
+   cp .env.example .env
+   ```
+
+   以下の環境変数を設定してください：
+
+   ```
+   VITE_AUTH0_DOMAIN=your-auth0-domain
+   VITE_AUTH0_CLIENT_ID=your-auth0-client-id
+   VITE_AUTH0_AUDIENCE=your-auth0-audience
+   VITE_API_BASE_URL=http://localhost:3000
+   ```
+
+   **バックエンド（backend/.env）:**
+
+   ```bash
+   cd backend
+   cp .env.example .env
+   ```
+
+   以下の環境変数を設定してください：
+
+   ```
+   AUTH0_DOMAIN=your-auth0-domain
+   AUTH0_AUDIENCE=your-auth0-audience
+   FRONTEND_URL=http://localhost:5173
+   ```
+
+4. 開発サーバーを起動
 
    ```bash
    make start
    ```
 
-4. ブラウザでアクセス
+5. ブラウザでアクセス
    - フロントエンド: `http://localhost:5173`
    - バックエンド API: `http://localhost:3000`
 
