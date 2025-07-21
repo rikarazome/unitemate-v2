@@ -1,6 +1,5 @@
 import React from "react";
 import Header from "./Header";
-import "./Layout.css";
 
 interface User {
   id: string;
@@ -22,9 +21,11 @@ const Layout: React.FC<LayoutProps> = ({
   onLogout,
 }) => {
   return (
-    <div className="layout">
+    <div className="min-h-screen flex flex-col">
       <Header user={user} onLogin={onLogin} onLogout={onLogout} />
-      <main className="main-content">{children}</main>
+      <main className="flex-1 p-8 max-w-[1200px] mx-auto w-full md:p-4">
+        {children}
+      </main>
     </div>
   );
 };
