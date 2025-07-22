@@ -40,7 +40,42 @@ components:
           type: string
           description: "アプリケーション内で表示されるユーザー名。"
           example: "My App User"
-
+        trainer_name:
+          type: string
+          description: "トレーナー名。アプリケーション内で表示されるユーザー名。"
+          example: "トレーナー太郎"
+        twitter_id:
+          type: string
+          nullable: true
+          description: "Twitter(X)のユーザーID。@マーク付き。"
+          example: "@my_twitter_id"
+        preferred_roles:
+          type: array
+          items:
+            $ref: "#/components/schemas/PreferredRole"
+          description: "希望ロールの配列。"
+          example: ["TOP_LANE", "MIDDLE"]
+        bio:
+          type: string
+          nullable: true
+          description: "ひとこと。得意ポケモンや意気込みなど、自己紹介文。"
+          example: "ガブリアス使いです！よろしくお願いします！"
+        rate:
+          type: number
+          description: "現在のレーティング。"
+          example: 1500
+        max_rate:
+          type: number
+          description: "最高レーティング。"
+          example: 1600
+        match_count:
+          type: number
+          description: "総試合数。"
+          example: 10
+        win_count:
+          type: number
+          description: "勝利数。"
+          example: 7
         created_at:
           type: string
           format: date-time
@@ -76,6 +111,53 @@ components:
           format: date-time
           description: "Auth0プロファイルの最終更新日時。"
 
+    PreferredRole:
+      type: string
+      description: "希望ロール。"
+      enum:
+        - "TOP_LANE"      # 上レーン
+        - "TOP_STUDY"     # 上学習
+        - "MIDDLE"        # 中央
+        - "BOTTOM_LANE"   # 下レーン
+        - "BOTTOM_STUDY"  # 下学習
+      example: "TOP_LANE"
+
+    CreateUserRequest:
+      type: object
+      description: "ユーザー作成リクエスト。Auth0情報とユーザー入力情報を組み合わせたもの。"
+      required:
+        - auth0_profile
+        - trainer_name
+      properties:
+        auth0_profile:
+          $ref: "#/components/schemas/Auth0UserProfile"
+          description: "Auth0から取得したプロファイル情報。"
+        trainer_name:
+          type: string
+          minLength: 1
+          maxLength: 50
+          description: "トレーナー名（必須）。アプリケーション内で表示される名前。"
+          example: "トレーナー太郎"
+        twitter_id:
+          type: string
+          nullable: true
+          pattern: "^@[a-zA-Z0-9_]{1,15}$"
+          description: "Twitter(X)のユーザーID（任意）。@マーク付きで1-15文字。"
+          example: "@my_twitter_id"
+        preferred_roles:
+          type: array
+          items:
+            $ref: "#/components/schemas/PreferredRole"
+          maxItems: 5
+          description: "希望ロール（任意）。最大5個まで選択可能。"
+          example: ["TOP_LANE", "MIDDLE"]
+        bio:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: "ひとこと（任意）。得意ポケモンや意気込みなど、自己紹介文。最大500文字。"
+          example: "ガブリアス使いです！よろしくお願いします！"
+
     Error:
       type: object
       properties:
@@ -97,27 +179,74 @@ paths:
   /api/users/me:
     get:
       summary: ログインユーザー情報を取得
-      description: "AuthorizationヘッダーのJWTからユーザーを特定し、DBからユーザー情報を取得します。"
+      description: "AuthorizationヘッダーのJWTからユーザーを特定し、DBから詳細なユーザー情報を取得します。トレーナー名、希望ロール、ひとこと等の全ての項目を含みます。"
       tags:
         - User
       responses:
         "200":
-          description: ユーザー情報の取得成功。
+          description: ユーザー情報の取得成功。すべてのユーザー項目を含む詳細な情報を返却。
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/User"
+              examples:
+                complete_user:
+                  summary: 完全なユーザー情報の例
+                  value:
+                    user_id: "discord|123456789012345678"
+                    auth0_sub: "discord|123456789012345678"
+                    discord_username: "my_discord_user"
+                    discord_discriminator: "1234"
+                    discord_avatar_url: "https://cdn.discordapp.com/avatars/123456789012345678/a_hash.png"
+                    app_username: "My App User"
+                    trainer_name: "トレーナー太郎"
+                    twitter_id: "@my_twitter_id"
+                    preferred_roles: ["TOP_LANE", "MIDDLE"]
+                    bio: "ガブリアス使いです！よろしくお願いします！"
+                    rate: 1550
+                    max_rate: 1600
+                    match_count: 15
+                    win_count: 10
+                    created_at: "2024-01-15T10:30:00Z"
+                    updated_at: "2024-01-20T14:45:00Z"
         "404":
-          description: ユーザーが見つからない。
+          description: ユーザーが見つからない。未登録ユーザーの場合。
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+              examples:
+                user_not_found:
+                  summary: 未登録ユーザーエラーの例
+                  value:
+                    error: "ユーザーが見つかりません。ユーザー作成画面へ遷移してください。"
+        "401":
+          description: 認証エラー。JWTトークンが無効または期限切れ。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                unauthorized:
+                  summary: 認証エラーの例
+                  value:
+                    error: "認証が必要です。再度ログインしてください。"
+        "500":
+          description: サーバー内部エラー。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                server_error:
+                  summary: サーバーエラーの例
+                  value:
+                    error: "サーバー内部エラーが発生しました。しばらく時間をおいて再度お試しください。"
 
   /api/users:
     post:
       summary: 新規ユーザーを作成
-      description: "DBにユーザーが存在しない場合に、新しいユーザーを作成します。フロントエンドはAuth0から取得したユーザープロファイルをリクエストボディに含める必要があります。"
+      description: "ユーザー作成画面からの入力情報とAuth0プロファイル情報を組み合わせて、新しいユーザーを作成します。トレーナー名は必須項目です。"
       tags:
         - User
       requestBody:
@@ -125,17 +254,59 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Auth0UserProfile"
+              $ref: "#/components/schemas/CreateUserRequest"
       responses:
         "201":
-          description: ユーザーの作成成功。
+          description: ユーザーの作成成功。作成されたユーザー情報を返却。
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/User"
+        "400":
+          description: リクエストが無効。バリデーションエラーなど。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                validation_error:
+                  summary: バリデーションエラーの例
+                  value:
+                    error: "トレーナー名は必須です。"
+                twitter_format_error:
+                  summary: Twitter ID形式エラーの例
+                  value:
+                    error: "Twitter IDは@マーク付きで1-15文字で入力してください。"
         "409":
           description: ユーザーは既に存在する。
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+              examples:
+                user_exists:
+                  summary: ユーザー重複エラーの例
+                  value:
+                    error: "このアカウントは既に登録されています。"
+        "401":
+          description: 認証エラー。JWTトークンが無効または期限切れ。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                unauthorized:
+                  summary: 認証エラーの例
+                  value:
+                    error: "認証が必要です。再度ログインしてください。"
+        "500":
+          description: サーバー内部エラー。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                server_error:
+                  summary: サーバーエラーの例
+                  value:
+                    error: "サーバー内部エラーが発生しました。しばらく時間をおいて再度お試しください。"

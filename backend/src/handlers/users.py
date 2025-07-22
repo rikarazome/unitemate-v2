@@ -7,8 +7,63 @@ from typing import TYPE_CHECKING, Any
 
 import boto3
 from boto3.dynamodb.conditions import Key
+from pydantic import BaseModel, Field, field_validator
 
 from src.utils.response import create_error_response, create_success_response
+
+# Pydanticモデル定義
+
+
+class Auth0UserProfile(BaseModel):
+    """Auth0から取得したユーザープロファイル情報."""
+
+    sub: str
+    nickname: str | None = None
+    name: str | None = None
+    picture: str | None = None
+    updated_at: str | None = None
+
+
+class CreateUserRequest(BaseModel):
+    """ユーザー作成リクエスト."""
+
+    auth0_profile: Auth0UserProfile
+    trainer_name: str = Field(..., min_length=1, max_length=50)
+    twitter_id: str | None = Field(None, max_length=16)
+    preferred_roles: list[str] = Field(default_factory=list, max_length=5)
+    bio: str | None = Field(None, max_length=500)
+
+    @field_validator("trainer_name")
+    @classmethod
+    def validate_trainer_name(cls, v: str) -> str:
+        """トレーナー名のバリデーション."""
+        if not v.strip():
+            error_msg = "トレーナー名は必須です。"
+            raise ValueError(error_msg)
+        return v.strip()
+
+    @field_validator("twitter_id")
+    @classmethod
+    def validate_twitter_id(cls, v: str | None) -> str | None:
+        """Twitter IDのバリデーション."""
+        if v is None:
+            return v
+        if not v.startswith("@"):
+            error_msg = "Twitter IDは@マーク付きで入力してください。"
+            raise ValueError(error_msg)
+        return v
+
+    @field_validator("preferred_roles")
+    @classmethod
+    def validate_preferred_roles(cls, v: list[str]) -> list[str]:
+        """希望ロールのバリデーション."""
+        valid_roles = {"TOP_LANE", "TOP_STUDY", "MIDDLE", "BOTTOM_LANE", "BOTTOM_STUDY"}
+        for role in v:
+            if role not in valid_roles:
+                error_msg = f"無効な希望ロールです: {role}"
+                raise ValueError(error_msg)
+        return v
+
 
 if TYPE_CHECKING:
     from mypy_boto3_dynamodb.resources import TableResource  # type: ignore[attr-defined]
@@ -88,7 +143,21 @@ def create_user(event: dict, _context: object) -> dict:
     """
     # オーソライザーから渡されたユーザー情報
     auth0_user_id = event["requestContext"]["authorizer"]["lambda"]["user_id"]
-    discord_info = _extract_discord_info_from_auth0(json.loads(event["body"]))
+
+    # Pydanticモデルでリクエストボディをバリデーション
+    try:
+        create_request = CreateUserRequest(**json.loads(event["body"]))
+    except ValueError as e:
+        return create_error_response(400, str(e))
+
+    # Auth0プロファイル情報とユーザー入力情報を抽出
+    discord_info = _extract_discord_info_from_auth0(create_request.auth0_profile.model_dump())
+    user_input = {
+        "trainer_name": create_request.trainer_name,
+        "twitter_id": create_request.twitter_id,
+        "preferred_roles": create_request.preferred_roles,
+        "bio": create_request.bio,
+    }
 
     table = get_user_table()
     # 既存ユーザーの確認
@@ -97,10 +166,10 @@ def create_user(event: dict, _context: object) -> dict:
         KeyConditionExpression=Key("auth0_sub").eq(auth0_user_id),
     )
     if existing_user_response["Items"]:
-        return create_error_response(409, "User already exists")
+        return create_error_response(409, "このアカウントは既に登録されています。")
 
     # 新しいユーザーを作成
-    new_user_data = _create_new_user_in_db(auth0_user_id, discord_info)
+    new_user_data = _create_new_user_in_db(auth0_user_id, discord_info, user_input)
 
     return create_success_response(new_user_data, 201)
 
@@ -154,12 +223,13 @@ def _extract_discord_info_from_auth0(auth0_profile_info: dict) -> dict:
     }
 
 
-def _create_new_user_in_db(discord_user_id: str, discord_info: dict) -> dict:
+def _create_new_user_in_db(discord_user_id: str, discord_info: dict, user_input: dict) -> dict:
     """Create and put a new user item into DynamoDB and return the API-friendly user data.
 
     Args:
         discord_user_id (str): DiscordユーザーID.
         discord_info (dict): Discordユーザー情報.
+        user_input (dict): ユーザー入力情報.
 
     Returns:
         dict: 作成されたユーザーデータ.
@@ -173,8 +243,12 @@ def _create_new_user_in_db(discord_user_id: str, discord_info: dict) -> dict:
         "auth0_sub": discord_user_id,  # GSI PK: Auth0 'sub' (same as user_id here)
         "discord_username": discord_info["discord_username"],
         "discord_discriminator": discord_info.get("discord_discriminator"),
-        "discord_avatar_url": discord_info.get("discord_avatar_url"),  # Renamed
-        "app_username": discord_info["discord_username"],  # Initial app username
+        "discord_avatar_url": discord_info.get("discord_avatar_url"),
+        "app_username": discord_info["discord_username"],  # 後方互換性のため残す
+        "trainer_name": user_input["trainer_name"],  # 新しいフィールド
+        "twitter_id": user_input.get("twitter_id"),  # 新しいフィールド
+        "preferred_roles": user_input.get("preferred_roles", []),  # 新しいフィールド
+        "bio": user_input.get("bio"),  # 新しいフィールド
         "rate": 1500,
         "max_rate": 1500,
         "match_count": 0,

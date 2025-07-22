@@ -1,63 +1,34 @@
 import { useAuth0 } from "@auth0/auth0-react";
 import { useCallback, useEffect, useState } from "react";
 import { useApi } from "./useApi";
-
-// Updated to match the new backend User schema
-interface UserData {
-  user_id: string;
-  auth0_sub: string;
-  discord_username: string;
-  discord_discriminator?: string | null;
-  discord_avatar_url: string;
-  app_username: string;
-  rate?: number;
-  match_count?: number;
-  win_count?: number;
-  created_at: string;
-  updated_at: string;
-}
+import type { User } from "../types/user";
 
 export const useUser = () => {
-  // Get user object from Auth0 to create a new user if they don't exist
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth0();
+  const { isAuthenticated, isLoading: authLoading } = useAuth0();
   const { callApi } = useApi();
-  const [userData, setUserData] = useState<UserData | null>(null);
+  const [userData, setUserData] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [shouldShowUserCreation, setShouldShowUserCreation] = useState(false);
 
-  const createUser = useCallback(async () => {
-    if (!user) return;
-
-    console.log("Creating a new user...");
-    try {
-      const newUserResponse = await callApi<UserData>("/api/users", {
-        method: "POST",
-        body: user, // Send the Auth0 user profile to the backend
-      });
-
-      if (newUserResponse.error) {
-        setError(newUserResponse.error);
-      } else {
-        setUserData(newUserResponse.data || null);
-        console.log("User created successfully.");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create user");
-    }
-  }, [user, callApi]);
+  const createUser = useCallback(async (userData: User) => {
+    setUserData(userData);
+    setShouldShowUserCreation(false);
+  }, []);
 
   const fetchUserData = useCallback(async () => {
     if (!isAuthenticated) return;
 
     setLoading(true);
     setError(null);
+    setShouldShowUserCreation(false);
 
     try {
-      const response = await callApi<UserData>("/api/users/me");
+      const response = await callApi<User>("/api/users/me");
 
       if (response.status === 404) {
-        // User not found, so create them
-        await createUser();
+        // User not found, show user creation form
+        setShouldShowUserCreation(true);
       } else if (response.error) {
         setError(response.error);
       } else {
@@ -70,7 +41,7 @@ export const useUser = () => {
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, callApi, createUser]);
+  }, [isAuthenticated, callApi]);
 
   useEffect(() => {
     // Fetch data only when authentication is complete and user is authenticated
@@ -83,6 +54,8 @@ export const useUser = () => {
     userData,
     loading,
     error,
+    shouldShowUserCreation,
+    onUserCreated: createUser,
     refetch: fetchUserData,
   };
 };
