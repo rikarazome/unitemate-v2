@@ -1,10 +1,12 @@
-export enum PreferredRole {
-  TOP_LANE = "TOP_LANE",
-  TOP_STUDY = "TOP_STUDY",
-  MIDDLE = "MIDDLE",
-  BOTTOM_LANE = "BOTTOM_LANE",
-  BOTTOM_STUDY = "BOTTOM_STUDY",
-}
+export const PreferredRole = {
+  TOP_LANE: "TOP_LANE",
+  TOP_STUDY: "TOP_STUDY",
+  MIDDLE: "MIDDLE",
+  BOTTOM_LANE: "BOTTOM_LANE",
+  BOTTOM_STUDY: "BOTTOM_STUDY",
+} as const;
+
+export type PreferredRole = (typeof PreferredRole)[keyof typeof PreferredRole];
 
 export interface Auth0UserProfile {
   sub: string;

@@ -32,11 +32,13 @@ function HomePage() {
   }
 
   // AppのUserをLayoutのUser形式に変換
-  const layoutUser = appUser ? {
-    id: appUser.user_id,
-    username: appUser.discord_username,
-    avatar: appUser.discord_avatar_url,
-  } : undefined;
+  const layoutUser = appUser
+    ? {
+        id: appUser.user_id,
+        username: appUser.discord_username,
+        avatar: appUser.discord_avatar_url,
+      }
+    : undefined;
 
   return (
     <Layout user={layoutUser} onLogin={handleLogin} onLogout={handleLogout}>
