@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 
 interface User {
   id: string;
@@ -94,8 +95,8 @@ const Header: React.FC<HeaderProps> = ({ user, onLogin, onLogout }) => {
           {/* ナビゲーション */}
           <div className="flex-1 flex justify-center">
             <nav className="flex gap-2 items-center">
-              <a
-                href="/"
+              <Link
+                to="/"
                 className="group flex items-center gap-1.5 text-white/90 no-underline font-medium py-2 px-3.5 rounded-full
                          backdrop-blur-sm bg-white/10 border border-white/20
                          transition-all duration-300 ease-out
@@ -105,9 +106,9 @@ const Header: React.FC<HeaderProps> = ({ user, onLogin, onLogout }) => {
               >
                 <HomeIcon />
                 <span>トップ</span>
-              </a>
-              <a
-                href="/match"
+              </Link>
+              <Link
+                to="/match"
                 className="group flex items-center gap-1.5 text-white/90 no-underline font-medium py-2 px-3.5 rounded-full
                          backdrop-blur-sm bg-white/10 border border-white/20
                          transition-all duration-300 ease-out
@@ -117,9 +118,9 @@ const Header: React.FC<HeaderProps> = ({ user, onLogin, onLogout }) => {
               >
                 <HeartIcon />
                 <span>マッチング</span>
-              </a>
-              <a
-                href="/ranking"
+              </Link>
+              <Link
+                to="/ranking"
                 className="group flex items-center gap-1.5 text-white/90 no-underline font-medium py-2 px-3.5 rounded-full
                          backdrop-blur-sm bg-white/10 border border-white/20
                          transition-all duration-300 ease-out
@@ -129,7 +130,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogin, onLogout }) => {
               >
                 <TrophyIcon />
                 <span>ランキング</span>
-              </a>
+              </Link>
             </nav>
           </div>
 
@@ -183,8 +184,8 @@ const Header: React.FC<HeaderProps> = ({ user, onLogin, onLogout }) => {
                       <div className="absolute inset-0 bg-gradient-to-br from-white/50 via-transparent to-white/20 pointer-events-none"></div>
 
                       <div className="relative">
-                        <a
-                          href="/profile"
+                        <Link
+                          to="/profile"
                           className="flex items-center gap-2 w-full py-2.5 px-3 text-gray-700 no-underline border-none bg-transparent text-left cursor-pointer
                                    transition-all duration-200 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:text-gray-900
                                    group"
@@ -205,10 +206,10 @@ const Header: React.FC<HeaderProps> = ({ user, onLogin, onLogout }) => {
                           <span className="font-medium text-sm">
                             マイページ
                           </span>
-                        </a>
+                        </Link>
 
-                        <a
-                          href="/settings"
+                        <Link
+                          to="/settings"
                           className="flex items-center gap-2 w-full py-2.5 px-3 text-gray-700 no-underline border-none bg-transparent text-left cursor-pointer
                                    transition-all duration-200 hover:bg-gradient-to-r hover:from-green-50 hover:to-blue-50 hover:text-gray-900
                                    group"
@@ -233,7 +234,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogin, onLogout }) => {
                             />
                           </svg>
                           <span className="font-medium text-sm">設定</span>
-                        </a>
+                        </Link>
 
                         <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent my-1.5 mx-3"></div>
 
