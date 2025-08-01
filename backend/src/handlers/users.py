@@ -11,6 +11,9 @@ from pydantic import BaseModel, Field, field_validator
 
 from src.utils.response import create_error_response, create_success_response
 
+# 定数定義
+MAX_FAVORITE_POKEMON = 3
+
 # Pydanticモデル定義
 
 
@@ -62,6 +65,56 @@ class CreateUserRequest(BaseModel):
             if role not in valid_roles:
                 error_msg = f"無効な希望ロールです: {role}"
                 raise ValueError(error_msg)
+        return v
+
+
+class UpdateProfileRequest(BaseModel):
+    """プロフィール更新リクエスト."""
+
+    trainer_name: str | None = Field(None, min_length=1, max_length=50)
+    twitter_id: str | None = Field(None, max_length=16)
+    preferred_roles: list[str] | None = Field(None, max_length=5)
+    favorite_pokemon: list[str] | None = Field(None, max_length=3)
+    current_badge: str | None = None
+    bio: str | None = Field(None, max_length=500)
+
+    @field_validator("trainer_name")
+    @classmethod
+    def validate_trainer_name(cls, v: str | None) -> str | None:
+        """トレーナー名のバリデーション."""
+        if v is not None and not v.strip():
+            error_msg = "トレーナー名は空にできません。"
+            raise ValueError(error_msg)
+        return v.strip() if v else v
+
+    @field_validator("twitter_id")
+    @classmethod
+    def validate_twitter_id(cls, v: str | None) -> str | None:
+        """Twitter IDのバリデーション."""
+        if v is None or v == "":
+            return None
+        # Remove @ prefix for storage
+        v = v.removeprefix("@")
+        return v
+
+    @field_validator("preferred_roles")
+    @classmethod
+    def validate_preferred_roles(cls, v: list[str] | None) -> list[str] | None:
+        """希望ロールのバリデーション."""
+        if v is None:
+            return v
+        # Note: We'll validate against actual master data in the handler
+        return v
+
+    @field_validator("favorite_pokemon")
+    @classmethod
+    def validate_favorite_pokemon(cls, v: list[str] | None) -> list[str] | None:
+        """得意ポケモンのバリデーション."""
+        if v is None:
+            return v
+        if len(v) > MAX_FAVORITE_POKEMON:
+            error_msg = "得意ポケモンは最大3匹まで選択できます。"
+            raise ValueError(error_msg)
         return v
 
 
@@ -259,3 +312,108 @@ def _create_new_user_in_db(discord_user_id: str, discord_info: dict, user_input:
 
     table.put_item(Item=new_user_item)
     return new_user_item
+
+
+def _build_update_expression(update_request: UpdateProfileRequest) -> tuple[str, dict, dict]:
+    """Build DynamoDB update expression from request data."""
+    update_expression_parts = []
+    expression_attribute_names = {}
+    expression_attribute_values = {}
+    
+    # 更新日時
+    now = int(datetime.now(UTC).timestamp())
+    update_expression_parts.append("#updated_at = :updated_at")
+    expression_attribute_names["#updated_at"] = "updated_at"
+    expression_attribute_values[":updated_at"] = now
+    
+    # 各フィールドを条件付きで更新
+    if update_request.trainer_name is not None:
+        update_expression_parts.append("#trainer_name = :trainer_name")
+        expression_attribute_names["#trainer_name"] = "trainer_name"
+        expression_attribute_values[":trainer_name"] = update_request.trainer_name
+
+    if update_request.twitter_id is not None:
+        update_expression_parts.append("#twitter_id = :twitter_id")
+        expression_attribute_names["#twitter_id"] = "twitter_id"
+        expression_attribute_values[":twitter_id"] = update_request.twitter_id
+
+    if update_request.preferred_roles is not None:
+        update_expression_parts.append("#preferred_roles = :preferred_roles")
+        expression_attribute_names["#preferred_roles"] = "preferred_roles"
+        expression_attribute_values[":preferred_roles"] = update_request.preferred_roles
+
+    if update_request.favorite_pokemon is not None:
+        update_expression_parts.append("#favorite_pokemon = :favorite_pokemon")
+        expression_attribute_names["#favorite_pokemon"] = "favorite_pokemon"
+        expression_attribute_values[":favorite_pokemon"] = update_request.favorite_pokemon
+
+    if update_request.current_badge is not None:
+        update_expression_parts.append("#current_badge = :current_badge")
+        expression_attribute_names["#current_badge"] = "current_badge"
+        expression_attribute_values[":current_badge"] = update_request.current_badge
+
+    if update_request.bio is not None:
+        update_expression_parts.append("#bio = :bio")
+        expression_attribute_names["#bio"] = "bio"
+        expression_attribute_values[":bio"] = update_request.bio
+    
+    update_expression = "SET " + ", ".join(update_expression_parts)
+    return update_expression, expression_attribute_names, expression_attribute_values
+
+
+def update_profile(event: dict, _context: object) -> dict:
+    """ユーザープロフィール更新(認証済み前提).
+
+    Args:
+        event (dict): Lambdaイベントオブジェクト.
+        _context (object): Lambda実行コンテキスト.
+
+    Returns:
+        dict: 更新されたユーザー情報またはエラーレスポンス.
+
+    """
+    # オーソライザーから渡されたユーザー情報
+    auth0_user_id = event["requestContext"]["authorizer"]["lambda"]["user_id"]
+
+    # パスパラメータからuserIdを取得(現在は使用しないが将来的に管理者機能で使用可能)
+    path_user_id = event["pathParameters"]["userId"]
+
+    # セキュリティ: 現在のユーザーは自分のプロフィールのみ更新可能
+    if auth0_user_id != path_user_id:
+        return create_error_response(403, "他のユーザーのプロフィールは更新できません")
+
+    # Pydanticモデルでリクエストボディをバリデーション
+    try:
+        update_request = UpdateProfileRequest(**json.loads(event["body"]))
+    except ValueError as e:
+        return create_error_response(400, str(e))
+
+    # DynamoDBからユーザー情報を取得
+    table = get_user_table()
+    response = table.query(
+        IndexName="Auth0SubIndex",
+        KeyConditionExpression=Key("auth0_sub").eq(auth0_user_id),
+    )
+
+    if not response["Items"]:
+        return create_error_response(404, "User not found")
+
+    user_item = response["Items"][0]
+    user_id = user_item["user_id"]
+
+    # 更新式を準備
+    update_expression, expression_attribute_names, expression_attribute_values = _build_update_expression(update_request)
+
+    try:
+        response = table.update_item(
+            Key={"user_id": user_id},
+            UpdateExpression=update_expression,
+            ExpressionAttributeNames=expression_attribute_names,
+            ExpressionAttributeValues=expression_attribute_values,
+            ReturnValues="ALL_NEW"
+        )
+
+        return create_success_response(response["Attributes"])
+
+    except Exception as e:
+        return create_error_response(500, f"プロフィール更新に失敗しました: {e!s}")

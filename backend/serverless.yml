@@ -49,6 +49,8 @@ provider:
           Resource:
             - !GetAtt UsersTable.Arn
             - !Join ["", [!GetAtt UsersTable.Arn, "/index/*"]]
+            - !GetAtt MasterDataTable.Arn
+            - !Join ["", [!GetAtt MasterDataTable.Arn, "/index/*"]]
 
 # デプロイパッケージに含めるファイルのパターン
 package:
@@ -104,6 +106,28 @@ functions:
           authorizer:
             name: authHandler
 
+  updateProfile:
+    handler: src/handlers/users.update_profile
+    environment:
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+    events:
+      - httpApi:
+          path: /api/users/{userId}/profile
+          method: put
+          authorizer:
+            name: authHandler
+
+  getMasterData:
+    handler: src/handlers/master.get_master_data
+    environment:
+      MASTER_DATA_TABLE_NAME: ${self:custom.tableName.masterData}
+    events:
+      - httpApi:
+          path: /api/master
+          method: get
+          authorizer:
+            name: authHandler
+
 plugins:
   - serverless-prune-plugin
   - serverless-python-requirements
@@ -114,6 +138,7 @@ custom:
   tableName:
     users: ${self:service}-users-${sls:stage}
     matches: ${self:service}-matches-${sls:stage}
+    masterData: ${self:service}-master-data-${sls:stage}
   prune:
     automatic: true
     number: 3
@@ -141,6 +166,8 @@ custom:
         sources:
           - table: ${self:custom.tableName.users}
             sources: [./migrations/users-seed.json]
+          - table: ${self:custom.tableName.masterData}
+            sources: [./migrations/master-data-seed.json]
 
 resources:
   Resources:
@@ -176,3 +203,19 @@ resources:
             #   WriteCapacityUnits: 1
         # テーブル自体のBillingMode (既存の設定を維持するか、新規に設定)
         BillingMode: PAY_PER_REQUEST # 現在の設定が PAY_PER_REQUEST なので、それを維持
+
+    MasterDataTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tableName.masterData}
+        AttributeDefinitions:
+          - AttributeName: data_type # Partition Key (POKEMON, BADGE, ROLE, SEASON)
+            AttributeType: S
+          - AttributeName: id # Sort Key
+            AttributeType: S
+        KeySchema:
+          - AttributeName: data_type
+            KeyType: HASH
+          - AttributeName: id
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
