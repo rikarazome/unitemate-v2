@@ -58,36 +58,53 @@ def authorize(event: dict, _context: object) -> dict:
         dict: 認証結果とIAMポリシーまたはHTTP APIレスポンス.
 
     """
-    # HTTP APIでは routeArn を使用、REST APIでは methodArn を使用
-    route_arn = event.get("routeArn") or event.get("methodArn", "unknown")
-    print(f"AUTH: Starting authorization for event: {route_arn}")
+    try:
+        # HTTP APIでは routeArn を使用、REST APIでは methodArn を使用
+        route_arn = event.get("routeArn") or event.get("methodArn", "unknown")
+        print(f"AUTH: Starting authorization for event: {route_arn}")
 
-    # トークンの抽出
-    token = extract_token(event)
-    print(f"AUTH: Token extracted successfully: {token[:20]}...")
+        # トークンの抽出
+        token = extract_token(event)
+        print(f"AUTH: Token extracted successfully: {token[:20]}...")
 
-    # JWT検証 (ローカル開発時は署名検証のみスキップ)
-    payload = verify_jwt_token(token)
-    print(f"AUTH: JWT verification successful for user: {payload.get('sub', 'unknown')}")
+        # JWT検証 (ローカル開発時は署名検証のみスキップ)
+        payload = verify_jwt_token(token)
+        print(f"AUTH: JWT verification successful for user: {payload.get('sub', 'unknown')}")
 
-    # HTTP APIかどうかを判定(routeArnまたはversion 2.0の存在で判定)
-    is_http_api = event.get("routeArn") is not None or event.get("version") == "2.0"
-    if is_http_api:
-        # HTTP API用のレスポンス
-        auth_response = generate_http_api_response(
-            effect="Allow",
-            context=payload,
+        # HTTP APIかどうかを判定(routeArnまたはversion 2.0の存在で判定)
+        is_http_api = event.get("routeArn") is not None or event.get("version") == "2.0"
+        if is_http_api:
+            # HTTP API用のレスポンス
+            auth_response = generate_http_api_response(
+                effect="Allow",
+                context=payload,
+            )
+        else:
+            # REST API用のレスポンス
+            auth_response = generate_policy(
+                principal_id=payload["sub"],
+                effect="Allow",
+                resource=event["methodArn"],
+                context=payload,
+            )
+        print("AUTH: Authorization successful, returning Allow response")
+        print(f"AUTH: Final auth response: {json.dumps(auth_response, default=str)}")
+        return auth_response
+
+    except Exception as e:
+        print(f"AUTH: Authorization failed with error: {e}")
+        import traceback
+        traceback.print_exc()
+
+        # Return Deny response instead of letting the exception propagate
+        is_http_api = event.get("routeArn") is not None or event.get("version") == "2.0"
+        if is_http_api:
+            return generate_http_api_response(effect="Deny")
+        return generate_policy(
+            principal_id="unauthorized",
+            effect="Deny",
+            resource=event.get("methodArn", "*"),
         )
-    else:
-        # REST API用のレスポンス
-        auth_response = generate_policy(
-            principal_id=payload["sub"],
-            effect="Allow",
-            resource=event["methodArn"],
-            context=payload,
-        )
-    print("AUTH: Authorization successful, returning Allow response")
-    return auth_response
 
 
 def extract_token(event: dict) -> str:
@@ -125,6 +142,13 @@ def verify_jwt_token(token: str) -> dict:
         ValueError: トークンが無効な場合.
 
     """
+    # ダミートークンかどうか先にチェック
+    from src.handlers.dummy_auth import validate_dummy_token
+    dummy_payload = validate_dummy_token(token)
+    if dummy_payload:
+        print("AUTH: Using dummy token validation")
+        return dummy_payload
+    # 通常のAuth0トークン検証
     # ヘッダーの取得
     unverified_header = jwt.get_unverified_header(token)
     kid = unverified_header.get("kid")
