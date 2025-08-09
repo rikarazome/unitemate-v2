@@ -183,13 +183,15 @@ export default function MyPage() {
 
         {userData && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* 左カラム: プロフィール編集 */}
+            {/* 左カラム: プロフィール編集（Discord情報もここに統合） */}
             <div className="md:col-span-2">
               <form onSubmit={onSubmit} className="space-y-6">
-                {/* Discord 情報（表示のみ） */}
-                <div className="bg-white shadow rounded-xl p-6">
-                  <h2 className="text-lg font-semibold mb-4">Discord情報</h2>
-                  <div className="flex items-center gap-3">
+                {/* 編集可能フィールド */}
+                <div className="bg-white shadow rounded-xl p-6 space-y-5">
+                  <h2 className="text-lg font-semibold">プロフィール</h2>
+
+                  {/* Discord 情報（表示のみ）：プロフィール内に統合 */}
+                  <div className="flex items-center gap-3 pb-3 border-b border-gray-100">
                     <img
                       src={userData.discord_avatar_url}
                       alt={userData.discord_username}
@@ -202,14 +204,8 @@ export default function MyPage() {
                           ? `#${userData.discord_discriminator}`
                           : ""}
                       </div>
-                      {/* ユーザーIDは表示しない */}
                     </div>
                   </div>
-                </div>
-
-                {/* 編集可能フィールド */}
-                <div className="bg-white shadow rounded-xl p-6 space-y-5">
-                  <h2 className="text-lg font-semibold">プロフィール編集</h2>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700">
