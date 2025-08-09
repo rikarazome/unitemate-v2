@@ -116,6 +116,15 @@ functions:
           authorizer:
             name: authHandler
 
+  getRankings:
+    handler: src/handlers/users.get_rankings
+    environment:
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+    events:
+      - httpApi:
+          path: /api/rankings
+          method: get
+
 plugins:
   - serverless-prune-plugin
   - serverless-python-requirements

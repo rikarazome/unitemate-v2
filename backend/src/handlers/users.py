@@ -2,7 +2,7 @@
 
 import json
 import os
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 import boto3
@@ -16,6 +16,7 @@ TRAINER_NAME_MAX_LEN = 50
 PREFERRED_ROLES_MAX = 5
 BIO_MAX_LEN = 500
 FAVORITE_POKEMON_MAX = 5
+LIMIT_MAX = 200
 VALID_ROLES = {"TOP_LANE", "TOP_STUDY", "MIDDLE", "BOTTOM_LANE", "BOTTOM_STUDY"}
 TWITTER_ID_PATTERN = r"^@[a-zA-Z0-9_]{1,15}$"
 
@@ -455,3 +456,90 @@ def _build_ranking_keys(rate: float, user_id: str) -> tuple[str, str]:
     ranking_pk = "RANKING#GLOBAL"
     ranking_sk = f"R#{rate_padded}#U#{user_id}"
     return ranking_pk, ranking_sk
+
+
+def get_rankings(event: dict, _context: object) -> dict:
+    """ランキング一覧を取得する(公開API).
+
+    Args:
+        event (dict): Lambdaイベントオブジェクト
+        _context (object): Lambda実行コンテキスト
+
+    Returns:
+        dict: ランキングエントリのリストまたはエラーレスポンス.
+
+    """
+    # クエリパラメータの取得とバリデーション
+    query_params = event.get("queryStringParameters") or {}
+
+    try:
+        limit = int(query_params.get("limit", "200"))
+        active_within_days = int(query_params.get("active_within_days", "7"))
+    except ValueError:
+        return create_error_response(400, "limitとactive_within_daysは整数で指定してください。")
+
+    if limit < 1 or limit > LIMIT_MAX:
+        return create_error_response(400, "limitは1〜200の範囲で指定してください。")
+
+    if active_within_days < 1:
+        return create_error_response(400, "active_within_daysは1以上で指定してください。")
+
+    table = get_user_table()
+
+    try:
+        # RankingIndexからレート降順で取得
+        response = table.query(
+            IndexName="RankingIndex",
+            KeyConditionExpression=Key("ranking_pk").eq("RANKING#GLOBAL"),
+            ScanIndexForward=False,  # 降順
+            Limit=150,  # 画面定義書の通り150件取得してから後でフィルタリング
+        )
+
+        users = response.get("Items", [])
+
+        # アクティブユーザーのフィルタリング(最終試合日時が指定日数以内)
+        cutoff_timestamp = int((datetime.now(UTC) - timedelta(days=active_within_days)).timestamp())
+
+        active_users = []
+        for user in users:
+            last_match_at = user.get("last_match_at")
+            if last_match_at is not None and last_match_at >= cutoff_timestamp:
+                active_users.append(user)
+
+        # 上位100件に制限(画面定義書の通り)
+        limited_users = active_users[: min(limit, 100)]
+
+        # レスポンス用のランキングエントリに変換
+        ranking_entries = []
+        for rank, user in enumerate(limited_users, start=1):
+            # 勝率計算(試合数が0の場合は0%)
+            match_count = user.get("match_count", 0)
+            win_count = user.get("win_count", 0)
+
+            entry = {
+                "rank": rank,
+                "user_id": user["user_id"],
+                "trainer_name": user["trainer_name"],
+                "discord_username": user.get("discord_username", ""),
+                "discord_avatar_url": user.get("discord_avatar_url", ""),
+                "rate": user.get("rate", 1500),
+                "max_rate": user.get("max_rate", 1500),
+                "match_count": match_count,
+                "win_count": win_count,
+                "last_match_at": user.get("last_match_at"),
+            }
+
+            # twitter_idがある場合は含める(API仕様書にはないが画面定義書に記載があるため)
+            if user.get("twitter_id"):
+                entry["twitter_id"] = user["twitter_id"]
+
+            ranking_entries.append(entry)
+
+        return create_success_response(ranking_entries)
+
+    except Exception as e:  # noqa: BLE001
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Error in get_rankings: {str(e)}")
+        print(f"Traceback: {error_details}")
+        return create_error_response(500, f"サーバー内部エラー: {str(e)}")
