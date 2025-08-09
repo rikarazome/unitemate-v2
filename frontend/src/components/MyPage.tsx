@@ -202,7 +202,7 @@ export default function MyPage() {
                           ? `#${userData.discord_discriminator}`
                           : ""}
                       </div>
-                      <div className="text-sm text-gray-500">ID: {userData.user_id}</div>
+                      {/* ユーザーIDは表示しない */}
                     </div>
                   </div>
                 </div>
@@ -335,4 +335,3 @@ export default function MyPage() {
     </Layout>
   );
 }
-
