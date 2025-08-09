@@ -474,14 +474,15 @@ def get_rankings(event: dict, _context: object) -> dict:
 
     try:
         limit = int(query_params.get("limit", "200"))
-        active_within_days = int(query_params.get("active_within_days", "7"))
+        active_within_days_str = query_params.get("active_within_days")
+        active_within_days = int(active_within_days_str) if active_within_days_str else None
     except ValueError:
         return create_error_response(400, "limitとactive_within_daysは整数で指定してください。")
 
     if limit < 1 or limit > LIMIT_MAX:
         return create_error_response(400, "limitは1〜200の範囲で指定してください。")
 
-    if active_within_days < 1:
+    if active_within_days is not None and active_within_days < 1:
         return create_error_response(400, "active_within_daysは1以上で指定してください。")
 
     table = get_user_table()
@@ -497,17 +498,23 @@ def get_rankings(event: dict, _context: object) -> dict:
 
         users = response.get("Items", [])
 
-        # アクティブユーザーのフィルタリング(最終試合日時が指定日数以内)
-        cutoff_timestamp = int((datetime.now(UTC) - timedelta(days=active_within_days)).timestamp())
+        # active_within_daysが指定された場合のみアクティブユーザーのフィルタリング
+        if active_within_days is not None:
+            cutoff_timestamp = int((datetime.now(UTC) - timedelta(days=active_within_days)).timestamp())
 
-        active_users = []
-        for user in users:
-            last_match_at = user.get("last_match_at")
-            if last_match_at is not None and last_match_at >= cutoff_timestamp:
-                active_users.append(user)
+            filtered_users = []
+            for user in users:
+                last_match_at = user.get("last_match_at")
+                if last_match_at is not None and last_match_at >= cutoff_timestamp:
+                    filtered_users.append(user)
 
-        # 上位100件に制限(画面定義書の通り)
-        limited_users = active_users[: min(limit, 100)]
+            target_users = filtered_users
+        else:
+            # パラメータが指定されていない場合は全ユーザーを対象
+            target_users = users
+
+        # 上位指定件数に制限
+        limited_users = target_users[:limit]
 
         # レスポンス用のランキングエントリに変換
         ranking_entries = []
@@ -539,7 +546,8 @@ def get_rankings(event: dict, _context: object) -> dict:
 
     except Exception as e:  # noqa: BLE001
         import traceback
+
         error_details = traceback.format_exc()
-        print(f"Error in get_rankings: {str(e)}")
+        print(f"Error in get_rankings: {e!s}")
         print(f"Traceback: {error_details}")
-        return create_error_response(500, f"サーバー内部エラー: {str(e)}")
+        return create_error_response(500, f"サーバー内部エラー: {e!s}")

@@ -512,9 +512,8 @@ paths:
           schema:
             type: integer
             minimum: 1
-            default: 7
           required: false
-          description: 直近N日以内に試合があるユーザーに絞り込み（`last_match_at` 基準、既定7日）。
+          description: 直近N日以内に試合があるユーザーに絞り込み（`last_match_at` 基準）。指定しない場合は全ユーザーが対象。
       responses:
         "200":
           description: ランキング一覧の取得成功。
