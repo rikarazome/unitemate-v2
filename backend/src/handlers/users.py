@@ -15,6 +15,7 @@ from src.utils.response import create_error_response, create_success_response
 TRAINER_NAME_MAX_LEN = 50
 PREFERRED_ROLES_MAX = 5
 BIO_MAX_LEN = 500
+FAVORITE_POKEMON_MAX = 5
 VALID_ROLES = {"TOP_LANE", "TOP_STUDY", "MIDDLE", "BOTTOM_LANE", "BOTTOM_STUDY"}
 TWITTER_ID_PATTERN = r"^@[a-zA-Z0-9_]{1,15}$"
 
@@ -39,6 +40,7 @@ class CreateUserRequest(BaseModel):
     twitter_id: str | None = Field(None, max_length=16)
     preferred_roles: list[str] = Field(default_factory=list, max_length=5)
     bio: str | None = Field(None, max_length=500)
+    favorite_pokemon: list[str] = Field(default_factory=list, max_length=5)
 
     @field_validator("trainer_name")
     @classmethod
@@ -70,6 +72,19 @@ class CreateUserRequest(BaseModel):
                 raise ValueError(msg)
         return v
 
+    @field_validator("favorite_pokemon")
+    @classmethod
+    def validate_favorite_pokemon(cls, v: list[str]) -> list[str]:
+        """得意なポケモンのバリデーション."""
+        if len(v) > FAVORITE_POKEMON_MAX:
+            msg = f"得意なポケモンは最大{FAVORITE_POKEMON_MAX}つまで選択可能です。"
+            raise ValueError(msg)
+        # ポケモンIDの重複チェック
+        if len(v) != len(set(v)):
+            msg = "得意なポケモンに重複があります。"
+            raise ValueError(msg)
+        return v
+
 
 class UpdateUserRequest(BaseModel):
     """ユーザー更新リクエスト(部分更新)."""
@@ -78,6 +93,7 @@ class UpdateUserRequest(BaseModel):
     twitter_id: str | None = Field(default=None)
     preferred_roles: list[str] | None = Field(default=None)
     bio: str | None = Field(default=None)
+    favorite_pokemon: list[str] | None = Field(default=None)
 
     @field_validator("trainer_name")
     @classmethod
@@ -131,6 +147,21 @@ class UpdateUserRequest(BaseModel):
             return v
         if len(v) > BIO_MAX_LEN:
             msg = "ひとことは500文字以内で入力してください。"
+            raise ValueError(msg)
+        return v
+
+    @field_validator("favorite_pokemon")
+    @classmethod
+    def validate_favorite_pokemon(cls, v: list[str] | None) -> list[str] | None:
+        """favorite_pokemonを検証する."""
+        if v is None:
+            return v
+        if len(v) > FAVORITE_POKEMON_MAX:
+            msg = f"得意なポケモンは最大{FAVORITE_POKEMON_MAX}つまで選択可能です。"
+            raise ValueError(msg)
+        # ポケモンIDの重複チェック
+        if len(v) != len(set(v)):
+            msg = "得意なポケモンに重複があります。"
             raise ValueError(msg)
         return v
 
@@ -227,6 +258,7 @@ def create_user(event: dict, _context: object) -> dict:
         "twitter_id": create_request.twitter_id,
         "preferred_roles": create_request.preferred_roles,
         "bio": create_request.bio,
+        "favorite_pokemon": create_request.favorite_pokemon,
     }
 
     table = get_user_table()
@@ -263,7 +295,7 @@ def update_me(event: dict, _context: object) -> dict:
 
     # 更新フィールド抽出(Noneは無視)
     update_fields: dict[str, Any] = {}
-    for key in ("trainer_name", "twitter_id", "preferred_roles", "bio"):
+    for key in ("trainer_name", "twitter_id", "preferred_roles", "bio", "favorite_pokemon"):
         value = getattr(update_req, key)
         if value is not None:
             update_fields[key] = value
@@ -386,6 +418,7 @@ def _create_new_user_in_db(discord_user_id: str, discord_info: dict, user_input:
         "twitter_id": user_input.get("twitter_id"),  # 新しいフィールド
         "preferred_roles": user_input.get("preferred_roles", []),  # 新しいフィールド
         "bio": user_input.get("bio"),  # 新しいフィールド
+        "favorite_pokemon": user_input.get("favorite_pokemon", []),  # 得意なポケモン
         "rate": 1500,
         "max_rate": 1500,
         "match_count": 0,
