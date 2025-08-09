@@ -48,8 +48,13 @@ export default function PokemonSelector({
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="relative bg-white w-[90vw] max-w-3xl max-h-[85vh] rounded-xl shadow-xl p-4 flex flex-col">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold">得意なポケモンを選択（最大{max}つ）</h3>
-          <button className="px-3 py-1 text-sm text-gray-600 hover:text-gray-900" onClick={onClose}>
+          <h3 className="text-lg font-semibold">
+            得意なポケモンを選択（最大{max}つ）
+          </h3>
+          <button
+            className="px-3 py-1 text-sm text-gray-600 hover:text-gray-900"
+            onClick={onClose}
+          >
             閉じる
           </button>
         </div>
@@ -62,11 +67,17 @@ export default function PokemonSelector({
                   key={p.id}
                   type="button"
                   className={`border rounded-lg p-2 flex flex-col items-center gap-2 hover:shadow transition ${
-                    active ? "border-indigo-500 ring-2 ring-indigo-200" : "border-gray-200"
+                    active
+                      ? "border-indigo-500 ring-2 ring-indigo-200"
+                      : "border-gray-200"
                   }`}
                   onClick={() => toggle(p.id)}
                 >
-                  <img src={p.imageUrl} alt={p.name} className="w-16 h-16 object-cover rounded" />
+                  <img
+                    src={p.imageUrl}
+                    alt={p.name}
+                    className="w-16 h-16 object-cover rounded"
+                  />
                   <span className="text-sm">{p.name}</span>
                 </button>
               );
@@ -88,4 +99,3 @@ export default function PokemonSelector({
     </div>
   );
 }
-
