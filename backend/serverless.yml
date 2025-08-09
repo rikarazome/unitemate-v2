@@ -165,6 +165,10 @@ resources:
             AttributeType: S
           - AttributeName: auth0_sub # GSI Partition Key
             AttributeType: S
+          - AttributeName: ranking_pk # Ranking GSI Partition Key (fixed value)
+            AttributeType: S
+          - AttributeName: ranking_sk # Ranking GSI Sort Key (R#<rate_padded>#U#<user_id>)
+            AttributeType: S
           # --- オプションのGSIで将来的に必要になる可能性のある属性定義 ---
           # - AttributeName: queue_status
           #   AttributeType: S
@@ -186,5 +190,23 @@ resources:
             # ProvisionedThroughput:
             #   ReadCapacityUnits: 1
             #   WriteCapacityUnits: 1
+          - IndexName: RankingIndex
+            KeySchema:
+              - AttributeName: ranking_pk
+                KeyType: HASH
+              - AttributeName: ranking_sk
+                KeyType: RANGE
+            Projection:
+              ProjectionType: INCLUDE
+              NonKeyAttributes:
+                - user_id
+                - trainer_name
+                - discord_username
+                - discord_avatar_url
+                - rate
+                - max_rate
+                - match_count
+                - win_count
+                - last_match_at
         # テーブル自体のBillingMode (既存の設定を維持するか、新規に設定)
         BillingMode: PAY_PER_REQUEST # 現在の設定が PAY_PER_REQUEST なので、それを維持
