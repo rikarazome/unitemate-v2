@@ -427,5 +427,31 @@ def _create_new_user_in_db(discord_user_id: str, discord_info: dict, user_input:
         "updated_at": now,
     }
 
+    # ランキング用GSIキーを設定
+    ranking_pk, ranking_sk = _build_ranking_keys(new_user_item["rate"], discord_user_id)
+    new_user_item["ranking_pk"] = ranking_pk
+    new_user_item["ranking_sk"] = ranking_sk
+
     table.put_item(Item=new_user_item)
     return new_user_item
+
+
+def _build_ranking_keys(rate: float, user_id: str) -> tuple[str, str]:
+    """ランキング用のGSIキーを生成する。
+
+    - ranking_pk: 常に固定値 'RANKING#GLOBAL'
+    - ranking_sk: 'R#<rate_padded>#U#<user_id>' 形式 (降順取得は Query で ScanIndexForward=false を指定)
+
+    Args:
+        rate: レート値 (整数前提。小数の場合は整数化して扱う)
+        user_id: ユーザーID
+
+    Returns:
+        (ranking_pk, ranking_sk)
+
+    """
+    rate_int = int(rate)
+    rate_padded = f"{rate_int:06d}"
+    ranking_pk = "RANKING#GLOBAL"
+    ranking_sk = f"R#{rate_padded}#U#{user_id}"
+    return ranking_pk, ranking_sk
