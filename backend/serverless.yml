@@ -104,6 +104,17 @@ functions:
           authorizer:
             name: authHandler
 
+  updateMe:
+    handler: src/handlers/users.update_me
+    environment:
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+    events:
+      - httpApi:
+          path: /api/users/me
+          method: patch
+          authorizer:
+            name: authHandler
+
 plugins:
   - serverless-prune-plugin
   - serverless-python-requirements
