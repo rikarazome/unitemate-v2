@@ -158,6 +158,37 @@ components:
           description: "ひとこと（任意）。得意ポケモンや意気込みなど、自己紹介文。最大500文字。"
           example: "ガブリアス使いです！よろしくお願いします！"
 
+    UpdateUserRequest:
+      type: object
+      description: "ユーザー更新リクエスト。マイページから編集可能な項目のみを部分更新。"
+      minProperties: 1
+      properties:
+        trainer_name:
+          type: string
+          minLength: 1
+          maxLength: 50
+          description: "トレーナー名（任意）。アプリケーション内で表示される名前。"
+          example: "トレーナー太郎"
+        twitter_id:
+          type: string
+          nullable: true
+          pattern: "^@[a-zA-Z0-9_]{1,15}$"
+          description: "Twitter(X)のユーザーID（任意）。@マーク付きで1-15文字。"
+          example: "@my_twitter_id"
+        preferred_roles:
+          type: array
+          items:
+            $ref: "#/components/schemas/PreferredRole"
+          maxItems: 5
+          description: "希望ロール（任意）。最大5個まで選択可能。"
+          example: ["TOP_LANE", "MIDDLE"]
+        bio:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: "ひとこと（任意）。得意ポケモンや意気込みなど、自己紹介文。最大500文字。"
+          example: "ガブリアス使いです！よろしくお願いします！"
+
     Error:
       type: object
       properties:
@@ -209,6 +240,69 @@ paths:
                     win_count: 10
                     created_at: "2024-01-15T10:30:00Z"
                     updated_at: "2024-01-20T14:45:00Z"
+        "404":
+          description: ユーザーが見つからない。未登録ユーザーの場合。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                user_not_found:
+                  summary: 未登録ユーザーエラーの例
+                  value:
+                    error: "ユーザーが見つかりません。ユーザー作成画面へ遷移してください。"
+        "401":
+          description: 認証エラー。JWTトークンが無効または期限切れ。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                unauthorized:
+                  summary: 認証エラーの例
+                  value:
+                    error: "認証が必要です。再度ログインしてください。"
+        "500":
+          description: サーバー内部エラー。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                server_error:
+                  summary: サーバーエラーの例
+                  value:
+                    error: "サーバー内部エラーが発生しました。しばらく時間をおいて再度お試しください。"
+
+    patch:
+      summary: ログインユーザー情報を更新
+      description: "マイページから編集可能な項目（トレーナー名、Twitter ID、希望ロール、ひとこと）を部分更新します。Discord由来の情報は更新できません。"
+      tags:
+        - User
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "200":
+          description: 更新成功。更新後のユーザー情報を返却。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: リクエストが無効。バリデーションエラーなど。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                validation_error:
+                  summary: バリデーションエラーの例
+                  value:
+                    error: "Twitter IDは@マーク付きで1-15文字で入力してください。"
         "404":
           description: ユーザーが見つからない。未登録ユーザーの場合。
           content:
