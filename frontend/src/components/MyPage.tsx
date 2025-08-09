@@ -11,6 +11,8 @@ import {
   type UpdateUserRequest,
   type User,
 } from "../types/user";
+import pokemons from "../data/pokemons.json";
+import PokemonSelector from "./PokemonSelector";
 import {
   formatTwitterId,
   hasValidationErrors,
@@ -38,6 +40,7 @@ export default function MyPage() {
     twitter_id: "",
     preferred_roles: [],
     bio: "",
+    favorite_pokemon: [],
   });
   const [isDirty, setIsDirty] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -47,7 +50,9 @@ export default function MyPage() {
     twitter_id?: string;
     preferred_roles?: string;
     bio?: string;
+    favorite_pokemon?: string;
   }>({});
+  const [showPokemonSelector, setShowPokemonSelector] = useState(false);
 
   // Initialize form when userData loads
   useEffect(() => {
@@ -57,6 +62,7 @@ export default function MyPage() {
         twitter_id: userData.twitter_id || "",
         preferred_roles: userData.preferred_roles || [],
         bio: userData.bio || "",
+        favorite_pokemon: userData.favorite_pokemon || [],
       });
       setIsDirty(false);
       setSubmitError(null);
@@ -111,6 +117,16 @@ export default function MyPage() {
     return Math.round((userData.win_count / userData.match_count) * 1000) / 10; // 0.1%単位
   }, [userData]);
 
+  const onFavPokemonSave = (ids: string[]) => {
+    setFormData((prev) => ({ ...prev, favorite_pokemon: ids }));
+    setIsDirty(true);
+    setSubmitError(null);
+    setSubmitSuccess(null);
+    if (validErrors.favorite_pokemon)
+      setValidErrors((e) => ({ ...e, favorite_pokemon: undefined }));
+    setShowPokemonSelector(false);
+  };
+
   const validateAll = (): boolean => {
     const errs: typeof validErrors = {};
     const tn = validateTrainerName(formData.trainer_name);
@@ -121,6 +137,15 @@ export default function MyPage() {
     if (pr) errs.preferred_roles = pr;
     const bio = validateBio(formData.bio);
     if (bio) errs.bio = bio;
+    // Favorite pokemon: optional; enforce up to 5 unique
+    if (formData.favorite_pokemon && formData.favorite_pokemon.length > 5) {
+      errs.favorite_pokemon = "得意なポケモンは最大5つまで選択できます。";
+    } else if (
+      formData.favorite_pokemon &&
+      new Set(formData.favorite_pokemon).size !== formData.favorite_pokemon.length
+    ) {
+      errs.favorite_pokemon = "得意なポケモンに重複があります。";
+    }
     setValidErrors(errs);
     return !hasValidationErrors(errs);
   };
@@ -143,6 +168,11 @@ export default function MyPage() {
 
       if ((formData.bio || null) !== (userData.bio || null))
         payload.bio = formData.bio ? formData.bio : null;
+
+      const favA = formData.favorite_pokemon || [];
+      const favB = userData.favorite_pokemon || [];
+      const equalFav = favA.length === favB.length && favA.every((id) => favB.includes(id));
+      if (!equalFav) payload.favorite_pokemon = favA.length > 0 ? favA : [];
     }
     return payload;
   };
@@ -270,6 +300,59 @@ export default function MyPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700">
+                      得意なポケモン
+                    </label>
+                    <div className="mt-2">
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {(formData.favorite_pokemon || []).map((id) => {
+                          const p = (pokemons as { id: string; name: string; imageUrl: string }[]).find(
+                            (x) => x.id === id,
+                          );
+                          return (
+                            <span
+                              key={id}
+                              className="inline-flex items-center gap-2 px-2 py-1 bg-indigo-50 text-indigo-700 rounded-full border border-indigo-200 text-sm"
+                            >
+                              {p && (
+                                <img
+                                  src={p.imageUrl}
+                                  alt={p.name}
+                                  className="w-5 h-5 rounded object-cover"
+                                />
+                              )}
+                              <span>{p ? p.name : id}</span>
+                              <button
+                                type="button"
+                                className="ml-1 text-indigo-500 hover:text-indigo-700"
+                                onClick={() =>
+                                  onFavPokemonSave(
+                                    (formData.favorite_pokemon || []).filter((x) => x !== id),
+                                  )
+                                }
+                              >
+                                ×
+                              </button>
+                            </span>
+                          );
+                        })}
+                      </div>
+                      <button
+                        type="button"
+                        className="px-3 py-2 rounded border border-gray-300 hover:bg-gray-50"
+                        onClick={() => setShowPokemonSelector(true)}
+                      >
+                        選択する
+                      </button>
+                      {validErrors.favorite_pokemon && (
+                        <p className="mt-1 text-sm text-red-600">
+                          {validErrors.favorite_pokemon}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
                       ひとこと
                     </label>
                     <textarea
@@ -328,6 +411,15 @@ export default function MyPage() {
           </div>
         )}
       </div>
+      {showPokemonSelector && (
+        <PokemonSelector
+          isOpen={showPokemonSelector}
+          selectedIds={formData.favorite_pokemon || []}
+          max={5}
+          onClose={() => setShowPokemonSelector(false)}
+          onSave={onFavPokemonSave}
+        />
+      )}
     </Layout>
   );
 }
