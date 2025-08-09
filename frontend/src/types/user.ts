@@ -56,3 +56,12 @@ export interface ValidationErrors {
   preferred_roles?: string;
   bio?: string;
 }
+
+export interface UpdateUserRequest {
+  trainer_name?: string;
+  twitter_id?: string | null;
+  preferred_roles?: PreferredRole[];
+  bio?: string | null;
+}
+
+export type UpdateUserFormData = CreateUserFormData;
