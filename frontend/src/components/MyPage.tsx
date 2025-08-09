@@ -45,6 +45,7 @@ export default function MyPage() {
   const [isDirty, setIsDirty] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const [validErrors, setValidErrors] = useState<{
     trainer_name?: string;
     twitter_id?: string;
@@ -117,6 +118,12 @@ export default function MyPage() {
     return Math.round((userData.win_count / userData.match_count) * 1000) / 10; // 0.1%単位
   }, [userData]);
 
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   const onFavPokemonSave = (ids: string[]) => {
     setFormData((prev) => ({ ...prev, favorite_pokemon: ids }));
     setIsDirty(true);
@@ -183,6 +190,7 @@ export default function MyPage() {
     const payload = buildPayload();
     if (Object.keys(payload).length === 0) {
       setSubmitSuccess("変更はありません。");
+      setToast("変更はありません。");
       return;
     }
     try {
@@ -196,6 +204,7 @@ export default function MyPage() {
         return;
       }
       setSubmitSuccess("保存しました。");
+      setToast("保存しました。");
       setIsDirty(false);
       await refetch();
     } catch (err) {
@@ -204,6 +213,7 @@ export default function MyPage() {
   };
 
   return (
+    <>
     <Layout user={layoutUser} onLogout={handleLogout}>
       <div className="max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold mb-6">マイページ</h1>
@@ -421,5 +431,15 @@ export default function MyPage() {
         />
       )}
     </Layout>
+      {toast && (
+        <div
+          className="fixed bottom-6 right-6 z-50 bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg"
+          role="status"
+          aria-live="polite"
+        >
+          {toast}
+        </div>
+      )}
+  </>
   );
 }
