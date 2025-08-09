@@ -40,6 +40,20 @@ export const validateBio = (value: string): string | undefined => {
   return undefined;
 };
 
+export const validateFavoritePokemon = (
+  ids: string[] | undefined,
+): string | undefined => {
+  if (!ids || ids.length === 0) return undefined; // optional
+  if (ids.length > 5) {
+    return "得意なポケモンは最大5つまで選択できます。";
+  }
+  const uniq = new Set(ids);
+  if (uniq.size !== ids.length) {
+    return "得意なポケモンに重複があります。";
+  }
+  return undefined;
+};
+
 export const validateFormData = (
   formData: CreateUserFormData,
 ): ValidationErrors => {
@@ -63,6 +77,11 @@ export const validateFormData = (
   const bioError = validateBio(formData.bio);
   if (bioError) {
     errors.bio = bioError;
+  }
+
+  const favError = validateFavoritePokemon(formData.favorite_pokemon);
+  if (favError) {
+    errors.favorite_pokemon = favError;
   }
 
   return errors;

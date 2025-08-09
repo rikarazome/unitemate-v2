@@ -27,6 +27,7 @@ export interface User {
   twitter_id?: string | null;
   preferred_roles?: PreferredRole[];
   bio?: string | null;
+  favorite_pokemon?: string[] | null;
   rate: number;
   max_rate: number;
   match_count: number;
@@ -41,6 +42,7 @@ export interface CreateUserRequest {
   twitter_id?: string;
   preferred_roles?: PreferredRole[];
   bio?: string;
+  favorite_pokemon?: string[];
 }
 
 export interface CreateUserFormData {
@@ -48,6 +50,7 @@ export interface CreateUserFormData {
   twitter_id: string;
   preferred_roles: PreferredRole[];
   bio: string;
+  favorite_pokemon?: string[];
 }
 
 export interface ValidationErrors {
@@ -55,4 +58,15 @@ export interface ValidationErrors {
   twitter_id?: string;
   preferred_roles?: string;
   bio?: string;
+  favorite_pokemon?: string;
 }
+
+export interface UpdateUserRequest {
+  trainer_name?: string;
+  twitter_id?: string | null;
+  preferred_roles?: PreferredRole[];
+  bio?: string | null;
+  favorite_pokemon?: string[] | null;
+}
+
+export type UpdateUserFormData = CreateUserFormData;

@@ -36,7 +36,7 @@ def create_success_response(data: Any, status_code: int = 200) -> dict[str, Any]
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Headers": "Content-Type,Authorization",
-            "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+            "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
         },
         "body": json.dumps(data, cls=CustomJSONEncoder),
     }
@@ -59,7 +59,7 @@ def create_error_response(status_code: int, message: str) -> dict[str, Any]:
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Headers": "Content-Type,Authorization",
-            "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+            "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
         },
         "body": json.dumps({"error": message}),
     }

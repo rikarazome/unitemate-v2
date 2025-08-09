@@ -36,8 +36,6 @@ ignore = [
     "D104",   # Missing docstring in public package
     "D105",   # Missing docstring in magic method
     "D107",   # Allow unused arguments in function definitions.
-    "ANN101", # Missing type annotation for `self` in method
-    "ANN102", # Missing type annotation for `cls` in classmethod
     "D203",
     "D211",
     "D212",

@@ -3,6 +3,7 @@ import { useAuth0 } from "@auth0/auth0-react";
 import Layout from "./components/Layout";
 import UserCreationForm from "./components/UserCreationForm";
 import { useUser } from "./hooks/useUser";
+import MyPage from "./components/MyPage";
 import type { Auth0UserProfile } from "./types/user";
 
 function HomePage() {
@@ -103,7 +104,7 @@ function App() {
       <Route path="/create-user" element={<CreateUserPage />} />
       <Route path="/match" element={<div>マッチング画面（未実装）</div>} />
       <Route path="/ranking" element={<div>ランキング画面（未実装）</div>} />
-      <Route path="/profile" element={<div>マイページ（未実装）</div>} />
+      <Route path="/profile" element={<MyPage />} />
       <Route path="/settings" element={<div>設定画面（未実装）</div>} />
     </Routes>
   );

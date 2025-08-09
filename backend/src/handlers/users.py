@@ -11,6 +11,14 @@ from pydantic import BaseModel, Field, field_validator
 
 from src.utils.response import create_error_response, create_success_response
 
+# Constants for validation rules
+TRAINER_NAME_MAX_LEN = 50
+PREFERRED_ROLES_MAX = 5
+BIO_MAX_LEN = 500
+FAVORITE_POKEMON_MAX = 5
+VALID_ROLES = {"TOP_LANE", "TOP_STUDY", "MIDDLE", "BOTTOM_LANE", "BOTTOM_STUDY"}
+TWITTER_ID_PATTERN = r"^@[a-zA-Z0-9_]{1,15}$"
+
 # Pydanticモデル定義
 
 
@@ -32,6 +40,7 @@ class CreateUserRequest(BaseModel):
     twitter_id: str | None = Field(None, max_length=16)
     preferred_roles: list[str] = Field(default_factory=list, max_length=5)
     bio: str | None = Field(None, max_length=500)
+    favorite_pokemon: list[str] = Field(default_factory=list, max_length=5)
 
     @field_validator("trainer_name")
     @classmethod
@@ -57,11 +66,103 @@ class CreateUserRequest(BaseModel):
     @classmethod
     def validate_preferred_roles(cls, v: list[str]) -> list[str]:
         """希望ロールのバリデーション."""
-        valid_roles = {"TOP_LANE", "TOP_STUDY", "MIDDLE", "BOTTOM_LANE", "BOTTOM_STUDY"}
         for role in v:
-            if role not in valid_roles:
-                error_msg = f"無効な希望ロールです: {role}"
-                raise ValueError(error_msg)
+            if role not in VALID_ROLES:
+                msg = f"無効な希望ロールです: {role}"
+                raise ValueError(msg)
+        return v
+
+    @field_validator("favorite_pokemon")
+    @classmethod
+    def validate_favorite_pokemon(cls, v: list[str]) -> list[str]:
+        """得意なポケモンのバリデーション."""
+        if len(v) > FAVORITE_POKEMON_MAX:
+            msg = f"得意なポケモンは最大{FAVORITE_POKEMON_MAX}つまで選択可能です。"
+            raise ValueError(msg)
+        # ポケモンIDの重複チェック
+        if len(v) != len(set(v)):
+            msg = "得意なポケモンに重複があります。"
+            raise ValueError(msg)
+        return v
+
+
+class UpdateUserRequest(BaseModel):
+    """ユーザー更新リクエスト(部分更新)."""
+
+    trainer_name: str | None = Field(default=None)
+    twitter_id: str | None = Field(default=None)
+    preferred_roles: list[str] | None = Field(default=None)
+    bio: str | None = Field(default=None)
+    favorite_pokemon: list[str] | None = Field(default=None)
+
+    @field_validator("trainer_name")
+    @classmethod
+    def validate_trainer_name(cls, v: str | None) -> str | None:
+        """trainer_name を検証する."""
+        if v is None:
+            return v
+        trimmed = v.strip()
+        if not trimmed:
+            msg = "トレーナー名は必須です。"
+            raise ValueError(msg)
+        if len(trimmed) > TRAINER_NAME_MAX_LEN:
+            msg = "トレーナー名は50文字以内で入力してください。"
+            raise ValueError(msg)
+        return trimmed
+
+    @field_validator("twitter_id")
+    @classmethod
+    def validate_twitter_id(cls, v: str | None) -> str | None:
+        """twitter_id を検証する."""
+        if v is None:
+            return v
+        # OpenAPI仕様: ^@[a-zA-Z0-9_]{1,15}$
+        import re
+
+        if not re.fullmatch(TWITTER_ID_PATTERN, v):
+            msg = "Twitter IDは@マーク付きで1-15文字で入力してください。"
+            raise ValueError(msg)
+        return v
+
+    @field_validator("preferred_roles")
+    @classmethod
+    def validate_preferred_roles(cls, v: list[str] | None) -> list[str] | None:
+        """preferred_roles を検証する."""
+        if v is None:
+            return v
+        if len(v) > PREFERRED_ROLES_MAX:
+            msg = "希望ロールは最大5個まで選択可能です。"
+            raise ValueError(msg)
+        for role in v:
+            if role not in VALID_ROLES:
+                msg = f"無効な希望ロールです: {role}"
+                raise ValueError(msg)
+        return v
+
+    @field_validator("bio")
+    @classmethod
+    def validate_bio(cls, v: str | None) -> str | None:
+        """`bio`を検証する."""
+        if v is None:
+            return v
+        if len(v) > BIO_MAX_LEN:
+            msg = "ひとことは500文字以内で入力してください。"
+            raise ValueError(msg)
+        return v
+
+    @field_validator("favorite_pokemon")
+    @classmethod
+    def validate_favorite_pokemon(cls, v: list[str] | None) -> list[str] | None:
+        """favorite_pokemonを検証する."""
+        if v is None:
+            return v
+        if len(v) > FAVORITE_POKEMON_MAX:
+            msg = f"得意なポケモンは最大{FAVORITE_POKEMON_MAX}つまで選択可能です。"
+            raise ValueError(msg)
+        # ポケモンIDの重複チェック
+        if len(v) != len(set(v)):
+            msg = "得意なポケモンに重複があります。"
+            raise ValueError(msg)
         return v
 
 
@@ -157,6 +258,7 @@ def create_user(event: dict, _context: object) -> dict:
         "twitter_id": create_request.twitter_id,
         "preferred_roles": create_request.preferred_roles,
         "bio": create_request.bio,
+        "favorite_pokemon": create_request.favorite_pokemon,
     }
 
     table = get_user_table()
@@ -172,6 +274,73 @@ def create_user(event: dict, _context: object) -> dict:
     new_user_data = _create_new_user_in_db(auth0_user_id, discord_info, user_input)
 
     return create_success_response(new_user_data, 201)
+
+
+def update_me(event: dict, _context: object) -> dict:
+    """ログインユーザー情報の部分更新(マイページ).
+
+    更新可能な項目: trainer_name, twitter_id, preferred_roles, bio
+    """
+    # 認証ユーザーID
+    auth0_user_id = event["requestContext"]["authorizer"]["lambda"].get("user_id")
+    if not auth0_user_id:
+        return create_error_response(400, "User ID not found in context")
+
+    # リクエストバリデーション
+    try:
+        payload = json.loads(event.get("body") or "{}")
+        update_req = UpdateUserRequest(**payload)
+    except ValueError as e:
+        return create_error_response(400, str(e))
+
+    # 更新フィールド抽出(Noneは無視)
+    update_fields: dict[str, Any] = {}
+    for key in ("trainer_name", "twitter_id", "preferred_roles", "bio", "favorite_pokemon"):
+        value = getattr(update_req, key)
+        if value is not None:
+            update_fields[key] = value
+
+    if not update_fields:
+        return create_error_response(400, "更新項目が指定されていません。")
+
+    table = get_user_table()
+    # まずユーザーをGSIで検索
+    query_res = table.query(
+        IndexName="Auth0SubIndex",
+        KeyConditionExpression=Key("auth0_sub").eq(auth0_user_id),
+    )
+    if not query_res.get("Items"):
+        return create_error_response(404, "User not found")
+
+    user = query_res["Items"][0]
+    user_pk = user["user_id"]
+
+    # UpdateExpressionの構築
+    now = int(datetime.now(UTC).timestamp())
+    update_fields["updated_at"] = now
+    set_expr_parts = []
+    expr_attr_names: dict[str, str] = {}
+    expr_attr_values: dict[str, Any] = {}
+
+    for i, (k, v) in enumerate(update_fields.items()):
+        name_key = f"#n{i}"
+        value_key = f":v{i}"
+        expr_attr_names[name_key] = k
+        expr_attr_values[value_key] = v
+        set_expr_parts.append(f"{name_key} = {value_key}")
+
+    update_expression = "SET " + ", ".join(set_expr_parts)
+
+    res = table.update_item(
+        Key={"user_id": user_pk},
+        UpdateExpression=update_expression,
+        ExpressionAttributeNames=expr_attr_names,
+        ExpressionAttributeValues=expr_attr_values,
+        ReturnValues="ALL_NEW",
+    )
+
+    updated = res.get("Attributes", {})
+    return create_success_response(updated)
 
 
 def _extract_discord_info_from_auth0(auth0_profile_info: dict) -> dict:
@@ -249,6 +418,7 @@ def _create_new_user_in_db(discord_user_id: str, discord_info: dict, user_input:
         "twitter_id": user_input.get("twitter_id"),  # 新しいフィールド
         "preferred_roles": user_input.get("preferred_roles", []),  # 新しいフィールド
         "bio": user_input.get("bio"),  # 新しいフィールド
+        "favorite_pokemon": user_input.get("favorite_pokemon", []),  # 得意なポケモン
         "rate": 1500,
         "max_rate": 1500,
         "match_count": 0,
