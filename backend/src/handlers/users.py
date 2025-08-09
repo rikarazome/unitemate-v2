@@ -11,6 +11,13 @@ from pydantic import BaseModel, Field, field_validator
 
 from src.utils.response import create_error_response, create_success_response
 
+# Constants for validation rules
+TRAINER_NAME_MAX_LEN = 50
+PREFERRED_ROLES_MAX = 5
+BIO_MAX_LEN = 500
+VALID_ROLES = {"TOP_LANE", "TOP_STUDY", "MIDDLE", "BOTTOM_LANE", "BOTTOM_STUDY"}
+TWITTER_ID_PATTERN = r"^@[a-zA-Z0-9_]{1,15}$"
+
 # Pydanticモデル定義
 
 
@@ -57,16 +64,15 @@ class CreateUserRequest(BaseModel):
     @classmethod
     def validate_preferred_roles(cls, v: list[str]) -> list[str]:
         """希望ロールのバリデーション."""
-        valid_roles = {"TOP_LANE", "TOP_STUDY", "MIDDLE", "BOTTOM_LANE", "BOTTOM_STUDY"}
         for role in v:
-            if role not in valid_roles:
-                error_msg = f"無効な希望ロールです: {role}"
-                raise ValueError(error_msg)
+            if role not in VALID_ROLES:
+                msg = f"無効な希望ロールです: {role}"
+                raise ValueError(msg)
         return v
 
 
 class UpdateUserRequest(BaseModel):
-    """ユーザー更新リクエスト（部分更新）。"""
+    """ユーザー更新リクエスト(部分更新)."""
 
     trainer_name: str | None = Field(default=None)
     twitter_id: str | None = Field(default=None)
@@ -76,48 +82,58 @@ class UpdateUserRequest(BaseModel):
     @field_validator("trainer_name")
     @classmethod
     def validate_trainer_name(cls, v: str | None) -> str | None:
+        """trainer_name を検証する."""
         if v is None:
             return v
         trimmed = v.strip()
         if not trimmed:
-            raise ValueError("トレーナー名は必須です。")
-        if len(trimmed) > 50:
-            raise ValueError("トレーナー名は50文字以内で入力してください。")
+            msg = "トレーナー名は必須です。"
+            raise ValueError(msg)
+        if len(trimmed) > TRAINER_NAME_MAX_LEN:
+            msg = "トレーナー名は50文字以内で入力してください。"
+            raise ValueError(msg)
         return trimmed
 
     @field_validator("twitter_id")
     @classmethod
     def validate_twitter_id(cls, v: str | None) -> str | None:
+        """twitter_id を検証する."""
         if v is None:
             return v
         # OpenAPI仕様: ^@[a-zA-Z0-9_]{1,15}$
         import re
 
-        if not re.fullmatch(r"^@[a-zA-Z0-9_]{1,15}$", v):
-            raise ValueError("Twitter IDは@マーク付きで1-15文字で入力してください。")
+        if not re.fullmatch(TWITTER_ID_PATTERN, v):
+            msg = "Twitter IDは@マーク付きで1-15文字で入力してください。"
+            raise ValueError(msg)
         return v
 
     @field_validator("preferred_roles")
     @classmethod
     def validate_preferred_roles(cls, v: list[str] | None) -> list[str] | None:
+        """preferred_roles を検証する."""
         if v is None:
             return v
-        valid_roles = {"TOP_LANE", "TOP_STUDY", "MIDDLE", "BOTTOM_LANE", "BOTTOM_STUDY"}
-        if len(v) > 5:
-            raise ValueError("希望ロールは最大5個まで選択可能です。")
+        if len(v) > PREFERRED_ROLES_MAX:
+            msg = "希望ロールは最大5個まで選択可能です。"
+            raise ValueError(msg)
         for role in v:
-            if role not in valid_roles:
-                raise ValueError(f"無効な希望ロールです: {role}")
+            if role not in VALID_ROLES:
+                msg = f"無効な希望ロールです: {role}"
+                raise ValueError(msg)
         return v
 
     @field_validator("bio")
     @classmethod
     def validate_bio(cls, v: str | None) -> str | None:
+        """`bio`を検証する."""
         if v is None:
             return v
-        if len(v) > 500:
-            raise ValueError("ひとことは500文字以内で入力してください。")
+        if len(v) > BIO_MAX_LEN:
+            msg = "ひとことは500文字以内で入力してください。"
+            raise ValueError(msg)
         return v
+
 
 if TYPE_CHECKING:
     from mypy_boto3_dynamodb.resources import TableResource  # type: ignore[attr-defined]
@@ -229,7 +245,7 @@ def create_user(event: dict, _context: object) -> dict:
 
 
 def update_me(event: dict, _context: object) -> dict:
-    """ログインユーザー情報の部分更新（マイページ）。
+    """ログインユーザー情報の部分更新(マイページ).
 
     更新可能な項目: trainer_name, twitter_id, preferred_roles, bio
     """
@@ -245,7 +261,7 @@ def update_me(event: dict, _context: object) -> dict:
     except ValueError as e:
         return create_error_response(400, str(e))
 
-    # 更新フィールド抽出（Noneは無視）
+    # 更新フィールド抽出(Noneは無視)
     update_fields: dict[str, Any] = {}
     for key in ("trainer_name", "twitter_id", "preferred_roles", "bio"):
         value = getattr(update_req, key)
