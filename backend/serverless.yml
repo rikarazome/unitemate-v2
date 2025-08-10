@@ -212,6 +212,7 @@ resources:
                 - trainer_name
                 - discord_username
                 - discord_avatar_url
+                - twitter_id
                 - rate
                 - max_rate
                 - match_count

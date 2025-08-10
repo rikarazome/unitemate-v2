@@ -241,6 +241,11 @@ components:
           type: string
           description: 表示名（トレーナー名）。
           example: "トレーナー太郎"
+        twitter_id:
+          type: string
+          nullable: true
+          description: Twitter(X)のユーザーID。@付き。
+          example: "@my_twitter_id"
         discord_username:
           type: string
           description: Discordのユーザー名。
