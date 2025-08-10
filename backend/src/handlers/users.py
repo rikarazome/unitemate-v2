@@ -4,6 +4,7 @@ import json
 import os
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
+from zoneinfo import ZoneInfo
 
 import boto3
 from boto3.dynamodb.conditions import Key
@@ -458,6 +459,23 @@ def _build_ranking_keys(rate: float, user_id: str) -> tuple[str, str]:
     return ranking_pk, ranking_sk
 
 
+def _format_timestamp_to_jst_iso(timestamp: int | None) -> str | None:
+    """UNIXタイムスタンプを日本時間のISO形式文字列に変換する。
+
+    Args:
+        timestamp: UNIXタイムスタンプ(秒)。Noneの場合はNoneを返す。
+
+    Returns:
+        日本時間のISO形式文字列(例: "2024-07-20T21:34:56+09:00")またはNone。
+
+    """
+    if timestamp is None:
+        return None
+    jst = ZoneInfo("Asia/Tokyo")
+    dt = datetime.fromtimestamp(timestamp, jst)
+    return dt.isoformat()
+
+
 def get_rankings(event: dict, _context: object) -> dict:
     """ランキング一覧を取得する(公開API).
 
@@ -533,7 +551,7 @@ def get_rankings(event: dict, _context: object) -> dict:
                 "max_rate": user.get("max_rate", 1500),
                 "match_count": match_count,
                 "win_count": win_count,
-                "last_match_at": user.get("last_match_at"),
+                "last_match_at": _format_timestamp_to_jst_iso(int(user.get("last_match_at"))),
             }
 
             # twitter_idがある場合は含める(API仕様書にはないが画面定義書に記載があるため)
