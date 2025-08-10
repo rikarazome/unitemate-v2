@@ -84,6 +84,11 @@ components:
           type: number
           description: "勝利数。"
           example: 7
+        last_match_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: "最終試合日時。ランキング集計の対象判定に利用。試合がない場合はnull。"
         created_at:
           type: string
           format: date-time
@@ -123,11 +128,11 @@ components:
       type: string
       description: "希望ロール。"
       enum:
-        - "TOP_LANE"      # 上レーン
-        - "TOP_STUDY"     # 上学習
-        - "MIDDLE"        # 中央
-        - "BOTTOM_LANE"   # 下レーン
-        - "BOTTOM_STUDY"  # 下学習
+        - "TOP_LANE" # 上レーン
+        - "TOP_STUDY" # 上学習
+        - "MIDDLE" # 中央
+        - "BOTTOM_LANE" # 下レーン
+        - "BOTTOM_STUDY" # 下学習
       example: "TOP_LANE"
 
     CreateUserRequest:
@@ -220,6 +225,64 @@ components:
           type: string
           description: エラーメッセージ。
 
+    RankingEntry:
+      type: object
+      description: ランキングエントリ（ユーザーのランキング表示用情報）。
+      properties:
+        rank:
+          type: integer
+          description: 1始まりの順位。
+          example: 1
+        user_id:
+          type: string
+          description: ユーザーのプライマリキー。DiscordのネイティブID。
+          example: "discord|123456789012345678"
+        trainer_name:
+          type: string
+          description: 表示名（トレーナー名）。
+          example: "トレーナー太郎"
+        twitter_id:
+          type: string
+          nullable: true
+          description: Twitter(X)のユーザーID。@付き。
+          example: "@my_twitter_id"
+        discord_username:
+          type: string
+          description: Discordのユーザー名。
+          example: "my_discord_user"
+        discord_avatar_url:
+          type: string
+          format: uri
+          description: Discordのアバター画像URL。
+          example: "https://cdn.discordapp.com/avatars/123456789012345678/a_hash.png"
+        rate:
+          type: number
+          description: 現在のレーティング。
+          example: 1550
+        max_rate:
+          type: number
+          description: 最高レーティング。
+          example: 1600
+        match_count:
+          type: number
+          description: 総試合数。
+          example: 15
+        win_count:
+          type: number
+          description: 勝利数。
+          example: 10
+        last_match_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: 最終試合日時。アクティブ判定に利用。
+      required:
+        - rank
+        - user_id
+        - trainer_name
+        - rate
+
+
   securitySchemes:
     BearerAuth:
       type: http
@@ -263,6 +326,7 @@ paths:
                     max_rate: 1600
                     match_count: 15
                     win_count: 10
+                    last_match_at: "2024-01-20T13:00:00Z"
                     created_at: "2024-01-15T10:30:00Z"
                     updated_at: "2024-01-20T14:45:00Z"
         "404":
@@ -418,6 +482,87 @@ paths:
                   summary: 認証エラーの例
                   value:
                     error: "認証が必要です。再度ログインしてください。"
+        "500":
+          description: サーバー内部エラー。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                server_error:
+                  summary: サーバーエラーの例
+                  value:
+                    error: "サーバー内部エラーが発生しました。しばらく時間をおいて再度お試しください。"
+
+  /api/rankings:
+    get:
+      summary: ランキング一覧を取得（公開）
+      description: |-
+        レート降順でユーザーのランキング一覧を返します。認証不要の公開APIです。
+        並び順は `rate` 降順、同率の場合は `max_rate` 降順、さらに同一の場合は `last_match_at` の新しい順をタイブレークとします。
+      tags:
+        - Ranking
+      security: []
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 200
+          description: 取得件数の上限（最大200、既定200）。
+        - in: query
+          name: active_within_days
+          schema:
+            type: integer
+            minimum: 1
+          required: false
+          description: 直近N日以内に試合があるユーザーに絞り込み（`last_match_at` 基準）。指定しない場合は全ユーザーが対象。
+      responses:
+        "200":
+          description: ランキング一覧の取得成功。
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RankingEntry"
+              examples:
+                top10_example:
+                  summary: 上位のランキング例
+                  value:
+                    - rank: 1
+                      user_id: "discord|111111111111111111"
+                      trainer_name: "エース1号"
+                      discord_username: "ace_user"
+                      discord_avatar_url: "https://cdn.discordapp.com/avatars/111111111111111111/a_hash.png"
+                      rate: 1780
+                      max_rate: 1820
+                      match_count: 120
+                      win_count: 75
+                      last_match_at: "2024-07-20T12:34:56Z"
+                    - rank: 2
+                      user_id: "discord|222222222222222222"
+                      trainer_name: "エース2号"
+                      discord_username: "ace_user2"
+                      discord_avatar_url: "https://cdn.discordapp.com/avatars/222222222222222222/b_hash.png"
+                      rate: 1760
+                      max_rate: 1800
+                      match_count: 98
+                      win_count: 60
+                      last_match_at: "2024-07-19T09:00:00Z"
+        "400":
+          description: リクエストが無効。パラメータ不正など。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                validation_error:
+                  summary: バリデーションエラーの例
+                  value:
+                    error: "limitは1〜200の範囲で指定してください。"
         "500":
           description: サーバー内部エラー。
           content:

@@ -2,8 +2,9 @@
 
 import json
 import os
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
+from zoneinfo import ZoneInfo
 
 import boto3
 from boto3.dynamodb.conditions import Key
@@ -16,6 +17,7 @@ TRAINER_NAME_MAX_LEN = 50
 PREFERRED_ROLES_MAX = 5
 BIO_MAX_LEN = 500
 FAVORITE_POKEMON_MAX = 5
+LIMIT_MAX = 200
 VALID_ROLES = {"TOP_LANE", "TOP_STUDY", "MIDDLE", "BOTTOM_LANE", "BOTTOM_STUDY"}
 TWITTER_ID_PATTERN = r"^@[a-zA-Z0-9_]{1,15}$"
 
@@ -427,5 +429,146 @@ def _create_new_user_in_db(discord_user_id: str, discord_info: dict, user_input:
         "updated_at": now,
     }
 
+    # ランキング用GSIキーを設定
+    ranking_pk, ranking_sk = _build_ranking_keys(new_user_item["rate"], discord_user_id)
+    new_user_item["ranking_pk"] = ranking_pk
+    new_user_item["ranking_sk"] = ranking_sk
+
     table.put_item(Item=new_user_item)
     return new_user_item
+
+
+def _build_ranking_keys(rate: float, user_id: str) -> tuple[str, str]:
+    """ランキング用のGSIキーを生成する。
+
+    - ranking_pk: 常に固定値 'RANKING#GLOBAL'
+    - ranking_sk: 'R#<rate_padded>#U#<user_id>' 形式 (降順取得は Query で ScanIndexForward=false を指定)
+
+    Args:
+        rate: レート値 (整数前提。小数の場合は整数化して扱う)
+        user_id: ユーザーID
+
+    Returns:
+        (ranking_pk, ranking_sk)
+
+    """
+    rate_int = int(rate)
+    rate_padded = f"{rate_int:06d}"
+    ranking_pk = "RANKING#GLOBAL"
+    ranking_sk = f"R#{rate_padded}#U#{user_id}"
+    return ranking_pk, ranking_sk
+
+
+def _format_timestamp_to_jst_iso(timestamp: int | None) -> str | None:
+    """UNIXタイムスタンプを日本時間のISO形式文字列に変換する。
+
+    Args:
+        timestamp: UNIXタイムスタンプ(秒)。Noneの場合はNoneを返す。
+
+    Returns:
+        日本時間のISO形式文字列(例: "2024-07-20T21:34:56+09:00")またはNone。
+
+    """
+    if timestamp is None:
+        return None
+    jst = ZoneInfo("Asia/Tokyo")
+    dt = datetime.fromtimestamp(timestamp, jst)
+    return dt.isoformat()
+
+
+def get_rankings(event: dict, _context: object) -> dict:
+    """ランキング一覧を取得する(公開API).
+
+    Args:
+        event (dict): Lambdaイベントオブジェクト
+        _context (object): Lambda実行コンテキスト
+
+    Returns:
+        dict: ランキングエントリのリストまたはエラーレスポンス.
+
+    """
+    # クエリパラメータの取得とバリデーション
+    query_params = event.get("queryStringParameters") or {}
+
+    try:
+        limit = int(query_params.get("limit", "200"))
+        active_within_days_str = query_params.get("active_within_days")
+        active_within_days = int(active_within_days_str) if active_within_days_str else None
+    except ValueError:
+        return create_error_response(400, "limitとactive_within_daysは整数で指定してください。")
+
+    if limit < 1 or limit > LIMIT_MAX:
+        return create_error_response(400, "limitは1〜200の範囲で指定してください。")
+
+    if active_within_days is not None and active_within_days < 1:
+        return create_error_response(400, "active_within_daysは1以上で指定してください。")
+
+    table = get_user_table()
+
+    try:
+        # RankingIndexからレート降順で取得
+        response = table.query(
+            IndexName="RankingIndex",
+            KeyConditionExpression=Key("ranking_pk").eq("RANKING#GLOBAL"),
+            ScanIndexForward=False,  # 降順
+            Limit=150,  # 画面定義書の通り150件取得してから後でフィルタリング
+        )
+
+        users = response.get("Items", [])
+
+        # active_within_daysが指定された場合のみアクティブユーザーのフィルタリング
+        if active_within_days is not None:
+            cutoff_timestamp = int((datetime.now(UTC) - timedelta(days=active_within_days)).timestamp())
+
+            filtered_users = []
+            for user in users:
+                last_match_at = user.get("last_match_at")
+                if last_match_at is not None and last_match_at >= cutoff_timestamp:
+                    filtered_users.append(user)
+
+            target_users = filtered_users
+        else:
+            # パラメータが指定されていない場合は全ユーザーを対象
+            target_users = users
+
+        # 上位指定件数に制限
+        limited_users = target_users[:limit]
+
+        # レスポンス用のランキングエントリに変換
+        ranking_entries = []
+        for rank, user in enumerate(limited_users, start=1):
+            # 勝率計算(試合数が0の場合は0%)
+            match_count = user.get("match_count", 0)
+            win_count = user.get("win_count", 0)
+
+            entry = {
+                "rank": rank,
+                "user_id": user["user_id"],
+                "trainer_name": user["trainer_name"],
+                "discord_username": user.get("discord_username", ""),
+                "discord_avatar_url": user.get("discord_avatar_url", ""),
+                "rate": user.get("rate", 1500),
+                "max_rate": user.get("max_rate", 1500),
+                "match_count": match_count,
+                "win_count": win_count,
+                "last_match_at": _format_timestamp_to_jst_iso(
+                    int(last_match_timestamp)
+                    if (last_match_timestamp := user.get("last_match_at")) is not None
+                    else None,
+                ),
+            }
+
+            if user.get("twitter_id"):
+                entry["twitter_id"] = user["twitter_id"]
+
+            ranking_entries.append(entry)
+
+        return create_success_response(ranking_entries)
+
+    except Exception as e:  # noqa: BLE001
+        import traceback
+
+        error_details = traceback.format_exc()
+        print(f"Error in get_rankings: {e!s}")
+        print(f"Traceback: {error_details}")
+        return create_error_response(500, f"サーバー内部エラー: {e!s}")
