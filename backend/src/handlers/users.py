@@ -551,10 +551,13 @@ def get_rankings(event: dict, _context: object) -> dict:
                 "max_rate": user.get("max_rate", 1500),
                 "match_count": match_count,
                 "win_count": win_count,
-                "last_match_at": _format_timestamp_to_jst_iso(int(user.get("last_match_at"))),
+                "last_match_at": _format_timestamp_to_jst_iso(
+                    int(last_match_timestamp)
+                    if (last_match_timestamp := user.get("last_match_at")) is not None
+                    else None,
+                ),
             }
 
-            # twitter_idがある場合は含める(API仕様書にはないが画面定義書に記載があるため)
             if user.get("twitter_id"):
                 entry["twitter_id"] = user["twitter_id"]
 
