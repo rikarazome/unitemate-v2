@@ -5,6 +5,7 @@ import UserCreationForm from "./components/UserCreationForm";
 import { useUser } from "./hooks/useUser";
 import MyPage from "./components/MyPage";
 import type { Auth0UserProfile } from "./types/user";
+import RankingPage from "./components/RankingPage";
 
 function HomePage() {
   const { loginWithRedirect, logout, isAuthenticated, isLoading } = useAuth0();
@@ -103,7 +104,7 @@ function App() {
       <Route path="/" element={<HomePage />} />
       <Route path="/create-user" element={<CreateUserPage />} />
       <Route path="/match" element={<div>マッチング画面（未実装）</div>} />
-      <Route path="/ranking" element={<div>ランキング画面（未実装）</div>} />
+      <Route path="/ranking" element={<RankingPage />} />
       <Route path="/profile" element={<MyPage />} />
       <Route path="/settings" element={<div>設定画面（未実装）</div>} />
     </Routes>
