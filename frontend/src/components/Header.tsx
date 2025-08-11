@@ -208,34 +208,6 @@ const Header: React.FC<HeaderProps> = ({ user, onLogin, onLogout }) => {
                           </span>
                         </Link>
 
-                        <Link
-                          to="/settings"
-                          className="flex items-center gap-2 w-full py-2.5 px-3 text-gray-700 no-underline border-none bg-transparent text-left cursor-pointer
-                                   transition-all duration-200 hover:bg-gradient-to-r hover:from-green-50 hover:to-blue-50 hover:text-gray-900
-                                   group"
-                        >
-                          <svg
-                            className="w-2.5 h-2.5 text-gray-500 group-hover:text-green-600 transition-colors duration-200"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                            />
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                            />
-                          </svg>
-                          <span className="font-medium text-sm">設定</span>
-                        </Link>
-
                         <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent my-1.5 mx-3"></div>
 
                         <button

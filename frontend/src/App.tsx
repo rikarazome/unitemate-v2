@@ -106,7 +106,6 @@ function App() {
       <Route path="/match" element={<div>マッチング画面（未実装）</div>} />
       <Route path="/ranking" element={<RankingPage />} />
       <Route path="/profile" element={<MyPage />} />
-      <Route path="/settings" element={<div>設定画面（未実装）</div>} />
     </Routes>
   );
 }
