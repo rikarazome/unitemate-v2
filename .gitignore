@@ -74,3 +74,10 @@ coverage/
 htmlcov/
 .tox/
 .pytest_cache/
+
+# Legacy directories (不要なファイル)
+legacy-backend/
+legacy-bubbleapp_chunks/
+
+# Serverless temp files
+C:*node-dependencies-*
