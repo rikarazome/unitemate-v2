@@ -20,10 +20,16 @@ check:
 	uv run ruff check .
 	uv run ruff format .
 
-# AWS Lambda デプロイ
+# AWS Lambda デプロイ（本番）
 deploy:
 	uv pip compile pyproject.toml -o requirements.txt
 	sls deploy -s prd
+	rm requirements.txt
+
+# AWS Lambda デプロイ（開発）
+deploy-dev:
+	uv pip compile pyproject.toml -o requirements.txt
+	sls deploy -s dev
 	rm requirements.txt
 
 # ヘルプ
@@ -32,4 +38,5 @@ help:
 	@echo "  make start         - ローカル開発サーバー起動 (http://localhost:3000)"
 	@echo "  make install       - Python依存関係をインストール"
 	@echo "  make check         - lint + format の実行"
-	@echo "  make deploy        - AWS Lambdaにデプロイ"
+	@echo "  make deploy        - AWS Lambdaにデプロイ（本番）"
+	@echo "  make deploy-dev    - AWS Lambdaにデプロイ（開発）"

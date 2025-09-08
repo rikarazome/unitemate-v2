@@ -6,31 +6,14 @@ export interface Pokemon {
   name: string;
   name_en: string;
   icon_url: string;
-  type: 'ATTACKER' | 'SPEEDSTER' | 'ALL_ROUNDER' | 'DEFENDER' | 'SUPPORTER';
-  difficulty: 'NOVICE' | 'INTERMEDIATE' | 'EXPERT';
+  type: "ATTACKER" | "SPEEDSTER" | "ALL_ROUNDER" | "DEFENDER" | "SUPPORTER";
+  difficulty: "NOVICE" | "INTERMEDIATE" | "EXPERT";
   is_active: boolean; // 現在のシーズンで使用可能かどうか
   created_at: string;
   updated_at: string;
 }
 
-// 勲章データ
-export interface Badge {
-  id: string;
-  name: string;
-  description: string;
-  icon_url: string;
-  rarity: 'COMMON' | 'RARE' | 'EPIC' | 'LEGENDARY';
-  unlock_condition: string; // 解除条件の説明
-  unlock_requirements: {
-    min_rate?: number;
-    min_matches?: number;
-    min_wins?: number;
-    special_condition?: string;
-  };
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
+// Badge型は useBadges.ts で定義（設計仕様に基づく正式版）
 
 // ロール（役割）データ
 export interface Role {
@@ -57,12 +40,19 @@ export interface Season {
   updated_at: string;
 }
 
+// 設定データ
+export interface Setting {
+  id: string;
+  value: string | number;
+}
+
 // マスターデータのレスポンス型
 export interface MasterDataResponse {
   pokemon: Pokemon[];
-  badges: Badge[];
+  // badges は useBadges.ts で別途管理
   roles: Role[];
   seasons: Season[];
+  settings: Setting[];
 }
 
 // プロフィール更新リクエストの型
@@ -72,5 +62,6 @@ export interface UpdateProfileRequest {
   preferred_roles?: string[];
   favorite_pokemon?: string[];
   current_badge?: string;
+  current_badge_2?: string; // 2つ目の勲章
   bio?: string;
 }

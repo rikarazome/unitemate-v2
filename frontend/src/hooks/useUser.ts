@@ -4,7 +4,12 @@ import { useApi } from "./useApi";
 import type { User } from "../types/user";
 
 export const useUser = () => {
-  const { isAuthenticated, isLoading: authLoading } = useAuth0();
+  const {
+    isAuthenticated,
+    isLoading: authLoading,
+    user: auth0User,
+    getAccessTokenSilently,
+  } = useAuth0();
   const { callApi } = useApi();
   const [userData, setUserData] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
@@ -16,6 +21,117 @@ export const useUser = () => {
     setShouldShowUserCreation(false);
   }, []);
 
+  const updateDiscordInfo = useCallback(
+    async (currentUser: User) => {
+      if (!auth0User || !isAuthenticated) return;
+
+      try {
+        console.log(
+          "useUser - Updating Discord info from Auth0 profile:",
+          auth0User,
+        );
+        const token = await getAccessTokenSilently();
+
+        // Auth0のIDトークンから取得したDiscord情報を専用エンドポイントで更新
+        const updateData = {
+          auth0_profile: auth0User,
+        };
+
+        const response = await callApi<User>("/api/users/me/discord", {
+          method: "PUT",
+          body: updateData,
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.data && !response.error) {
+          console.log(
+            "useUser - Discord info updated successfully:",
+            response.data,
+          );
+          setUserData(response.data);
+          setShouldShowUserCreation(false);
+        } else {
+          console.error(
+            "useUser - Failed to update Discord info:",
+            response.error,
+          );
+          // 更新に失敗してもユーザーデータは表示
+          setUserData(currentUser);
+          setShouldShowUserCreation(false);
+        }
+      } catch (err) {
+        console.error("useUser - Error updating Discord info:", err);
+        // エラーが発生してもユーザーデータは表示
+        setUserData(currentUser);
+        setShouldShowUserCreation(false);
+      }
+    },
+    [isAuthenticated, callApi, auth0User, getAccessTokenSilently],
+  );
+
+  const createUserIfNeeded = useCallback(async () => {
+    if (!auth0User || !isAuthenticated) return false;
+
+    try {
+      console.log("useUser - Attempting to create user automatically");
+      const token = await getAccessTokenSilently();
+
+      // First, debug what Auth0 info we're sending
+      console.log("useUser - Auth0 user object:", auth0User);
+      console.log("useUser - Auth0 sub:", auth0User.sub);
+
+      // Call debug endpoint to see what the backend receives
+      const debugResponse = await callApi<unknown>("/api/debug/auth", {
+        method: "POST",
+        body: JSON.stringify({
+          auth0_profile: auth0User,
+          trainer_name: auth0User.nickname || auth0User.name || "Trainer",
+          twitter_id: "",
+          preferred_roles: [],
+          bio: "",
+        }),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      console.log("useUser - Debug response:", debugResponse);
+
+      // Create user with Auth0 profile data
+      // 重要: useApiで自動的にJSON.stringify()されるため、ここでは生のオブジェクトを渡す
+      const response = await callApi<User>("/api/users", {
+        method: "POST",
+        body: {
+          auth0_profile: auth0User,
+          trainer_name: auth0User.nickname || auth0User.name || "Trainer",
+          twitter_id: "",
+          preferred_roles: [],
+          bio: "",
+        },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.data && !response.error) {
+        console.log("useUser - User created successfully:", response.data);
+        setUserData(response.data);
+        return true;
+      } else {
+        console.error("useUser - Failed to create user:", response.error);
+        return false;
+      }
+    } catch (err) {
+      console.error("useUser - Error creating user:", err);
+      return false;
+    }
+  }, [isAuthenticated, callApi, auth0User, getAccessTokenSilently]);
+
   const fetchUserData = useCallback(async () => {
     if (!isAuthenticated) return;
 
@@ -24,24 +140,58 @@ export const useUser = () => {
     setShouldShowUserCreation(false);
 
     try {
-      const response = await callApi<User>("/api/users/me");
+      const response = await callApi<User & { needs_registration?: boolean }>(
+        "/api/users/me",
+      );
+
+      console.log("useUser - API response:", {
+        status: response.status,
+        data: response.data,
+        error: response.error,
+      });
 
       if (response.status === 404) {
-        // User not found, show user creation form
-        setShouldShowUserCreation(true);
+        console.log(
+          "useUser - User not found, attempting to create automatically",
+        );
+        // Try to create user automatically
+        const created = await createUserIfNeeded();
+        if (!created) {
+          // If auto-creation fails, show the creation form
+          setShouldShowUserCreation(true);
+        }
       } else if (response.error) {
+        console.log("useUser - API error:", response.error);
         setError(response.error);
-      } else {
-        setUserData(response.data || null);
+      } else if (response.data) {
+        console.log("useUser - User found:", response.data);
+
+        // プレースホルダーのDiscordユーザー名の場合、IDトークンから取得した情報で更新
+        if (response.data.discord_username?.startsWith("User_") && auth0User) {
+          console.log(
+            "useUser - Updating placeholder Discord username with Auth0 profile data",
+          );
+          await updateDiscordInfo(response.data);
+        } else {
+          setUserData(response.data);
+          setShouldShowUserCreation(false);
+        }
       }
     } catch (err) {
+      console.error("useUser - Fetch error:", err);
       setError(
         err instanceof Error ? err.message : "Failed to fetch user data",
       );
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, callApi]);
+  }, [
+    isAuthenticated,
+    callApi,
+    createUserIfNeeded,
+    auth0User,
+    updateDiscordInfo,
+  ]);
 
   useEffect(() => {
     // Fetch data only when authentication is complete and user is authenticated

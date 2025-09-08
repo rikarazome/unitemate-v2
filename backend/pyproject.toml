@@ -5,10 +5,12 @@ description = "Backend for Unitemate v2"
 authors = [{ name = "Shun Fukusumi", email = "shun.fukusumi@gmail.com" }]
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "pyjwt[crypto]==2.10.1",
+    "python-jose[cryptography]>=3.3.0",
     "requests==2.32.3",
     "boto3==1.35.88",
     "pydantic>=2.11.7",
+    "stripe>=11.1.0",
+    "aiohttp>=3.10.0",
 ]
 
 [project.optional-dependencies]
@@ -60,3 +62,9 @@ warn_unused_configs = true
 ignore_missing_imports = true
 plugins = ["pydantic.mypy"]
 disallow_untyped_defs = true
+
+[dependency-groups]
+dev = [
+    "moto>=5.1.9",
+    "pytest>=8.4.1",
+]

@@ -1,0 +1,314 @@
+[
+  {
+    "achievement_id": "FIRST_MATCH",
+    "name_ja": "初戦突破",
+    "name_en": "First Match",
+    "description_ja": "最初の試合を完了する",
+    "description_en": "Complete your first match",
+    "type": "MILESTONE",
+    "tier": "BRONZE",
+    "requirement": {
+      "type": "total_matches",
+      "target": 1
+    },
+    "reward_points": 10,
+    "icon_url": "",
+    "is_active": true
+  },
+  {
+    "achievement_id": "TEN_MATCHES",
+    "name_ja": "継続は力なり",
+    "name_en": "Persistence",
+    "description_ja": "10試合完了する",
+    "description_en": "Complete 10 matches",
+    "type": "MILESTONE",
+    "tier": "BRONZE",
+    "requirement": {
+      "type": "total_matches",
+      "target": 10
+    },
+    "reward_points": 50,
+    "icon_url": "",
+    "is_active": true
+  },
+  {
+    "achievement_id": "FIFTY_MATCHES",
+    "name_ja": "経験豊富",
+    "name_en": "Experienced",
+    "description_ja": "50試合完了する",
+    "description_en": "Complete 50 matches",
+    "type": "MILESTONE",
+    "tier": "SILVER",
+    "requirement": {
+      "type": "total_matches",
+      "target": 50
+    },
+    "reward_points": 100,
+    "icon_url": "",
+    "is_active": true
+  },
+  {
+    "achievement_id": "HUNDRED_MATCHES",
+    "name_ja": "百戦錬磨",
+    "name_en": "Veteran",
+    "description_ja": "100試合完了する",
+    "description_en": "Complete 100 matches",
+    "type": "MILESTONE",
+    "tier": "GOLD",
+    "requirement": {
+      "type": "total_matches",
+      "target": 100
+    },
+    "reward_points": 200,
+    "icon_url": "",
+    "is_active": true
+  },
+  {
+    "achievement_id": "FIRST_WIN",
+    "name_ja": "初勝利",
+    "name_en": "First Victory",
+    "description_ja": "最初の勝利を獲得する",
+    "description_en": "Win your first match",
+    "type": "MILESTONE",
+    "tier": "BRONZE",
+    "requirement": {
+      "type": "total_wins",
+      "target": 1
+    },
+    "reward_points": 20,
+    "icon_url": "",
+    "is_active": true
+  },
+  {
+    "achievement_id": "TEN_WINS",
+    "name_ja": "勝利への道",
+    "name_en": "Path to Victory",
+    "description_ja": "10勝達成する",
+    "description_en": "Achieve 10 wins",
+    "type": "MILESTONE",
+    "tier": "BRONZE",
+    "requirement": {
+      "type": "total_wins",
+      "target": 10
+    },
+    "reward_points": 75,
+    "icon_url": "",
+    "is_active": true
+  },
+  {
+    "achievement_id": "FIFTY_WINS",
+    "name_ja": "勝者の証",
+    "name_en": "Mark of a Winner",
+    "description_ja": "50勝達成する",
+    "description_en": "Achieve 50 wins",
+    "type": "MILESTONE",
+    "tier": "SILVER",
+    "requirement": {
+      "type": "total_wins",
+      "target": 50
+    },
+    "reward_points": 150,
+    "icon_url": "",
+    "is_active": true
+  },
+  {
+    "achievement_id": "RATING_1600",
+    "name_ja": "上級者への道",
+    "name_en": "Advanced Player",
+    "description_ja": "レート1600を達成する",
+    "description_en": "Reach a rating of 1600",
+    "type": "RATING",
+    "tier": "BRONZE",
+    "requirement": {
+      "target_rate": 1600
+    },
+    "reward_points": 100,
+    "icon_url": "",
+    "is_active": true
+  },
+  {
+    "achievement_id": "RATING_1700",
+    "name_ja": "エキスパート",
+    "name_en": "Expert",
+    "description_ja": "レート1700を達成する",
+    "description_en": "Reach a rating of 1700",
+    "type": "RATING",
+    "tier": "SILVER",
+    "requirement": {
+      "target_rate": 1700
+    },
+    "reward_points": 150,
+    "icon_url": "",
+    "is_active": true
+  },
+  {
+    "achievement_id": "RATING_1800",
+    "name_ja": "マスタークラス",
+    "name_en": "Master Class",
+    "description_ja": "レート1800を達成する",
+    "description_en": "Reach a rating of 1800",
+    "type": "RATING",
+    "tier": "GOLD",
+    "requirement": {
+      "target_rate": 1800
+    },
+    "reward_points": 250,
+    "icon_url": "",
+    "is_active": true
+  },
+  {
+    "achievement_id": "RATING_1900",
+    "name_ja": "グランドマスター",
+    "name_en": "Grand Master",
+    "description_ja": "レート1900を達成する",
+    "description_en": "Reach a rating of 1900",
+    "type": "RATING",
+    "tier": "PLATINUM",
+    "requirement": {
+      "target_rate": 1900
+    },
+    "reward_points": 400,
+    "icon_url": "",
+    "is_active": true
+  },
+  {
+    "achievement_id": "RATING_2000",
+    "name_ja": "伝説のトレーナー",
+    "name_en": "Legendary Trainer",
+    "description_ja": "レート2000を達成する",
+    "description_en": "Reach a rating of 2000",
+    "type": "RATING",
+    "tier": "DIAMOND",
+    "requirement": {
+      "target_rate": 2000
+    },
+    "reward_points": 500,
+    "icon_url": "",
+    "is_active": true
+  },
+  {
+    "achievement_id": "WIN_STREAK_3",
+    "name_ja": "連勝スタート",
+    "name_en": "Winning Start",
+    "description_ja": "3連勝を達成する",
+    "description_en": "Achieve a 3-win streak",
+    "type": "WIN_STREAK",
+    "tier": "BRONZE",
+    "requirement": {
+      "target_streak": 3
+    },
+    "reward_points": 50,
+    "icon_url": "",
+    "is_active": true
+  },
+  {
+    "achievement_id": "WIN_STREAK_5",
+    "name_ja": "連勝街道",
+    "name_en": "Winning Streak",
+    "description_ja": "5連勝を達成する",
+    "description_en": "Achieve a 5-win streak",
+    "type": "WIN_STREAK",
+    "tier": "SILVER",
+    "requirement": {
+      "target_streak": 5
+    },
+    "reward_points": 100,
+    "icon_url": "",
+    "is_active": true
+  },
+  {
+    "achievement_id": "WIN_STREAK_10",
+    "name_ja": "止められない連勝",
+    "name_en": "Unstoppable",
+    "description_ja": "10連勝を達成する",
+    "description_en": "Achieve a 10-win streak",
+    "type": "WIN_STREAK",
+    "tier": "GOLD",
+    "requirement": {
+      "target_streak": 10
+    },
+    "reward_points": 200,
+    "icon_url": "",
+    "is_active": true
+  },
+  {
+    "achievement_id": "PIKACHU_MASTER",
+    "name_ja": "ピカチュウマスター",
+    "name_en": "Pikachu Master",
+    "description_ja": "ピカチュウで10勝する",
+    "description_en": "Win 10 matches with Pikachu",
+    "type": "POKEMON_MASTERY",
+    "tier": "BRONZE",
+    "requirement": {
+      "pokemon_id": "PIKACHU",
+      "target_wins": 10
+    },
+    "reward_points": 75,
+    "icon_url": "",
+    "is_active": true
+  },
+  {
+    "achievement_id": "CHARIZARD_MASTER",
+    "name_ja": "リザードンマスター",
+    "name_en": "Charizard Master",
+    "description_ja": "リザードンで10勝する",
+    "description_en": "Win 10 matches with Charizard",
+    "type": "POKEMON_MASTERY",
+    "tier": "BRONZE",
+    "requirement": {
+      "pokemon_id": "CHARIZARD",
+      "target_wins": 10
+    },
+    "reward_points": 75,
+    "icon_url": "",
+    "is_active": true
+  },
+  {
+    "achievement_id": "SNORLAX_MASTER",
+    "name_ja": "カビゴンマスター",
+    "name_en": "Snorlax Master",
+    "description_ja": "カビゴンで10勝する",
+    "description_en": "Win 10 matches with Snorlax",
+    "type": "POKEMON_MASTERY",
+    "tier": "BRONZE",
+    "requirement": {
+      "pokemon_id": "SNORLAX",
+      "target_wins": 10
+    },
+    "reward_points": 75,
+    "icon_url": "",
+    "is_active": true
+  },
+  {
+    "achievement_id": "ELDEGOSS_MASTER",
+    "name_ja": "ワタシラガマスター",
+    "name_en": "Eldegoss Master",
+    "description_ja": "ワタシラガで10勝する",
+    "description_en": "Win 10 matches with Eldegoss",
+    "type": "POKEMON_MASTERY",
+    "tier": "BRONZE",
+    "requirement": {
+      "pokemon_id": "ELDEGOSS",
+      "target_wins": 10
+    },
+    "reward_points": 75,
+    "icon_url": "",
+    "is_active": true
+  },
+  {
+    "achievement_id": "TALONFLAME_MASTER",
+    "name_ja": "ファイアローマスター",
+    "name_en": "Talonflame Master",
+    "description_ja": "ファイアローで10勝する",
+    "description_en": "Win 10 matches with Talonflame",
+    "type": "POKEMON_MASTERY",
+    "tier": "BRONZE",
+    "requirement": {
+      "pokemon_id": "TALONFLAME",
+      "target_wins": 10
+    },
+    "reward_points": 75,
+    "icon_url": "",
+    "is_active": true
+  }
+]

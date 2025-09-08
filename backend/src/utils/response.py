@@ -42,17 +42,22 @@ def create_success_response(data: Any, status_code: int = 200) -> dict[str, Any]
     }
 
 
-def create_error_response(status_code: int, message: str) -> dict[str, Any]:
+def create_error_response(status_code: int, message: str, data: Any = None) -> dict[str, Any]:
     """エラーレスポンスの生成.
 
     Args:
         status_code (int): HTTPエラーステータスコード.
         message (str): エラーメッセージ.
+        data (Any): 追加のエラーデータ.
 
     Returns:
         dict[str, Any]: AWS Lambdaプロキシエラーレスポンスオブジェクト.
 
     """
+    error_body = {"error": message}
+    if data:
+        error_body.update(data)
+
     return {
         "statusCode": status_code,
         "headers": {
@@ -61,5 +66,5 @@ def create_error_response(status_code: int, message: str) -> dict[str, Any]:
             "Access-Control-Allow-Headers": "Content-Type,Authorization",
             "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
         },
-        "body": json.dumps({"error": message}),
+        "body": json.dumps(error_body, cls=CustomJSONEncoder),
     }

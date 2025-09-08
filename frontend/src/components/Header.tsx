@@ -13,185 +13,76 @@ interface HeaderProps {
   onLogout?: () => void;
 }
 
-const HomeIcon = () => (
-  <svg
-    className="w-4 h-4"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2.5}
-      d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-    />
-  </svg>
-);
-
-const HeartIcon = () => (
-  <svg
-    className="w-4 h-4"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2.5}
-      d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-    />
-  </svg>
-);
-
-const TrophyIcon = () => (
-  <svg
-    className="w-4 h-4"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2.5}
-      d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
-    />
-  </svg>
-);
-
 const Header: React.FC<HeaderProps> = ({ user, onLogin, onLogout }) => {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const toggleDropdown = () => {
-    setIsDropdownOpen(!isDropdownOpen);
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
+
+  const closeMenu = () => {
+    setIsMenuOpen(false);
   };
 
   return (
-    <header className="sticky top-0 z-[1000] w-screen m-0 p-0">
-      {/* ガラスモーフィズム効果とグラデーション */}
-      <div className="bg-gradient-to-r from-orange-400/95 via-pink-400/95 to-purple-500/95 backdrop-blur-xl border-b border-white/20">
-        {/* 内側の光る効果 */}
-        <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-white/10"></div>
+    <>
+      <header className="sticky top-0 z-50 bg-gradient-to-r from-orange-400 via-pink-400 to-purple-500 shadow-lg">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center justify-between h-16">
+            {/* ロゴ */}
+            <Link to="/" className="flex items-center">
+              <img
+                src="/unitemate-logo.png"
+                alt="ユナメイト"
+                className="h-10 w-auto"
+              />
+            </Link>
 
-        {/* メインコンテンツ */}
-        <div className="relative flex items-center justify-between max-w-[1200px] mx-auto h-16 px-6 md:h-14 md:px-5">
-          {/* ロゴセクション */}
-          <div className="flex items-center">
-            <div className="flex items-center gap-1 text-white no-underline group">
-              <div className="relative">
-                <img
-                  src="/unitemate-logo.png"
-                  alt="ユナメイト"
-                  className="h-12 w-auto max-w-[220px] drop-shadow-md transition-all duration-300 group-hover:drop-shadow-lg group-hover:scale-105 md:h-9"
-                />
-                {/* ロゴの背景光効果 */}
-                <div className="absolute inset-0 bg-white/20 rounded-lg blur-xl opacity-0 group-hover:opacity-30 transition-opacity duration-300 -z-10"></div>
-              </div>
-            </div>
-          </div>
-
-          {/* ナビゲーション */}
-          <div className="flex-1 flex justify-center">
-            <nav className="flex gap-2 items-center">
-              <Link
-                to="/"
-                className="group flex items-center gap-1.5 text-white/90 no-underline font-medium py-2 px-3.5 rounded-full
-                         backdrop-blur-sm bg-white/10 border border-white/20
-                         transition-all duration-300 ease-out
-                         hover:bg-white/25 hover:border-white/40 hover:text-white hover:shadow-lg hover:shadow-white/25
-                         hover:-translate-y-0.5 hover:scale-105
-                         md:py-1.5 md:px-2.5 md:text-sm"
+            {/* ハンバーガーメニューボタン */}
+            <div className="relative">
+              <button
+                onClick={toggleMenu}
+                className="w-10 h-10 flex items-center justify-center text-white/90 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
               >
-                <HomeIcon />
-                <span>トップ</span>
-              </Link>
-              <Link
-                to="/match"
-                className="group flex items-center gap-1.5 text-white/90 no-underline font-medium py-2 px-3.5 rounded-full
-                         backdrop-blur-sm bg-white/10 border border-white/20
-                         transition-all duration-300 ease-out
-                         hover:bg-white/25 hover:border-white/40 hover:text-white hover:shadow-lg hover:shadow-white/25
-                         hover:-translate-y-0.5 hover:scale-105
-                         md:py-1.5 md:px-2.5 md:text-sm"
-              >
-                <HeartIcon />
-                <span>マッチング</span>
-              </Link>
-              <Link
-                to="/ranking"
-                className="group flex items-center gap-1.5 text-white/90 no-underline font-medium py-2 px-3.5 rounded-full
-                         backdrop-blur-sm bg-white/10 border border-white/20
-                         transition-all duration-300 ease-out
-                         hover:bg-white/25 hover:border-white/40 hover:text-white hover:shadow-lg hover:shadow-white/25
-                         hover:-translate-y-0.5 hover:scale-105
-                         md:py-1.5 md:px-2.5 md:text-sm"
-              >
-                <TrophyIcon />
-                <span>ランキング</span>
-              </Link>
-            </nav>
-          </div>
-
-          {/* ユーザーセクション */}
-          <div className="flex items-center">
-            {user ? (
-              <div className="relative">
-                <button
-                  className="group flex items-center gap-2 bg-white/15 backdrop-blur-sm border border-white/30 text-white cursor-pointer py-2 px-3.5 rounded-full
-                           transition-all duration-300 ease-out
-                           hover:bg-white/25 hover:border-white/50 hover:shadow-lg hover:shadow-white/25 hover:-translate-y-0.5
-                           md:gap-1.5 md:py-1.5 md:px-2.5"
-                  onClick={toggleDropdown}
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth="2"
                 >
-                  <div className="relative">
-                    <img
-                      src={user.avatar || "/default-avatar.png"}
-                      alt={user.username}
-                      className="w-7 h-7 rounded-full object-cover ring-1 ring-white/30 transition-all duration-300 group-hover:ring-white/50 group-hover:scale-105 md:w-6 md:h-6"
-                    />
-                    {/* アバターの光る効果 */}
-                    <div className="absolute inset-0 rounded-full bg-white/20 opacity-0 group-hover:opacity-30 transition-opacity duration-300 blur-sm"></div>
-                  </div>
-                  <span className="font-medium text-base md:text-sm">
-                    {user.username}
-                  </span>
-                  <svg
-                    className={`transition-all duration-300 ${
-                      isDropdownOpen ? "rotate-180 text-white" : "text-white/70"
-                    } group-hover:text-white`}
-                    width="10"
-                    height="10"
-                    viewBox="0 0 16 16"
-                  >
-                    <path
-                      d="M4 6l4 4 4-4"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      fill="none"
-                    />
-                  </svg>
-                </button>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d={
+                      isMenuOpen
+                        ? "M6 18L18 6M6 6l12 12"
+                        : "M3 12h18M3 6h18M3 18h18"
+                    }
+                  />
+                </svg>
+              </button>
 
-                {/* ドロップダウンメニュー */}
-                {isDropdownOpen && (
-                  <div className="absolute top-full right-0 mt-2 min-w-[160px] animate-in slide-in-from-top-2 duration-200">
-                    <div className="bg-white/95 backdrop-blur-xl rounded-xl shadow-xl shadow-black/20 border border-white/20 py-2 overflow-hidden">
-                      {/* 内側の光る効果 */}
-                      <div className="absolute inset-0 bg-gradient-to-br from-white/50 via-transparent to-white/20 pointer-events-none"></div>
+              {/* ドロップダウンメニュー */}
+              {isMenuOpen && (
+                <>
+                  {/* オーバーレイ */}
+                  <div
+                    className="fixed inset-0 bg-black/10 z-40"
+                    onClick={closeMenu}
+                  ></div>
 
-                      <div className="relative">
-                        <Link
-                          to="/profile"
-                          className="flex items-center gap-2 w-full py-2.5 px-3 text-gray-700 no-underline border-none bg-transparent text-left cursor-pointer
-                                   transition-all duration-200 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:text-gray-900
-                                   group"
-                        >
+                  {/* メニュー本体 */}
+                  <div className="absolute right-0 mt-3 w-60 bg-white/95 backdrop-blur-md rounded-xl shadow-xl border border-gray-200/50 z-50">
+                    <div className="p-2">
+                      <Link
+                        to="/"
+                        onClick={closeMenu}
+                        className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-orange-50 hover:text-orange-700 rounded-lg transition-colors"
+                      >
+                        <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
                           <svg
-                            className="w-2.5 h-2.5 text-gray-500 group-hover:text-blue-600 transition-colors duration-200"
+                            className="w-4 h-4 text-orange-600"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -200,22 +91,67 @@ const Header: React.FC<HeaderProps> = ({ user, onLogin, onLogout }) => {
                               strokeLinecap="round"
                               strokeLinejoin="round"
                               strokeWidth={2}
-                              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                              d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m0 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h3a1 1 0 001-1V10M9 21h6"
                             />
                           </svg>
-                          <span className="font-medium text-sm">
-                            マイページ
-                          </span>
-                        </Link>
+                        </div>
+                        <span className="font-medium">トップ</span>
+                      </Link>
 
-                        <Link
-                          to="/settings"
-                          className="flex items-center gap-2 w-full py-2.5 px-3 text-gray-700 no-underline border-none bg-transparent text-left cursor-pointer
-                                   transition-all duration-200 hover:bg-gradient-to-r hover:from-green-50 hover:to-blue-50 hover:text-gray-900
-                                   group"
-                        >
+                      <Link
+                        to="/shop"
+                        onClick={closeMenu}
+                        className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-purple-50 hover:text-purple-700 rounded-lg transition-colors"
+                      >
+                        <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
                           <svg
-                            className="w-2.5 h-2.5 text-gray-500 group-hover:text-green-600 transition-colors duration-200"
+                            className="w-4 h-4 text-purple-600"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                            />
+                          </svg>
+                        </div>
+                        <span className="font-medium">ショップ</span>
+                      </Link>
+
+                      <Link
+                        to="/about"
+                        onClick={closeMenu}
+                        className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors"
+                      >
+                        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <svg
+                            className="w-4 h-4 text-blue-600"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                        </div>
+                        <span className="font-medium">ユナメイトとは</span>
+                      </Link>
+
+                      <Link
+                        to="/tools"
+                        onClick={closeMenu}
+                        className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-orange-50 hover:text-orange-700 rounded-lg transition-colors"
+                      >
+                        <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                          <svg
+                            className="w-4 h-4 text-orange-600"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -233,19 +169,20 @@ const Header: React.FC<HeaderProps> = ({ user, onLogin, onLogout }) => {
                               d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
                             />
                           </svg>
-                          <span className="font-medium text-sm">設定</span>
-                        </Link>
+                        </div>
+                        <span className="font-medium">ツール</span>
+                      </Link>
 
-                        <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent my-1.5 mx-3"></div>
-
-                        <button
-                          onClick={onLogout}
-                          className="flex items-center gap-2 w-full py-2.5 px-3 text-red-600 font-semibold border-none bg-transparent text-left cursor-pointer
-                                   transition-all duration-200 hover:bg-gradient-to-r hover:from-red-50 hover:to-pink-50 hover:text-red-700
-                                   group"
-                        >
+                      <a
+                        href="https://lookerstudio.google.com/u/0/reporting/dea387a8-d512-492b-8cfa-bf4e584ff6a3/page/p_r088ru6bad"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={closeMenu}
+                        className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-green-50 hover:text-green-700 rounded-lg transition-colors"
+                      >
+                        <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
                           <svg
-                            className="w-2.5 h-2.5 group-hover:scale-110 transition-transform duration-200"
+                            className="w-4 h-4 text-green-600"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -254,39 +191,140 @@ const Header: React.FC<HeaderProps> = ({ user, onLogin, onLogout }) => {
                               strokeLinecap="round"
                               strokeLinejoin="round"
                               strokeWidth={2}
-                              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
                             />
                           </svg>
-                          <span className="text-sm">ログアウト</span>
+                        </div>
+                        <div className="flex items-center justify-between w-full">
+                          <span className="font-medium">統計情報</span>
+                          <svg
+                            className="w-3 h-3 text-gray-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                            />
+                          </svg>
+                        </div>
+                      </a>
+
+                      <div className="h-px bg-gray-200 my-2"></div>
+
+                      <Link
+                        to="/terms"
+                        onClick={closeMenu}
+                        className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-gray-900 rounded-lg transition-colors"
+                      >
+                        <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+                          <svg
+                            className="w-4 h-4 text-gray-600"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                            />
+                          </svg>
+                        </div>
+                        <span className="font-medium">利用規約</span>
+                      </Link>
+
+                      {/* ユーザーアカウントセクション */}
+                      <div className="h-px bg-gray-200 my-2"></div>
+
+                      {user ? (
+                        <>
+                          <div className="px-4 py-2">
+                            <div className="flex items-center gap-3">
+                              <img
+                                src={user.avatar || "/default-avatar.png"}
+                                alt={user.username}
+                                className="w-8 h-8 rounded-full flex-shrink-0"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <p
+                                  className="text-sm font-medium text-gray-900 truncate"
+                                  title={user.username}
+                                >
+                                  {user.username}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  ログイン中
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => {
+                              onLogout?.();
+                              closeMenu();
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
+                              <svg
+                                className="w-4 h-4 text-red-600"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                                />
+                              </svg>
+                            </div>
+                            <span className="font-medium">ログアウト</span>
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            onLogin?.();
+                            closeMenu();
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                        >
+                          <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                            <svg
+                              className="w-4 h-4 text-green-600"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
+                              />
+                            </svg>
+                          </div>
+                          <span className="font-medium">ログイン</span>
                         </button>
-                      </div>
+                      )}
                     </div>
                   </div>
-                )}
-              </div>
-            ) : (
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={onLogin}
-                  className="group bg-white/20 backdrop-blur-sm text-white border border-white/40 py-2 px-5 rounded-full font-medium cursor-pointer
-                           transition-all duration-300 ease-out transform
-                           hover:bg-white hover:text-purple-600 hover:border-white hover:shadow-xl hover:shadow-white/30
-                           hover:-translate-y-1 hover:scale-105
-                           md:py-1.5 md:px-4 md:text-sm"
-                >
-                  <span className="relative z-10 text-base md:text-sm">
-                    ログイン
-                  </span>
-                  {/* ボタンの光る効果 */}
-                  <div className="absolute inset-0 bg-white/20 rounded-full blur-md opacity-0 group-hover:opacity-50 transition-opacity duration-300"></div>
-                </button>
-              </div>
-            )}
+                </>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
+    </>
   );
 };
 
-export default Header;
+export { Header };

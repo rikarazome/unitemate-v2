@@ -1,31 +1,67 @@
 import React from "react";
-import Header from "./Header";
-
-interface User {
-  id: string;
-  username: string;
-  avatar?: string;
-}
+import { Header } from "./Header";
+import { useUser } from "../hooks/useUser";
+import { useDummyAuth } from "../hooks/useDummyAuth";
+import { useAuth0 } from "@auth0/auth0-react";
 
 interface LayoutProps {
   children: React.ReactNode;
-  user?: User;
-  onLogin?: () => void;
-  onLogout?: () => void;
+  className?: string;
 }
 
-const Layout: React.FC<LayoutProps> = ({
-  children,
-  user,
-  onLogin,
-  onLogout,
-}) => {
+const Layout: React.FC<LayoutProps> = ({ children, className = "" }) => {
+  // 認証状態
+  const { userData } = useUser();
+  const dummyAuth = useDummyAuth();
+  const {
+    loginWithRedirect,
+    logout,
+    isAuthenticated,
+    user: auth0User,
+  } = useAuth0();
+
+  // 統合されたユーザー情報
+  const currentUser = dummyAuth.isAuthenticated
+    ? {
+        id: dummyAuth.user?.user_id || "",
+        username: dummyAuth.user?.trainer_name || "Unknown",
+        avatar: undefined,
+      }
+    : userData
+      ? {
+          id: userData.user_id,
+          username:
+            userData.trainer_name || userData.discord_username || "Unknown",
+          avatar: auth0User?.picture,
+        }
+      : null;
+
+  const handleLogin = () => {
+    if (!isAuthenticated) {
+      loginWithRedirect({
+        authorizationParams: {
+          connection: "discord",
+        },
+      });
+    }
+  };
+
+  const handleLogout = () => {
+    if (dummyAuth.isAuthenticated) {
+      dummyAuth.logout();
+    } else if (isAuthenticated) {
+      logout({ returnTo: window.location.origin });
+    }
+  };
+
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header user={user} onLogin={onLogin} onLogout={onLogout} />
-      <main className="flex-1 p-8 max-w-[1200px] mx-auto w-full md:p-4">
-        {children}
-      </main>
+    <div className={`min-h-screen ${className}`}>
+      <Header
+        user={currentUser}
+        onLogin={handleLogin}
+        onLogout={handleLogout}
+      />
+      <div className="flex-1">{children}</div>
     </div>
   );
 };

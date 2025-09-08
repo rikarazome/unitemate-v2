@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx serverless deploy:*)"
+    ],
+    "deny": [],
+    "additionalDirectories": [
+      "C:\\c\\Users\\haseg\\Documents\\unitemate\\unitemate-v2"
+    ]
+  }
+}

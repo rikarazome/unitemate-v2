@@ -1,9 +1,9 @@
 export const PreferredRole = {
   TOP_LANE: "TOP_LANE",
-  TOP_STUDY: "TOP_STUDY",
+  SUPPORT: "SUPPORT",
   MIDDLE: "MIDDLE",
   BOTTOM_LANE: "BOTTOM_LANE",
-  BOTTOM_STUDY: "BOTTOM_STUDY",
+  TANK: "TANK",
 } as const;
 
 export type PreferredRole = (typeof PreferredRole)[keyof typeof PreferredRole];
@@ -17,7 +17,7 @@ export interface SeasonData {
   win_rate: number;
   final_rank: number;
   total_matches: number;
-  wins: number;
+  win_count: number;
 }
 
 export interface Auth0UserProfile {
@@ -34,19 +34,25 @@ export interface User {
   discord_username: string;
   discord_discriminator?: string | null;
   discord_avatar_url: string;
-  app_username: string;
   trainer_name: string;
   twitter_id?: string | null;
   preferred_roles?: string[]; // ロールIDの配列（マスターデータと連携）
   favorite_pokemon?: string[]; // ポケモンIDの配列
   current_badge?: string; // 現在設定している勲章ID
+  current_badge_2?: string; // 2つ目の勲章ID
+  owned_badges?: string[]; // 所持している勲章IDのリスト
   bio?: string | null;
   rate: number;
-  unitemate_max_rate: number; // バックエンドのフィールド名に合わせる
-  unitemate_num_record: number; // バックエンドのフィールド名に合わせる
-  unitemate_num_win: number; // バックエンドのフィールド名に合わせる
-  unitemate_winrate: number; // バックエンドのフィールド名に合わせる
-  penalty_count: number; // ペナルティ数
+  max_rate: number; // 最高レート
+  match_count: number; // 試合数
+  win_count: number; // 勝利数
+  win_rate: number; // 勝率
+  penalty_count: number; // 累積ペナルティ数（減らない）
+  penalty_correction: number; // ペナルティ軽減数
+  last_penalty_time?: number | null; // 最後のペナルティ付与時刻
+  penalty_timeout_until?: number | null; // ペナルティタイムアウト終了時刻
+  is_admin: boolean; // 管理者権限フラグ
+  is_banned: boolean; // アカウント凍結フラグ
   season_data?: SeasonData[]; // 過去シーズンデータ
   created_at: number; // タイムスタンプ
   updated_at: number; // タイムスタンプ

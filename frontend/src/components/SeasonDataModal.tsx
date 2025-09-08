@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import type { UserInfo } from '../hooks/useUnitemateApi';
+import React, { useState } from "react";
+import type { UserInfo } from "../hooks/useUnitemateApi";
 
 interface SeasonDataModalProps {
   isOpen: boolean;
@@ -7,15 +7,17 @@ interface SeasonDataModalProps {
   user: UserInfo | null;
 }
 
-const SeasonDataModal: React.FC<SeasonDataModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  user 
+const SeasonDataModal: React.FC<SeasonDataModalProps> = ({
+  isOpen,
+  onClose,
+  user,
 }) => {
-  const [selectedSeasonId, setSelectedSeasonId] = useState<string>('');
+  const [selectedSeasonId, setSelectedSeasonId] = useState<string>("");
 
   const seasonData = user?.season_data || [];
-  const selectedSeason = seasonData.find(s => s.season_id === selectedSeasonId);
+  const selectedSeason = seasonData.find(
+    (s) => s.season_id === selectedSeasonId,
+  );
 
   if (!isOpen) return null;
 
@@ -24,7 +26,9 @@ const SeasonDataModal: React.FC<SeasonDataModalProps> = ({
       <div className="bg-white rounded-lg shadow-xl max-w-lg w-full">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-gray-800">過去シーズンデータ</h2>
+            <h2 className="text-xl font-bold text-gray-800">
+              過去シーズンデータ
+            </h2>
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 text-2xl"
@@ -64,7 +68,7 @@ const SeasonDataModal: React.FC<SeasonDataModalProps> = ({
                   <h3 className="text-lg font-semibold text-gray-800 mb-4">
                     {selectedSeason.season_name} の結果
                   </h3>
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-white rounded-lg p-3">
                       <div className="text-sm text-gray-600">最終レート</div>
@@ -72,21 +76,21 @@ const SeasonDataModal: React.FC<SeasonDataModalProps> = ({
                         {selectedSeason.final_rate}
                       </div>
                     </div>
-                    
+
                     <div className="bg-white rounded-lg p-3">
                       <div className="text-sm text-gray-600">最高レート</div>
                       <div className="text-xl font-bold text-gray-900">
                         {selectedSeason.max_rate}
                       </div>
                     </div>
-                    
+
                     <div className="bg-white rounded-lg p-3">
                       <div className="text-sm text-gray-600">勝率</div>
                       <div className="text-xl font-bold text-gray-900">
                         {selectedSeason.win_rate}%
                       </div>
                     </div>
-                    
+
                     <div className="bg-white rounded-lg p-3">
                       <div className="text-sm text-gray-600">最終順位</div>
                       <div className="text-xl font-bold text-gray-900">
@@ -94,7 +98,7 @@ const SeasonDataModal: React.FC<SeasonDataModalProps> = ({
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="mt-4 grid grid-cols-2 gap-4">
                     <div className="bg-white rounded-lg p-3">
                       <div className="text-sm text-gray-600">総試合数</div>
@@ -102,7 +106,7 @@ const SeasonDataModal: React.FC<SeasonDataModalProps> = ({
                         {selectedSeason.total_matches}試合
                       </div>
                     </div>
-                    
+
                     <div className="bg-white rounded-lg p-3">
                       <div className="text-sm text-gray-600">勝利数</div>
                       <div className="text-lg font-semibold text-gray-900">
@@ -120,16 +124,18 @@ const SeasonDataModal: React.FC<SeasonDataModalProps> = ({
                         <div className="text-sm font-medium">1500</div>
                       </div>
                       <div className="flex-1 mx-2 h-2 bg-gray-200 rounded-full relative">
-                        <div 
+                        <div
                           className="h-full bg-gradient-to-r from-blue-400 to-green-400 rounded-full"
-                          style={{ 
-                            width: `${Math.min((selectedSeason.max_rate / 2000) * 100, 100)}%` 
+                          style={{
+                            width: `${Math.min((selectedSeason.max_rate / 2000) * 100, 100)}%`,
                           }}
                         />
                       </div>
                       <div className="text-center">
                         <div className="text-xs text-gray-500">最終</div>
-                        <div className="text-sm font-medium">{selectedSeason.final_rate}</div>
+                        <div className="text-sm font-medium">
+                          {selectedSeason.final_rate}
+                        </div>
                       </div>
                     </div>
                   </div>

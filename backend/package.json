@@ -1,12 +1,16 @@
 {
   "scripts": {
-    "dev": "PYTHONUNBUFFERED=1 sls offline start --verbose",
-    "start": "PYTHONUNBUFFERED=1 sls offline start --verbose"
+    "dev": "cross-env PYTHONUNBUFFERED=1 sls offline start --verbose",
+    "start": "cross-env PYTHONUNBUFFERED=1 sls offline start --verbose",
+    "deploy:dev": "cross-env sls deploy --stage dev --verbose",
+    "deploy:prd": "cross-env sls deploy --stage prd --verbose"
   },
   "devDependencies": {
+    "cross-env": "^10.0.0",
     "serverless-dynamodb": "^0.2.56",
     "serverless-offline": "^14.4.0",
     "serverless-prune-plugin": "^2.1.0",
-    "serverless-python-requirements": "^6.1.2"
+    "serverless-python-requirements": "^6.1.2",
+    "serverless-step-functions": "^3.23.3"
   }
 }
