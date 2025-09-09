@@ -7,6 +7,7 @@ interface DummyUser {
   rate: number;
   preferred_role: string;
   is_dummy: boolean;
+  original_user_id?: string; // useWebSocketで使用
 }
 
 interface DummyAuthState {

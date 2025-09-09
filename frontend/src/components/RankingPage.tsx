@@ -5,21 +5,7 @@ import { calcWinRate, formatRelativeOrDate } from "../utils/format";
 import Layout from "./Layout";
 
 export default function RankingPage() {
-  const { loginWithRedirect, logout } = useAuth0();
-  const { userData: appUser } = useUser();
   const { rankings, loading, error } = useRankings(100);
-
-  const handleLogin = () => loginWithRedirect();
-  const handleLogout = () =>
-    logout({ logoutParams: { returnTo: window.location.origin } });
-
-  const layoutUser = appUser
-    ? {
-        id: appUser.user_id,
-        username: appUser.discord_username,
-        avatar: appUser.discord_avatar_url,
-      }
-    : undefined;
 
   // 認証不要ページなので、未ログインでも表示する
   // ただしAuth0初期化中はHeaderの表示に揺れが出ないように待機可

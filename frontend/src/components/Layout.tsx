@@ -57,7 +57,7 @@ const Layout: React.FC<LayoutProps> = ({ children, className = "" }) => {
   return (
     <div className={`min-h-screen ${className}`}>
       <Header
-        user={currentUser}
+        user={currentUser || undefined}
         onLogin={handleLogin}
         onLogout={handleLogout}
       />

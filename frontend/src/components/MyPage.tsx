@@ -88,18 +88,6 @@ export default function MyPage() {
   if (!isAuthenticated && !authLoading) return <Navigate to="/" replace />;
   if (shouldShowUserCreation) return <Navigate to="/create-user" replace />;
 
-  const layoutUser = userData
-    ? {
-        id: userData.user_id,
-        username: userData.discord_username,
-        avatar: userData.discord_avatar_url,
-      }
-    : undefined;
-
-  const handleLogout = () => {
-    logout({ logoutParams: { returnTo: window.location.origin } });
-  };
-
   const onChange = (field: keyof UpdateUserFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     setIsDirty(true);

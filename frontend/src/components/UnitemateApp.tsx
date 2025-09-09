@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import { Link } from "react-router-dom";
+import axios from "axios";
 import { getPokemonById } from "../data/pokemon";
 import { getBadgeSync } from "../hooks/useBadges";
 import { useAuth0 } from "@auth0/auth0-react";
@@ -1094,7 +1095,7 @@ const MatchTab: React.FC<MatchTabProps> = ({
       console.error("試合情報の更新に失敗:", error);
       // APIエラーの場合でも、WebSocketで試合が進行中の場合は状態を保持
       // 404エラーなど本当に試合が存在しない場合のみnullにする
-      if (error.response?.status === 404) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
         console.log("Match not found (404). Leaving current match.");
         setCurrentMatch(null);
       } else {

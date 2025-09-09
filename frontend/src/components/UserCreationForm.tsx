@@ -124,17 +124,6 @@ export default function UserCreationForm({
 
   const bioCharCount = formData.bio.length;
 
-  // Auth0ユーザー情報をLayoutのUser形式に変換
-  const layoutUser = {
-    id: auth0Profile.sub,
-    username: auth0Profile.nickname,
-    avatar: auth0Profile.picture,
-  };
-
-  const handleLogout = () => {
-    logout({ logoutParams: { returnTo: window.location.origin } });
-  };
-
   return (
     <Layout>
       <div className="flex items-center justify-center min-h-[calc(100vh-200px)] py-12 px-4 sm:px-6 lg:px-8">

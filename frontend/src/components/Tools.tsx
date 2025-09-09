@@ -268,9 +268,19 @@ const Tools: React.FC = () => {
   };
 
   // 選択済みポケモンのスロット配列（BAN/PICK済みのポケモンを除外用）
-  const selectedPokemonSlots = [
-    ...Array.from(bannedPokemon).map((id) => ({ id })),
-    ...Array.from(pickedPokemon).map((id) => ({ id })),
+  const selectedPokemonSlots: PokemonSlot[] = [
+    ...Array.from(bannedPokemon).map((id) => ({ 
+      id, 
+      name: getPokemonById(id)?.name || 'Unknown',
+      type: getPokemonById(id)?.type || 'Unknown',
+      iconUrl: getPokemonById(id)?.icon_url || null
+    })),
+    ...Array.from(pickedPokemon).map((id) => ({ 
+      id, 
+      name: getPokemonById(id)?.name || 'Unknown',
+      type: getPokemonById(id)?.type || 'Unknown',
+      iconUrl: getPokemonById(id)?.icon_url || null
+    })),
   ];
 
   // 現在のターンかどうかの判定
@@ -779,7 +789,7 @@ const Tools: React.FC = () => {
         <PokemonPickerPopup
           isOpen={showPokemonPicker}
           onClose={() => setShowPokemonPicker(false)}
-          selectedRole="" // 使用しないが必須
+          selectedRole={"TOP_LANE" as LfgRole} // 使用しないが必須
           slotIndex={0} // 使用しないが必須
           onSelectPokemon={handlePokemonPickerSelect}
           currentRoleSlots={selectedPokemonSlots} // BAN/PICK済みのポケモンを除外するために空配列
