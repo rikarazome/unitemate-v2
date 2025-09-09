@@ -26,7 +26,7 @@ export default function RankingPage() {
   // if (isLoading) return <div className="p-8">読み込み中...</div>;
 
   return (
-    <Layout user={layoutUser} onLogin={handleLogin} onLogout={handleLogout}>
+    <Layout>
       <div className="max-w-5xl mx-auto">
         <h1 className="text-2xl font-bold mb-4">ランキング</h1>
         <p className="text-gray-600 mb-6 text-sm">

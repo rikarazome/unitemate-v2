@@ -93,15 +93,10 @@ export const getAllBadges = async (callApi?: ReturnType<typeof useApi>["callApi"
     return cachedBadgesData;
   }
 
-  if (callApi) {
-    const fetchBadges = createFetchBadgesFunction(callApi);
-    cachedBadgesData = await fetchBadges();
-  } else {
-    // 認証なしでパブリックAPIから取得
-    cachedBadgesData = await fetchPublicBadges();
-  }
+  // 常にパブリックAPIから取得
+  cachedBadgesData = await fetchPublicBadges();
   
-  return cachedBadgesData;
+  return cachedBadgesData || [];
 };
 
 // 同期版（フォールバック用）

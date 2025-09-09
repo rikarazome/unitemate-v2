@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { getAllBadges } from "../hooks/useBadges";
+import { getAllBadgesSync } from "../hooks/useBadges";
 
 interface BadgeSelectorProps {
   value: string | null | undefined;
@@ -27,7 +27,7 @@ const BadgeSelector: React.FC<BadgeSelectorProps> = ({
   label,
   placeholder = "勲章を選択してください",
 }) => {
-  const allBadges = useMemo(() => getAllBadges(), []);
+  const allBadges = useMemo(() => getAllBadgesSync(), []);
 
   // 選択可能な勲章をフィルタリング
   const availableBadges = useMemo(() => {

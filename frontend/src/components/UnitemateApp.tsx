@@ -305,6 +305,7 @@ const MyPageTab: React.FC = () => {
                     win_count: 0,
                     win_rate: 0,
                     penalty_count: 0,
+                    penalty_correction: 0,
                     created_at: Date.now(),
                     updated_at: Date.now(),
                   })
@@ -637,8 +638,8 @@ const MatchTab: React.FC<MatchTabProps> = ({
 }) => {
   const { isAuthenticated, user } = useAuth0();
   const dummyAuth = useDummyAuth();
-  const { userInfo, refetchUserInfo } = useUserInfo();
-  const { queueInfo, error: queueError, refetchQueueInfo } = useQueueInfo();
+  const { userInfo, refetch: refetchUserInfo } = useUserInfo();
+  const { queueInfo, error: queueError, refetch: refetchQueueInfo } = useQueueInfo();
   const { unitemateApi } = useUnitemateApi();
 
   // WebSocket接続とリアルタイム更新

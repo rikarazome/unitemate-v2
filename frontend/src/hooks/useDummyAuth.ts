@@ -13,6 +13,7 @@ interface DummyAuthState {
   isAuthenticated: boolean;
   user: DummyUser | null;
   accessToken: string | null;
+  token: string | null; // 互換性のため追加
   login: (accessToken: string, userInfo: DummyUser) => void;
   loginAsUser: (userId: string) => void;
   logout: () => void;
@@ -145,6 +146,7 @@ export const useDummyAuth = (): DummyAuthState => {
     isAuthenticated,
     user,
     accessToken,
+    token: accessToken, // 互換性のため追加
     login,
     loginAsUser,
     logout,

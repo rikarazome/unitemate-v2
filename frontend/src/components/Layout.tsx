@@ -50,7 +50,7 @@ const Layout: React.FC<LayoutProps> = ({ children, className = "" }) => {
     if (dummyAuth.isAuthenticated) {
       dummyAuth.logout();
     } else if (isAuthenticated) {
-      logout({ returnTo: window.location.origin });
+      logout({ logoutParams: { returnTo: window.location.origin } });
     }
   };
 

@@ -24,10 +24,10 @@ import {
 
 const ROLE_LABELS: Record<PreferredRoleType, string> = {
   [PreferredRole.TOP_LANE]: "上レーン",
-  [PreferredRole.TOP_STUDY]: "上学習",
+  [PreferredRole.SUPPORT]: "サポート",
   [PreferredRole.MIDDLE]: "中央",
   [PreferredRole.BOTTOM_LANE]: "下レーン",
-  [PreferredRole.BOTTOM_STUDY]: "下学習",
+  [PreferredRole.TANK]: "タンク",
 };
 
 export default function MyPage() {
@@ -62,7 +62,7 @@ export default function MyPage() {
       setFormData({
         trainer_name: userData.trainer_name || "",
         twitter_id: userData.twitter_id || "",
-        preferred_roles: userData.preferred_roles || [],
+        preferred_roles: (userData.preferred_roles || []) as PreferredRoleType[],
         bio: userData.bio || "",
         favorite_pokemon: userData.favorite_pokemon || [],
       });
@@ -222,7 +222,7 @@ export default function MyPage() {
 
   return (
     <>
-      <Layout user={layoutUser} onLogout={handleLogout}>
+      <Layout>
         <div className="max-w-4xl mx-auto">
           <h1 className="text-2xl font-bold mb-6">マイページ</h1>
 
@@ -477,11 +477,15 @@ export default function MyPage() {
         </div>
         {showPokemonSelector && (
           <PokemonSelector
-            isOpen={showPokemonSelector}
-            selectedIds={formData.favorite_pokemon || []}
-            max={5}
-            onClose={() => setShowPokemonSelector(false)}
-            onSave={onFavPokemonSave}
+            selectedPokemon={formData.favorite_pokemon || []}
+            maxSelections={5}
+            onPokemonToggle={(pokemonId) => {
+              const current = formData.favorite_pokemon || [];
+              const updated = current.includes(pokemonId)
+                ? current.filter(p => p !== pokemonId)
+                : [...current, pokemonId];
+              onFavPokemonSave(updated);
+            }}
           />
         )}
       </Layout>

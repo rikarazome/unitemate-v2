@@ -85,6 +85,7 @@ export interface QueueInfo {
   };
   previous_matched_unixtime: number; // 前回マッチ時刻（Unix timestamp）
   previous_user_count: number; // 前回マッチ時のキュー人数
+  average_wait_time?: number; // 平均待機時間（秒）
 }
 
 export interface QueueEntryRequest {

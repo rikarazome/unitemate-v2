@@ -41,6 +41,7 @@ export interface MatchData {
   lobby_id?: string;
   host_user_id?: string;
   report_count?: number; // 結果報告済み数
+  user_reports?: any[]; // ユーザーの報告データ
 }
 
 interface MatchScreenProps {

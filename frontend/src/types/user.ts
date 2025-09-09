@@ -37,12 +37,11 @@ export interface User {
   trainer_name: string;
   twitter_id?: string | null;
   preferred_roles?: string[]; // ロールIDの配列（マスターデータと連携）
-  favorite_pokemon?: string[]; // ポケモンIDの配列
+  favorite_pokemon?: string[] | null; // ポケモンIDの配列
   current_badge?: string; // 現在設定している勲章ID
   current_badge_2?: string; // 2つ目の勲章ID
   owned_badges?: string[]; // 所持している勲章IDのリスト
   bio?: string | null;
-  favorite_pokemon?: string[] | null;
   rate: number;
   max_rate: number; // 最高レート
   match_count: number; // 試合数

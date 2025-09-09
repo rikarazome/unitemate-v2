@@ -136,7 +136,7 @@ export default function UserCreationForm({
   };
 
   return (
-    <Layout user={layoutUser} onLogout={handleLogout}>
+    <Layout>
       <div className="flex items-center justify-center min-h-[calc(100vh-200px)] py-12 px-4 sm:px-6 lg:px-8">
         <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl p-8 md:p-12 space-y-8 transform transition-all duration-500 hover:scale-105">
           <div className="text-center">
