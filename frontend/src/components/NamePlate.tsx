@@ -299,20 +299,30 @@ const NamePlate: React.FC<NamePlateProps> = ({
 
         {/* 下段: レート情報 */}
         <div
-          className={`flex w-full ${isRightAligned ? "flex-row-reverse" : ""}`}
+          className={`flex w-full gap-2 ${isRightAligned ? "flex-row-reverse" : ""}`}
         >
-          <div className="flex-1 flex justify-center items-center space-x-1">
-            <span className={`opacity-90 ${fontSizes.label}`}>Rate:</span>
-            <span className={`font-semibold ${fontSizes.rate}`}>
-              {Math.round(rate)}
-            </span>
+          <div className="flex-1 flex justify-center items-center">
+            <div className="relative flex items-center">
+              <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-2 py-0.5 rounded-l text-xs font-medium shadow-sm">
+                Rate
+              </div>
+              <div className="bg-gradient-to-r from-orange-500 to-amber-600 w-0 h-0 border-l-[8px] border-t-[12px] border-b-[12px] border-t-transparent border-b-transparent"></div>
+              <span className={`ml-1 font-bold ${fontSizes.rate}`} style={{color: textColor}}>
+                {Math.round(rate)}
+              </span>
+            </div>
           </div>
 
-          <div className="flex-1 flex justify-center items-center space-x-1">
-            <span className={`opacity-90 ${fontSizes.label}`}>Best:</span>
-            <span className={`font-semibold ${fontSizes.rate}`}>
-              {Math.round(maxRate)}
-            </span>
+          <div className="flex-1 flex justify-center items-center">
+            <div className="relative flex items-center">
+              <div className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-2 py-0.5 rounded-l text-xs font-medium shadow-sm">
+                Best
+              </div>
+              <div className="bg-gradient-to-r from-teal-500 to-emerald-600 w-0 h-0 border-l-[8px] border-t-[12px] border-b-[12px] border-t-transparent border-b-transparent"></div>
+              <span className={`ml-1 font-bold ${fontSizes.rate}`} style={{color: textColor}}>
+                {Math.round(maxRate)}
+              </span>
+            </div>
           </div>
         </div>
       </div>
