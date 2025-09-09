@@ -204,8 +204,8 @@ const NamePlate: React.FC<NamePlateProps> = ({
 
   return (
     <div
-      className={`relative overflow-hidden border-t-2 border-b-2 border-white/20 ${useFixedWidth ? "" : "w-full min-w-[120px] max-w-[300px]"} ${className}`}
-      style={useFixedWidth ? { width: `${clampedWidth}px`, minHeight: '100px' } : { minHeight: '100px' }}
+      className={`relative overflow-hidden border-t-2 border-b-2 border-white/20 h-fit ${useFixedWidth ? "" : "w-full min-w-[120px] max-w-[300px]"} ${className}`}
+      style={useFixedWidth ? { width: `${clampedWidth}px` } : {}}
     >
       {/* 背景レイヤー */}
       <div className="absolute inset-0" style={backgroundStyle} />
@@ -244,7 +244,7 @@ const NamePlate: React.FC<NamePlateProps> = ({
       )}
 
       {/* コンテンツ */}
-      <div className="relative z-10 p-2" style={{ color: textColor }}>
+      <div className="relative z-10 p-2 h-fit" style={{ color: textColor }}>
         {/* 上段: アイコン + 名前 + Twitter/Action ボタンエリア */}
         <div
           className={`flex items-center justify-between mb-1 ${isRightAligned ? "flex-row-reverse" : ""}`}
@@ -301,25 +301,21 @@ const NamePlate: React.FC<NamePlateProps> = ({
         <div
           className={`flex w-full gap-2 ${isRightAligned ? "flex-row-reverse" : ""}`}
         >
-          <div className="flex-1 flex justify-center items-center">
-            <div className="relative flex items-center">
-              <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-2 py-0.5 rounded-l text-xs font-medium shadow-sm">
-                Rate
-              </div>
-              <div className="bg-gradient-to-r from-orange-500 to-amber-600 w-0 h-0 border-l-[8px] border-t-[12px] border-b-[12px] border-t-transparent border-b-transparent"></div>
-              <span className={`ml-1 font-bold ${fontSizes.rate}`} style={{color: textColor}}>
+          {/* Rate ラベル */}
+          <div className="flex-1 flex justify-center">
+            <div className="inline-flex items-center bg-blue-500/70 text-white px-1 py-px rounded text-center">
+              <span className={`${fontSizes.label} mr-0.5`}>Rate</span>
+              <span className={`font-semibold ${fontSizes.rate}`}>
                 {Math.round(rate)}
               </span>
             </div>
           </div>
 
-          <div className="flex-1 flex justify-center items-center">
-            <div className="relative flex items-center">
-              <div className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-2 py-0.5 rounded-l text-xs font-medium shadow-sm">
-                Best
-              </div>
-              <div className="bg-gradient-to-r from-teal-500 to-emerald-600 w-0 h-0 border-l-[8px] border-t-[12px] border-b-[12px] border-t-transparent border-b-transparent"></div>
-              <span className={`ml-1 font-bold ${fontSizes.rate}`} style={{color: textColor}}>
+          {/* Best ラベル */}
+          <div className="flex-1 flex justify-center">
+            <div className="inline-flex items-center bg-amber-500/70 text-white px-1 py-px rounded text-center">
+              <span className={`${fontSizes.label} mr-0.5`}>Best</span>
+              <span className={`font-semibold ${fontSizes.rate}`}>
                 {Math.round(maxRate)}
               </span>
             </div>
