@@ -302,15 +302,15 @@ const NamePlate: React.FC<NamePlateProps> = ({
           className={`flex w-full ${isRightAligned ? "flex-row-reverse" : ""}`}
         >
           <div className="flex-1 flex justify-center items-center space-x-1">
-            <span className={`text-yellow-400 font-medium ${fontSizes.label}`}>Rate:</span>
-            <span className={`text-white font-bold ${fontSizes.rate}`} style={{textShadow: '1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000'}}>
+            <span className={`font-medium ${fontSizes.label}`} style={{color: textColor, textShadow: '1px 1px 0 rgba(255,255,255,0.8), -1px -1px 0 rgba(255,255,255,0.8), 1px -1px 0 rgba(255,255,255,0.8), -1px 1px 0 rgba(255,255,255,0.8)'}}>Rate:</span>
+            <span className={`font-bold ${fontSizes.rate}`} style={{color: textColor, textShadow: '1px 1px 0 rgba(255,255,255,0.8), -1px -1px 0 rgba(255,255,255,0.8), 1px -1px 0 rgba(255,255,255,0.8), -1px 1px 0 rgba(255,255,255,0.8)'}}>
               {Math.round(rate)}
             </span>
           </div>
 
           <div className="flex-1 flex justify-center items-center space-x-1">
-            <span className={`text-cyan-400 font-medium ${fontSizes.label}`}>Best:</span>
-            <span className={`text-white font-bold ${fontSizes.rate}`} style={{textShadow: '1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000'}}>
+            <span className={`font-medium ${fontSizes.label}`} style={{color: textColor, textShadow: '1px 1px 0 rgba(255,255,255,0.8), -1px -1px 0 rgba(255,255,255,0.8), 1px -1px 0 rgba(255,255,255,0.8), -1px 1px 0 rgba(255,255,255,0.8)'}}>Best:</span>
+            <span className={`font-bold ${fontSizes.rate}`} style={{color: textColor, textShadow: '1px 1px 0 rgba(255,255,255,0.8), -1px -1px 0 rgba(255,255,255,0.8), 1px -1px 0 rgba(255,255,255,0.8), -1px 1px 0 rgba(255,255,255,0.8)'}}>
               {Math.round(maxRate)}
             </span>
           </div>
