@@ -31,7 +31,7 @@ const ROLE_LABELS: Record<PreferredRole, string> = {
 export default function UserCreationForm({
   auth0Profile,
 }: UserCreationFormProps) {
-  const { logout } = useAuth0();
+  // const { logout } = useAuth0(); // 未使用のためコメントアウト
   const { callApi } = useApi();
 
   const [formData, setFormData] = useState<CreateUserFormData>({

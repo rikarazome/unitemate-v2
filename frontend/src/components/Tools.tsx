@@ -4,7 +4,9 @@ import Layout from "./Layout";
 import PokemonPickerPopup from "./PokemonPickerPopup";
 import { useP2P } from "../hooks/useP2P";
 import { usePickSimulatorApi } from "../hooks/usePickSimulatorApi"; // ツール専用API
+import { getPokemonById } from "../data/pokemon";
 import type { GameMessage } from "../hooks/useP2P";
+import type { PokemonSlot, LfgRole } from "../types/lfg";
 
 interface Pokemon {
   id: string;
@@ -246,14 +248,9 @@ const Tools: React.FC = () => {
 
   // ポケモン選択ハンドラー
   const handlePokemonPickerSelect = (
-    selectedRole: string,
+    selectedRole: LfgRole,
     slotIndex: number,
-    pokemonSlot: {
-      id: string;
-      name: string;
-      type: string;
-      iconUrl?: string;
-    },
+    pokemonSlot: PokemonSlot,
   ) => {
     // pokemonSlotからPokemonオブジェクトを作成
     const pokemon: Pokemon = {
@@ -261,7 +258,7 @@ const Tools: React.FC = () => {
       name: pokemonSlot.name,
       role: pokemonSlot.type,
       tier: "A", // 仮のティアー
-      imageUrl: pokemonSlot.iconUrl,
+      imageUrl: pokemonSlot.iconUrl ?? undefined,
     };
 
     handlePokemonSelect(pokemon);
@@ -271,13 +268,13 @@ const Tools: React.FC = () => {
   const selectedPokemonSlots: PokemonSlot[] = [
     ...Array.from(bannedPokemon).map((id) => ({ 
       id, 
-      name: getPokemonById(id)?.name || 'Unknown',
+      name: getPokemonById(id)?.name_ja || 'Unknown',
       type: getPokemonById(id)?.type || 'Unknown',
       iconUrl: getPokemonById(id)?.icon_url || null
     })),
     ...Array.from(pickedPokemon).map((id) => ({ 
       id, 
-      name: getPokemonById(id)?.name || 'Unknown',
+      name: getPokemonById(id)?.name_ja || 'Unknown',
       type: getPokemonById(id)?.type || 'Unknown',
       iconUrl: getPokemonById(id)?.icon_url || null
     })),

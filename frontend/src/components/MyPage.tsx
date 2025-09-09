@@ -31,7 +31,7 @@ const ROLE_LABELS: Record<PreferredRoleType, string> = {
 };
 
 export default function MyPage() {
-  const { isAuthenticated, isLoading: authLoading, logout } = useAuth0();
+  const { isAuthenticated, isLoading: authLoading } = useAuth0();
   const { userData, loading, error, shouldShowUserCreation, refetch } =
     useUser();
   const { callApi } = useApi();

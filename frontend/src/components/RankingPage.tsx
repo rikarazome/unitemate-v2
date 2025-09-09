@@ -1,6 +1,4 @@
-import { useAuth0 } from "@auth0/auth0-react";
 import { useRankings } from "../hooks/useRankings";
-import { useUser } from "../hooks/useUser";
 import { calcWinRate, formatRelativeOrDate } from "../utils/format";
 import Layout from "./Layout";
 
