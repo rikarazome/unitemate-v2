@@ -299,18 +299,18 @@ const NamePlate: React.FC<NamePlateProps> = ({
 
         {/* 下段: レート情報 */}
         <div
-          className={`flex w-full bg-black/40 rounded px-1 py-0.5 ${isRightAligned ? "flex-row-reverse" : ""}`}
+          className={`flex w-full ${isRightAligned ? "flex-row-reverse" : ""}`}
         >
           <div className="flex-1 flex justify-center items-center space-x-1">
             <span className={`text-yellow-400 font-medium ${fontSizes.label}`}>Rate:</span>
-            <span className={`text-white font-bold drop-shadow-md ${fontSizes.rate}`}>
+            <span className={`text-white font-bold ${fontSizes.rate}`} style={{textShadow: '1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000'}}>
               {Math.round(rate)}
             </span>
           </div>
 
           <div className="flex-1 flex justify-center items-center space-x-1">
             <span className={`text-cyan-400 font-medium ${fontSizes.label}`}>Best:</span>
-            <span className={`text-white font-bold drop-shadow-md ${fontSizes.rate}`}>
+            <span className={`text-white font-bold ${fontSizes.rate}`} style={{textShadow: '1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000'}}>
               {Math.round(maxRate)}
             </span>
           </div>
