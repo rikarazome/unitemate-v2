@@ -207,7 +207,7 @@ export const QueueVisualization: React.FC<QueueVisualizationProps> = ({
         endAngle: number;
         angle: number;
       }>,
-      ongoingMatches: number,
+      _ongoingMatches: number,
     ) => {
       // 画面幅に応じてボックスサイズを調整
       const isVeryNarrow = width < 400;
@@ -220,7 +220,6 @@ export const QueueVisualization: React.FC<QueueVisualizationProps> = ({
       const bottomRowCols = 2;
       
       const topRowWidth = topRowCols * boxWidth + (topRowCols - 1) * padding;
-      const bottomRowWidth = bottomRowCols * boxWidth + (bottomRowCols - 1) * padding;
       
       // 320px幅でも収まるように最大幅制限
       const maxAllowedWidth = width - 20; // 左右10pxずつマージン
@@ -477,7 +476,6 @@ export const QueueVisualization: React.FC<QueueVisualizationProps> = ({
     const legendPadding = canvas.width < 400 ? 4 : 8;
     const totalLegendHeight = 2 * legendBoxHeight + legendPadding;
     const legendStartY = canvas.height - totalLegendHeight - 20;
-    const legendCenterY = legendStartY + totalLegendHeight / 2;
     
     // 上部情報ボックスの下端
     const topBoxBottom = 30 + 80; // boxY + boxHeight

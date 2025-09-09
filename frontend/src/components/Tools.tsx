@@ -62,7 +62,7 @@ const Tools: React.FC = () => {
   const [showPokemonPicker, setShowPokemonPicker] = useState<boolean>(false);
 
   // P2P通信状態
-  const [p2pState, setP2pState] = useState<P2PState>({
+  const [_p2pState, _setP2pState] = useState<P2PState>({
     isConnecting: false,
     showConnectionModal: false,
   });
@@ -248,8 +248,8 @@ const Tools: React.FC = () => {
 
   // ポケモン選択ハンドラー
   const handlePokemonPickerSelect = (
-    selectedRole: LfgRole,
-    slotIndex: number,
+    _selectedRole: LfgRole,
+    _slotIndex: number,
     pokemonSlot: PokemonSlot,
   ) => {
     // pokemonSlotからPokemonオブジェクトを作成
@@ -311,23 +311,6 @@ const Tools: React.FC = () => {
     }
   };
 
-  const getCurrentPhaseText = () => {
-    if (currentPhase === "completed") return "ドラフト完了！";
-
-    const currentStep = draftOrder[stepCounter];
-    if (!currentStep) return "エラー";
-
-    const teamName = currentStep.team === "first" ? "先攻チーム" : "後攻チーム";
-    const actionText = currentStep.phase === "pick" ? "PICK" : "BAN";
-    const phaseText =
-      currentStep.phase === "ban1"
-        ? "BAN1フェーズ"
-        : currentStep.phase === "ban2"
-          ? "BAN2フェーズ"
-          : "PICKフェーズ";
-
-    return `${phaseText} - ${teamName}が${actionText} (${stepCounter + 1}/14)`;
-  };
 
   // ルーム関連関数
   const generateRoomId = (): string => {

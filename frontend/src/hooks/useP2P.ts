@@ -16,7 +16,7 @@ interface P2PConnection {
   isHost: boolean;
 }
 
-export const useP2P = (roomId: string, isHost: boolean) => {
+export const useP2P = (_roomId: string, isHost: boolean) => {
   const [connection, setConnection] = useState<P2PConnection | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [localOffer, setLocalOffer] = useState<string>("");

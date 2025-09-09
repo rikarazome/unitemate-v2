@@ -638,16 +638,16 @@ const MatchTab: React.FC<MatchTabProps> = ({
 }) => {
   const { isAuthenticated, user } = useAuth0();
   const dummyAuth = useDummyAuth();
-  const { userInfo, refetch: refetchUserInfo } = useUserInfo();
+  const { userInfo, refetch: _refetchUserInfo } = useUserInfo();
   const { queueInfo, error: queueError, refetch: refetchQueueInfo } = useQueueInfo();
   const { unitemateApi } = useUnitemateApi();
 
   // WebSocket接続とリアルタイム更新
   const { 
-    isConnected: wsConnected, 
+    isConnected: _wsConnected, 
     subscribeMatch,
     unsubscribeMatch,
-    matchDynamicData
+    matchDynamicData: _matchDynamicData
   } = useWebSocket({
     onQueueUpdate: () => {
       console.log("[WebSocket] Queue update received, refetching queue info...");

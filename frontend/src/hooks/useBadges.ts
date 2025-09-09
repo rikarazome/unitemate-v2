@@ -88,7 +88,7 @@ export const getBadge = async (badgeId: string, callApi?: ReturnType<typeof useA
   return badges.find((badge) => badge.id === badgeId);
 };
 
-export const getAllBadges = async (callApi?: ReturnType<typeof useApi>["callApi"]): Promise<Badge[]> => {
+export const getAllBadges = async (_callApi?: ReturnType<typeof useApi>["callApi"]): Promise<Badge[]> => {
   if (cachedBadgesData) {
     return cachedBadgesData;
   }
@@ -132,7 +132,7 @@ export const initializeBadges = async (): Promise<void> => {
  * 勲章関連のフック
  */
 export const useBadges = (authToken?: string) => {
-  const { callApi } = useApi();
+  const { callApi: _callApi } = useApi();
   const [userBadges, setUserBadges] = useState<UserBadge[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from "react";
-import { useApi } from "../hooks/useApi";
+import React from "react";
 import { getBadgeSync } from "../hooks/useBadges";
 
 interface BadgeSelectButtonProps {
@@ -11,27 +10,11 @@ interface BadgeSelectButtonProps {
   className?: string;
 }
 
-interface Badge {
-  id: string;
-  condition: string;
-  display: string;
-  start_color: string | null;
-  end_color: string | null;
-  char_color: string | null;
-  image_card: string | null;
-  banner_image: string | null;
-  type: "gradient" | "image" | "basic";
-  price: number;
-  max_sales: number;
-  current_sales: number;
-  is_active: boolean;
-}
-
 const BadgeSelectButton: React.FC<BadgeSelectButtonProps> = ({
   value,
-  onChange,
-  excludeBadgeId,
-  ownedBadgeIds,
+  onChange: _onChange,
+  excludeBadgeId: _excludeBadgeId,
+  ownedBadgeIds: _ownedBadgeIds,
   placeholder,
   className = "",
 }) => {
