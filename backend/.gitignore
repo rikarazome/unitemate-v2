@@ -54,6 +54,9 @@ db.sqlite3
 # Serverless directories
 .serverless
 
+# Serverless python requirements temp files
+C:*node-dependencies-*
+
 # Node.js modules
 node_modules/
 

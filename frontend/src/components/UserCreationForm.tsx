@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useApi } from "../hooks/useApi";
 import { PreferredRole } from "../types/user";
@@ -23,16 +22,15 @@ interface UserCreationFormProps {
 
 const ROLE_LABELS: Record<PreferredRole, string> = {
   [PreferredRole.TOP_LANE]: "上レーン",
-  [PreferredRole.TOP_STUDY]: "上学習",
+  [PreferredRole.SUPPORT]: "サポート",
   [PreferredRole.MIDDLE]: "中央",
   [PreferredRole.BOTTOM_LANE]: "下レーン",
-  [PreferredRole.BOTTOM_STUDY]: "下学習",
+  [PreferredRole.TANK]: "タンク",
 };
 
 export default function UserCreationForm({
   auth0Profile,
 }: UserCreationFormProps) {
-  const navigate = useNavigate();
   const { logout } = useAuth0();
   const { callApi } = useApi();
 
@@ -113,8 +111,8 @@ export default function UserCreationForm({
         return;
       }
 
-      // Success - redirect to home
-      navigate("/");
+      // Success - reload to refresh user state
+      window.location.href = "/";
     } catch (error) {
       setSubmitError(
         error instanceof Error ? error.message : "ユーザー作成に失敗しました。",

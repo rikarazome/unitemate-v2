@@ -1,0 +1,11 @@
+{
+    "Items": [
+        {
+            "match_id": {
+                "N": "1"
+            },
+            "status": {
+                "S": "done"
+            },
+            "lobby_id": {
+                "S": 

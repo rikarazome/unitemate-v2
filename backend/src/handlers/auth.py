@@ -4,7 +4,7 @@ import json
 import os
 from functools import lru_cache
 
-import jwt
+from jose import jwt
 import requests
 
 
@@ -26,14 +26,14 @@ def get_jwks() -> dict:
     return response.json()
 
 
-def get_signing_key(kid: str) -> jwt.PyJWK:
+def get_signing_key(kid: str) -> dict:
     """キーIDに基づく署名キーの取得.
 
     Args:
         kid (str): キーID.
 
     Returns:
-        jwt.PyJWK: PyJWK署名キー.
+        dict: 署名キー.
 
     Raises:
         ValueError: 指定されたキーIDが見つからない場合.
@@ -42,7 +42,7 @@ def get_signing_key(kid: str) -> jwt.PyJWK:
     jwks = get_jwks()
     for key in jwks.get("keys", []):
         if key["kid"] == kid:
-            return jwt.PyJWK(key)
+            return key
     msg = f"Unable to find signing key for kid: {kid}"
     raise ValueError(msg)
 
@@ -58,36 +58,55 @@ def authorize(event: dict, _context: object) -> dict:
         dict: 認証結果とIAMポリシーまたはHTTP APIレスポンス.
 
     """
-    # HTTP APIでは routeArn を使用、REST APIでは methodArn を使用
-    route_arn = event.get("routeArn") or event.get("methodArn", "unknown")
-    print(f"AUTH: Starting authorization for event: {route_arn}")
+    try:
+        # HTTP APIでは routeArn を使用、REST APIでは methodArn を使用
+        route_arn = event.get("routeArn") or event.get("methodArn", "unknown")
+        print(f"AUTH: Starting authorization for event: {route_arn}")
 
-    # トークンの抽出
-    token = extract_token(event)
-    print(f"AUTH: Token extracted successfully: {token[:20]}...")
+        # トークンの抽出
+        token = extract_token(event)
+        print(f"AUTH: Token extracted successfully: {token[:20]}...")
 
-    # JWT検証 (ローカル開発時は署名検証のみスキップ)
-    payload = verify_jwt_token(token)
-    print(f"AUTH: JWT verification successful for user: {payload.get('sub', 'unknown')}")
+        # JWT検証 (ローカル開発時は署名検証のみスキップ)
+        payload = verify_jwt_token(token)
+        print(f"AUTH: JWT verification successful for user: {payload.get('sub', 'unknown')}")
+        print(f"AUTH: Full JWT payload: {json.dumps(payload, default=str)}")
 
-    # HTTP APIかどうかを判定(routeArnまたはversion 2.0の存在で判定)
-    is_http_api = event.get("routeArn") is not None or event.get("version") == "2.0"
-    if is_http_api:
-        # HTTP API用のレスポンス
-        auth_response = generate_http_api_response(
-            effect="Allow",
-            context=payload,
+        # HTTP APIかどうかを判定(routeArnまたはversion 2.0の存在で判定)
+        is_http_api = event.get("routeArn") is not None or event.get("version") == "2.0"
+        if is_http_api:
+            # HTTP API用のレスポンス
+            auth_response = generate_http_api_response(
+                effect="Allow",
+                context=payload,
+            )
+        else:
+            # REST API用のレスポンス
+            auth_response = generate_policy(
+                principal_id=payload["sub"],
+                effect="Allow",
+                resource=event["methodArn"],
+                context=payload,
+            )
+        print("AUTH: Authorization successful, returning Allow response")
+        print(f"AUTH: Final auth response: {json.dumps(auth_response, default=str)}")
+        return auth_response
+
+    except Exception as e:
+        print(f"AUTH: Authorization failed with error: {e}")
+        import traceback
+
+        traceback.print_exc()
+
+        # Return Deny response instead of letting the exception propagate
+        is_http_api = event.get("routeArn") is not None or event.get("version") == "2.0"
+        if is_http_api:
+            return generate_http_api_response(effect="Deny")
+        return generate_policy(
+            principal_id="unauthorized",
+            effect="Deny",
+            resource=event.get("methodArn", "*"),
         )
-    else:
-        # REST API用のレスポンス
-        auth_response = generate_policy(
-            principal_id=payload["sub"],
-            effect="Allow",
-            resource=event["methodArn"],
-            context=payload,
-        )
-    print("AUTH: Authorization successful, returning Allow response")
-    return auth_response
 
 
 def extract_token(event: dict) -> str:
@@ -125,6 +144,14 @@ def verify_jwt_token(token: str) -> dict:
         ValueError: トークンが無効な場合.
 
     """
+    # ダミートークンかどうか先にチェック
+    from src.handlers.dummy_auth import validate_dummy_token
+
+    dummy_payload = validate_dummy_token(token)
+    if dummy_payload:
+        print("AUTH: Using dummy token validation")
+        return dummy_payload
+    # 通常のAuth0トークン検証
     # ヘッダーの取得
     unverified_header = jwt.get_unverified_header(token)
     kid = unverified_header.get("kid")
@@ -136,10 +163,10 @@ def verify_jwt_token(token: str) -> dict:
     # 署名キーの取得
     signing_key = get_signing_key(kid)
 
-    # トークンの検証
+    # トークンの検証 (python-jose用に修正)
     return jwt.decode(
         token,
-        signing_key.key,
+        signing_key,  # python-joseでは辞書を直接使用
         algorithms=["RS256"],
         audience=os.environ["AUTH0_AUDIENCE"],
         issuer=f"https://{os.environ['AUTH0_DOMAIN']}/",
@@ -171,6 +198,9 @@ def generate_http_api_response(
             response["context"] = {
                 "user_id": context.get("sub", ""),
                 "email": context.get("email", ""),
+                "nickname": context.get("nickname", ""),
+                "picture": context.get("picture", ""),
+                "name": context.get("name", ""),
                 "user_info": json.dumps(context),
             }
     else:

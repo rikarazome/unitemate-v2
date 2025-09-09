@@ -1,0 +1,9 @@
+{
+  "requestContext": {
+    "connectionId": "test123",
+    "routeKey": "$connect"
+  },
+  "queryStringParameters": {
+    "user_id": "889328415285600378"
+  }
+}

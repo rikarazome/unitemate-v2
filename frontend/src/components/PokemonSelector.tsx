@@ -1,101 +1,138 @@
-import { useEffect, useMemo, useState } from "react";
-import pokemonList from "../data/pokemons.json";
+/**
+ * ポケモン選択コンポーネント
+ * 横5×縦可変のアイコンリストで表示
+ * タイプが選択された場合のみそのタイプのポケモン一覧を表示
+ */
 
-type Pokemon = {
-  id: string;
-  name: string;
-  imageUrl: string;
-};
+import React, { useState, useMemo } from "react";
+import { useAllPokemon } from "../hooks/usePokemon";
+import { POKEMON_TYPES } from "../data/pokemon/types";
 
 interface PokemonSelectorProps {
-  isOpen: boolean;
-  selectedIds: string[];
-  max?: number;
-  onClose: () => void;
-  onSave: (ids: string[]) => void;
+  selectedPokemon: string[];
+  onPokemonToggle: (pokemonId: string) => void;
+  maxSelections?: number;
+  className?: string;
 }
 
-export default function PokemonSelector({
-  isOpen,
-  selectedIds,
-  max = 5,
-  onClose,
-  onSave,
-}: PokemonSelectorProps) {
-  const [tempSelected, setTempSelected] = useState<string[]>(selectedIds);
+const PokemonSelector: React.FC<PokemonSelectorProps> = ({
+  selectedPokemon,
+  onPokemonToggle,
+  maxSelections = 3,
+  className = "",
+}) => {
+  const { data: allPokemon } = useAllPokemon();
+  const [selectedType, setSelectedType] = useState<string | null>(null);
 
-  useEffect(() => {
-    setTempSelected(selectedIds);
-  }, [selectedIds, isOpen]);
+  // タイプでフィルタリングされたポケモン
+  const filteredPokemon = useMemo(() => {
+    if (!selectedType) return [];
+    return allPokemon.filter((pokemon) => pokemon.type === selectedType);
+  }, [allPokemon, selectedType]);
 
-  const pokemons = pokemonList as Pokemon[];
-
-  const selectedSet = useMemo(() => new Set(tempSelected), [tempSelected]);
-
-  const toggle = (id: string) => {
-    setTempSelected((prev) => {
-      const has = prev.includes(id);
-      if (has) return prev.filter((x) => x !== id);
-      if (prev.length >= max) return prev; // ignore when reaching max
-      return [...prev, id];
-    });
-  };
-
-  if (!isOpen) return null;
+  // タイプフィルターボタン
+  const typeFilters = Object.values(POKEMON_TYPES);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white w-[90vw] max-w-3xl max-h-[85vh] rounded-xl shadow-xl p-4 flex flex-col">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold">
-            得意なポケモンを選択（最大{max}つ）
-          </h3>
+    <div className={`space-y-4 ${className}`}>
+      {/* タイプフィルター行 */}
+      <div className="grid grid-cols-5 gap-2">
+        {typeFilters.map((type) => (
           <button
-            className="px-3 py-1 text-sm text-gray-600 hover:text-gray-900"
-            onClick={onClose}
+            key={type}
+            type="button"
+            onClick={() => setSelectedType(selectedType === type ? null : type)}
+            className={`p-3 rounded-lg border text-sm font-medium transition-colors ${
+              selectedType === type
+                ? "bg-blue-100 border-blue-500 text-blue-700"
+                : "bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100"
+            }`}
           >
-            閉じる
+            {type}
           </button>
-        </div>
-        <div className="overflow-auto">
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-            {pokemons.map((p) => {
-              const active = selectedSet.has(p.id);
+        ))}
+      </div>
+
+      {/* ポケモンアイコンリスト */}
+      {selectedType && (
+        <div className="grid grid-cols-5 gap-2 max-h-96 overflow-y-auto">
+          {filteredPokemon
+            .filter((pokemon) => pokemon.pokemon_id !== "EMPTY") // 「未選択」を除外
+            .map((pokemon) => {
+              const isSelected = selectedPokemon.includes(pokemon.pokemon_id);
+              const isDisabled =
+                selectedPokemon.length >= maxSelections && !isSelected;
+
               return (
-                <button
-                  key={p.id}
-                  type="button"
-                  className={`border rounded-lg p-2 flex flex-col items-center gap-2 hover:shadow transition ${
-                    active
-                      ? "border-indigo-500 ring-2 ring-indigo-200"
-                      : "border-gray-200"
-                  }`}
-                  onClick={() => toggle(p.id)}
-                >
-                  <img
-                    src={p.imageUrl}
-                    alt={p.name}
-                    className="w-16 h-16 object-cover rounded"
-                  />
-                  <span className="text-sm">{p.name}</span>
-                </button>
+                <div key={pokemon.pokemon_id} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => onPokemonToggle(pokemon.pokemon_id)}
+                    disabled={isDisabled}
+                    className={`
+                      w-full aspect-square rounded-lg border-2 text-xs font-medium transition-all
+                      disabled:opacity-50 disabled:cursor-not-allowed
+                      hover:scale-105 active:scale-95 overflow-hidden
+                      ${
+                        isSelected
+                          ? "bg-green-100 border-green-500 text-green-700 shadow-md"
+                          : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
+                      }
+                    `}
+                    title={`${pokemon.name_ja} (${pokemon.type})`}
+                  >
+                    {pokemon.icon_url ? (
+                      <div className="relative w-full h-full">
+                        <img
+                          src={pokemon.icon_url}
+                          alt={pokemon.name_ja}
+                          className="absolute inset-0 w-full h-full object-contain p-1"
+                          onError={(e) => {
+                            // 画像読み込み失敗時はテキストで代替
+                            e.currentTarget.style.display = "none";
+                          }}
+                        />
+                        <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs px-1 py-0.5 rounded-b-lg">
+                          <span className="text-center truncate block leading-tight">
+                            {pokemon.name_ja}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center h-full p-1">
+                        <span className="text-xs leading-tight text-center">
+                          {pokemon.name_ja}
+                        </span>
+                      </div>
+                    )}
+                  </button>
+
+                  {/* 選択済みインジケーター */}
+                  {isSelected && (
+                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs">✓</span>
+                    </div>
+                  )}
+                </div>
               );
             })}
-          </div>
         </div>
-        <div className="mt-4 flex justify-end gap-2">
-          <button className="px-4 py-2 rounded border" onClick={onClose}>
-            キャンセル
-          </button>
-          <button
-            className="px-4 py-2 rounded text-white bg-indigo-600 hover:bg-indigo-700"
-            onClick={() => onSave(tempSelected)}
-          >
-            保存
-          </button>
-        </div>
+      )}
+
+      {/* 選択状況表示 */}
+      <div className="text-center">
+        <p className="text-sm text-gray-600">
+          選択済み: {selectedPokemon.length}/{maxSelections}
+        </p>
+        {selectedType && (
+          <p className="text-xs text-gray-500 mt-1">
+            フィルター: {selectedType} (
+            {filteredPokemon.filter((p) => p.pokemon_id !== "EMPTY").length}匹)
+          </p>
+        )}
       </div>
     </div>
   );
-}
+};
+
+export default PokemonSelector;

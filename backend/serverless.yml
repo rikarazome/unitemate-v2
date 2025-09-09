@@ -1,3 +1,5 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: rikarazome
 app: unitemate-v2
 service: unitemate-v2
 
@@ -7,11 +9,13 @@ provider:
   runtime: python3.12
   stackName: ${sls:stage}-${self:service}-stack
   timeout: 25
-  deploymentBucket:
-    name: juv-shun.sls-deployment-store
-    maxPreviousDeploymentArtifacts: 3
+  # deploymentBucket:
+  #   name: juv-shun.sls-deployment-store
+  #   maxPreviousDeploymentArtifacts: 3
   logRetentionInDays: 7
   endpointType: REGIONAL
+  websocketsApiName: ${self:service}-websockets-${sls:stage}
+  websocketsApiRouteSelectionExpression: $request.body.action
   httpApi:
     cors:
       allowedOrigins:
@@ -23,7 +27,6 @@ provider:
         - GET
         - POST
         - PUT
-        - PATCH
         - DELETE
         - OPTIONS
       allowCredentials: true
@@ -47,9 +50,27 @@ provider:
             - dynamodb:PutItem
             - dynamodb:UpdateItem
             - dynamodb:DeleteItem
+            - dynamodb:BatchWriteItem
           Resource:
             - !GetAtt UsersTable.Arn
             - !Join ["", [!GetAtt UsersTable.Arn, "/index/*"]]
+            - !GetAtt MatchesTable.Arn
+            - !Join ["", [!GetAtt MatchesTable.Arn, "/index/*"]]
+            - !GetAtt RecordsTable.Arn
+            - !Join ["", [!GetAtt RecordsTable.Arn, "/index/*"]]
+            - !GetAtt QueueTable.Arn
+            - !Join ["", [!GetAtt QueueTable.Arn, "/index/*"]]
+            - !GetAtt MasterDataTable.Arn
+            - !Join ["", [!GetAtt MasterDataTable.Arn, "/index/*"]]
+            - !GetAtt ConnectionsTable.Arn
+            - !Join ["", [!GetAtt ConnectionsTable.Arn, "/index/*"]]
+            - !GetAtt RankingsTable.Arn
+            - !Join ["", [!GetAtt RankingsTable.Arn, "/index/*"]]
+        - Effect: Allow
+          Action:
+            - execute-api:ManageConnections
+          Resource:
+            - arn:aws:execute-api:${aws:region}:${aws:accountId}:*/*/*
 
 # デプロイパッケージに含めるファイルのパターン
 package:
@@ -61,7 +82,6 @@ package:
     - "!src/**/*.egg-info/**"
     - "!uv.lock"
     - "!pyproject.toml"
-    - "!requirements.txt"
     - "!package*.json"
     - "!Makefile"
     - "!migrations/**"
@@ -82,11 +102,13 @@ functions:
     environment:
       AUTH0_DOMAIN: ${env:AUTH0_DOMAIN}
       AUTH0_AUDIENCE: ${env:AUTH0_AUDIENCE}
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
 
   getMe:
     handler: src/handlers/users.get_me
     environment:
       USERS_TABLE_NAME: ${self:custom.tableName.users}
+      RECORDS_TABLE_NAME: ${self:custom.tableName.records}
     events:
       - httpApi:
           path: /api/users/me
@@ -94,10 +116,78 @@ functions:
           authorizer:
             name: authHandler
 
+  # テスト用エンドポイント（認証なし）
+  testMe:
+    handler: src/handlers/users.get_me
+    environment:
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+      RECORDS_TABLE_NAME: ${self:custom.tableName.records}
+    events:
+      - httpApi:
+          path: /api/test/me
+          method: get
+
+  # ダミーユーザーリスト取得（認証なし）
+  getDummyUsers:
+    handler: src/handlers/dummy_auth.get_dummy_users_list
+    environment:
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+    events:
+      - httpApi:
+          path: /api/auth/dummy/users
+          method: get
+
+  # ダミーユーザーログイン（認証なし）
+  dummyLogin:
+    handler: src/handlers/dummy_auth.dummy_login
+    environment:
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+      DUMMY_JWT_SECRET: ${env:DUMMY_JWT_SECRET, 'dummy-secret-for-testing-only'}
+    events:
+      - httpApi:
+          path: /api/auth/dummy/login
+          method: post
+
+  # デバッグ用キューエンドポイント（認証なし）
+  # マッチメイク関数
+  matchMake:
+    handler: src/handlers/matchmaking.match_make
+    name: ${self:service}-${sls:stage}-match-make
+    environment:
+      QUEUE_TABLE_NAME: ${self:custom.tableName.queue}
+      MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+      RECORDS_TABLE_NAME: ${self:custom.tableName.records}
+      DISCORD_WEBHOOK_URL: ${env:DISCORD_WEBHOOK_URL, 'https://discord.com/api/webhooks/1185019044391305226/NbOT6mnrZNHS61T5ro7iu2smxyhhSPH_tecLnWmZ91kup96-mtpdcGwvvo3kjmyzR96_'}
+    timeout: 25
+
+  # マッチ結果処理関数（手動実行用として保持、自動スケジューラーは削除）
+  matchJudge:
+    handler: src/handlers/match_judge.gather_match
+    name: ${self:service}-${sls:stage}-gather-match
+    environment:
+      MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
+      QUEUE_TABLE_NAME: ${self:custom.tableName.queue}
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+      RECORDS_TABLE_NAME: ${self:custom.tableName.records}
+    # スケジューラーを削除：統合処理（processMatchmaking）に集約
+    timeout: 25
+
+  debugQueueStatus:
+    handler: src/handlers/queue.debug_queue_status
+    environment:
+      QUEUE_TABLE_NAME: ${self:custom.tableName.queue}
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+    events:
+      - httpApi:
+          path: /api/debug/queue
+          method: get
+
   createUser:
     handler: src/handlers/users.create_user
     environment:
       USERS_TABLE_NAME: ${self:custom.tableName.users}
+      RECORDS_TABLE_NAME: ${self:custom.tableName.records}
     events:
       - httpApi:
           path: /api/users
@@ -105,63 +195,772 @@ functions:
           authorizer:
             name: authHandler
 
-  updateMe:
-    handler: src/handlers/users.update_me
-    environment:
-      USERS_TABLE_NAME: ${self:custom.tableName.users}
+  debugAuthInfo:
+    handler: src/handlers/users.debug_auth_info
     events:
       - httpApi:
-          path: /api/users/me
-          method: patch
+          path: /api/debug/auth
+          method: post
           authorizer:
             name: authHandler
 
-  getRankings:
-    handler: src/handlers/users.get_rankings
+  updateProfile:
+    handler: src/handlers/users.update_profile
+    environment:
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+      RECORDS_TABLE_NAME: ${self:custom.tableName.records}
+    events:
+      - httpApi:
+          path: /api/users/me/profile
+          method: put
+          authorizer:
+            name: authHandler
+
+  updateDiscordInfo:
+    handler: src/handlers/users.update_discord_info
+    environment:
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+      RECORDS_TABLE_NAME: ${self:custom.tableName.records}
+    events:
+      - httpApi:
+          path: /api/users/me/discord
+          method: put
+          authorizer:
+            name: authHandler
+
+  getUser:
+    handler: src/handlers/users.get_user
+    environment:
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+      RECORDS_TABLE_NAME: ${self:custom.tableName.records}
+    events:
+      - httpApi:
+          path: /api/users/{userId}
+          method: get
+          authorizer:
+            name: authHandler
+
+  checkDiscordMembership:
+    handler: src/handlers/discord_check.lambda_handler
+    environment:
+      DISCORD_BOT_TOKEN: ${env:DISCORD_BOT_TOKEN}
+      DISCORD_GUILD_ID: ${env:DISCORD_GUILD_ID}
+      AUTH0_DOMAIN: ${env:AUTH0_DOMAIN}
+      AUTH0_AUDIENCE: ${env:AUTH0_AUDIENCE}
+    events:
+      - httpApi:
+          path: /api/discord/check-membership
+          method: get
+          authorizer:
+            name: authHandler
+
+  getUserRanking:
+    handler: src/handlers/users.get_user_ranking
+    environment:
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+      RANKINGS_TABLE_NAME: ${self:custom.tableName.rankings}
+      RECORDS_TABLE_NAME: ${self:custom.tableName.records}
+    events:
+      - httpApi:
+          path: /api/users/ranking
+          method: get
+          authorizer:
+            name: authHandler
+      # パブリック版（認証不要）
+      - httpApi:
+          path: /api/public/ranking
+          method: get
+
+  getUserBadges:
+    handler: src/handlers/badges.get_user_badges
     environment:
       USERS_TABLE_NAME: ${self:custom.tableName.users}
     events:
       - httpApi:
-          path: /api/rankings
+          path: /api/users/me/badges
           method: get
+          authorizer:
+            name: authHandler
+
+  equipBadges:
+    handler: src/handlers/badges.equip_badges
+    environment:
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+    events:
+      - httpApi:
+          path: /api/users/me/badges/equip
+          method: put
+          authorizer:
+            name: authHandler
+
+  getMasterData:
+    handler: src/handlers/master.get_master_data
+    environment:
+      MASTER_DATA_TABLE_NAME: ${self:custom.tableName.masterData}
+    events:
+      - httpApi:
+          path: /api/master
+          method: get
+          authorizer:
+            name: authHandler
+
+  getPublicMasterData:
+    handler: src/handlers/master.get_public_master_data
+    environment:
+      MASTER_DATA_TABLE_NAME: ${self:custom.tableName.masterData}
+    events:
+      - httpApi:
+          path: /api/public/master
+          method: get
+
+  updateSetting:
+    handler: src/handlers/master.update_setting
+    environment:
+      MASTER_DATA_TABLE_NAME: ${self:custom.tableName.masterData}
+    events:
+      - httpApi:
+          path: /api/master/settings
+          method: put
+          authorizer:
+            name: authHandler
+
+  # Match関連のエンドポイント
+  getMatch:
+    handler: src/handlers/matches.get_match
+    environment:
+      MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+    events:
+      - httpApi:
+          path: /api/matches/{matchId}
+          method: get
+          authorizer:
+            name: authHandler
+
+  getRecentMatches:
+    handler: src/handlers/matches.get_recent_matches
+    environment:
+      MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+    events:
+      - httpApi:
+          path: /api/matches
+          method: get
+          authorizer:
+            name: authHandler
+
+  getUserMatches:
+    handler: src/handlers/matches.get_user_matches
+    environment:
+      MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+    events:
+      - httpApi:
+          path: /api/users/{userId}/matches
+          method: get
+          authorizer:
+            name: authHandler
+
+  getActiveMatches:
+    handler: src/handlers/matches.get_active_matches
+    environment:
+      MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+    events:
+      - httpApi:
+          path: /api/matches/active
+          method: get
+          authorizer:
+            name: authHandler
+
+  createMatch:
+    handler: src/handlers/matches.create_match
+    environment:
+      MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+    events:
+      - httpApi:
+          path: /api/matches
+          method: post
+          authorizer:
+            name: authHandler
+
+  startMatch:
+    handler: src/handlers/matches.start_match
+    environment:
+      MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+    events:
+      - httpApi:
+          path: /api/matches/{matchId}/start
+          method: post
+          authorizer:
+            name: authHandler
+
+  # Queue関連のエンドポイント
+  getQueueStatus:
+    handler: src/handlers/queue.get_queue_status
+    environment:
+      QUEUE_TABLE_NAME: ${self:custom.tableName.queue}
+      MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+    events:
+      - httpApi:
+          path: /api/queue
+          method: get
+          authorizer:
+            name: authHandler
+
+  joinQueue:
+    handler: src/handlers/queue.join_queue
+    environment:
+      QUEUE_TABLE_NAME: ${self:custom.tableName.queue}
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+    events:
+      - httpApi:
+          path: /api/queue/join
+          method: post
+          authorizer:
+            name: authHandler
+
+  leaveQueue:
+    handler: src/handlers/queue.leave_queue
+    environment:
+      QUEUE_TABLE_NAME: ${self:custom.tableName.queue}
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+    events:
+      - httpApi:
+          path: /api/queue/leave
+          method: post
+          authorizer:
+            name: authHandler
+
+  getMyQueueStatus:
+    handler: src/handlers/queue.get_my_queue_status
+    environment:
+      QUEUE_TABLE_NAME: ${self:custom.tableName.queue}
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+    events:
+      - httpApi:
+          path: /api/queue/me
+          method: get
+          authorizer:
+            name: authHandler
+
+  # 統合マッチ処理（結果集計 + マッチメイキング、2分間隔）
+  processMatchmaking:
+    handler: src/handlers/matchmaking.match_make
+    timeout: 30
+    environment:
+      QUEUE_TABLE_NAME: ${self:custom.tableName.queue}
+      MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+      RECORDS_TABLE_NAME: ${self:custom.tableName.records}
+      DISCORD_WEBHOOK_URL: ${env:DISCORD_WEBHOOK_URL, 'https://discord.com/api/webhooks/1185019044391305226/NbOT6mnrZNHS61T5ro7iu2smxyhhSPH_tecLnWmZ91kup96-mtpdcGwvvo3kjmyzR96_'}
+    events:
+      - schedule:
+          name: ${sls:stage}-${self:service}-integrated-match-processing
+          description: "Integrated match processing: gather results + matchmaking every 2 minutes"
+          rate: rate(2 minutes)
+          enabled: ${self:custom.cache.${sls:stage}.schedule_enabled, true}
+
+  # デバッグ用: 手動で試合結果集計を実行するエンドポイント
+  # 本番環境では削除すること
+  debugGatherMatch:
+    handler: src/handlers/match_judge.gather_match
+    timeout: 30
+    environment:
+      MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
+      QUEUE_TABLE_NAME: ${self:custom.tableName.queue}
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+      RECORDS_TABLE_NAME: ${self:custom.tableName.records}
+    events:
+      - httpApi:
+          path: /api/debug/gather-match
+          method: post
+          authorizer:
+            name: authHandler
+
+  # デバッグ用: 手動でマッチメイキングを実行するエンドポイント
+  # 本番環境では削除すること
+  debugTriggerMatchmaking:
+    handler: src/handlers/matchmaking.debug_trigger_matchmaking
+    timeout: 30
+    environment:
+      QUEUE_TABLE_NAME: ${self:custom.tableName.queue}
+      MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+      RECORDS_TABLE_NAME: ${self:custom.tableName.records}
+      DISCORD_WEBHOOK_URL: ${env:DISCORD_WEBHOOK_URL, 'https://discord.com/api/webhooks/1185019044391305226/NbOT6mnrZNHS61T5ro7iu2smxyhhSPH_tecLnWmZ91kup96-mtpdcGwvvo3kjmyzR96_'}
+    events:
+      - httpApi:
+          path: /api/debug/matchmaking/trigger
+          method: post
+          authorizer:
+            name: authHandler
+
+  # デバッグ用: 手動でキューメタ情報を更新するエンドポイント
+  # 本番環境では削除すること
+  debugUpdateQueueMeta:
+    handler: src/handlers/matchmaking.debug_update_queue_meta
+    timeout: 30
+    environment:
+      QUEUE_TABLE_NAME: ${self:custom.tableName.queue}
+      MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+      RECORDS_TABLE_NAME: ${self:custom.tableName.records}
+    events:
+      - httpApi:
+          path: /api/debug/queue/meta/update
+          method: post
+
+  getCurrentMatch:
+    handler: src/handlers/matches.get_current_match
+    environment:
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+      MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
+    events:
+      - httpApi:
+          path: /api/matches/current
+          method: get
+          authorizer:
+            name: authHandler
+
+  reportMatchResult:
+    handler: src/handlers/match_report.report_match_result
+    environment:
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+      MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
+      RECORDS_TABLE_NAME: ${self:custom.tableName.records}
+      QUEUE_TABLE_NAME: ${self:custom.tableName.queue}
+      CONNECTIONS_TABLE_NAME: ${self:custom.tableName.connections}
+      WEBSOCKET_API_ID: !Ref WebsocketsApi
+      AWS_STAGE: ${sls:stage}
+    events:
+      - httpApi:
+          path: /api/matches/{matchId}/report
+          method: post
+          authorizer:
+            name: authHandler
+
+  cancelMatch:
+    handler: src/handlers/matches.cancel_match
+    environment:
+      MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+    events:
+      - httpApi:
+          path: /api/matches/{matchId}/cancel
+          method: post
+          authorizer:
+            name: authHandler
+
+  addPenaltyPlayer:
+    handler: src/handlers/matches.add_penalty_player
+    environment:
+      MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+    events:
+      - httpApi:
+          path: /api/matches/{matchId}/penalty
+          method: post
+          authorizer:
+            name: authHandler
+
+  # ロビーID関連のエンドポイント
+  updateLobbyId:
+    handler: src/handlers/matches.update_lobby_id
+    environment:
+      MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+      CONNECTIONS_TABLE_NAME: ${self:custom.tableName.connections}
+      WEBSOCKET_API_ID: !Ref WebsocketsApi
+      AWS_STAGE: ${sls:stage}
+    events:
+      - httpApi:
+          path: /api/matches/lobby/update
+          method: post
+          authorizer:
+            name: authHandler
+
+  transferHost:
+    handler: src/handlers/matches.transfer_host
+    environment:
+      MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+      CONNECTIONS_TABLE_NAME: ${self:custom.tableName.connections}
+      WEBSOCKET_API_ID: !Ref WebsocketsApi
+      AWS_STAGE: ${sls:stage}
+    events:
+      - httpApi:
+          path: /api/matches/host/transfer
+          method: post
+          authorizer:
+            name: authHandler
+
+  # Record関連のエンドポイント
+  getRecord:
+    handler: src/handlers/records.get_record
+    environment:
+      RECORDS_TABLE_NAME: ${self:custom.tableName.records}
+    events:
+      - httpApi:
+          path: /api/records/{recordId}
+          method: get
+          authorizer:
+            name: authHandler
+
+  getUserRecords:
+    handler: src/handlers/records.get_user_records
+    environment:
+      RECORDS_TABLE_NAME: ${self:custom.tableName.records}
+    events:
+      - httpApi:
+          path: /api/users/me/records
+          method: get
+          authorizer:
+            name: authHandler
+
+  getMatchRecords:
+    handler: src/handlers/records.get_match_records
+    environment:
+      RECORDS_TABLE_NAME: ${self:custom.tableName.records}
+    events:
+      - httpApi:
+          path: /api/matches/{matchId}/records
+          method: get
+          authorizer:
+            name: authHandler
+
+  searchRecords:
+    handler: src/handlers/records.search_records
+    environment:
+      RECORDS_TABLE_NAME: ${self:custom.tableName.records}
+    events:
+      - httpApi:
+          path: /api/records/search
+          method: get
+          authorizer:
+            name: authHandler
+
+  getUserStats:
+    handler: src/handlers/records.get_user_stats
+    environment:
+      RECORDS_TABLE_NAME: ${self:custom.tableName.records}
+    events:
+      - httpApi:
+          path: /api/users/{userId}/stats
+          method: get
+          authorizer:
+            name: authHandler
+
+
+  getUserRecentPerformance:
+    handler: src/handlers/records.get_user_recent_performance
+    environment:
+      RECORDS_TABLE_NAME: ${self:custom.tableName.records}
+    events:
+      - httpApi:
+          path: /api/users/{userId}/recent-performance
+          method: get
+          authorizer:
+            name: authHandler
+
+  # 管理者用API
+  adminSearchUsers:
+    handler: src/handlers/admin.search_users
+    environment:
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+    events:
+      - httpApi:
+          path: /api/admin/users/search
+          method: post
+          authorizer:
+            name: authHandler
+
+  adminGetUserDetails:
+    handler: src/handlers/admin.get_user_details
+    environment:
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+    events:
+      - httpApi:
+          path: /api/admin/users/{user_id}
+          method: get
+          authorizer:
+            name: authHandler
+
+  adminUpdateUser:
+    handler: src/handlers/admin.update_user
+    environment:
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+    events:
+      - httpApi:
+          path: /api/admin/users/{user_id}
+          method: put
+          authorizer:
+            name: authHandler
+
+  adminGetPenaltyStatus:
+    handler: src/handlers/admin.get_penalty_status
+    environment:
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+    events:
+      - httpApi:
+          path: /api/admin/users/{user_id}/penalty
+          method: get
+          authorizer:
+            name: authHandler
+
+  adminApplyPenalty:
+    handler: src/handlers/admin.apply_penalty
+    environment:
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+    events:
+      - httpApi:
+          path: /api/admin/users/{user_id}/penalty
+          method: post
+          authorizer:
+            name: authHandler
+
+
+
+
+
+  # ランキング計算関数（定期実行）
+  calculateRankings:
+    handler: src/handlers/ranking_calculator.calculate_rankings
+    environment:
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+      RANKINGS_TABLE_NAME: ${self:custom.tableName.rankings}
+    events:
+      - schedule:
+          name: ${sls:stage}-${self:service}-calculate-rankings
+          description: Calculate rankings every 10 minutes
+          rate: rate(10 minutes)
+          enabled: ${self:custom.cache.${sls:stage}.schedule_enabled, true}
+      - httpApi:
+          path: /api/debug/ranking/calculate
+          method: post
+          authorizer:
+            name: authHandler
+
+
+  # WebSocket関連の関数
+  wsConnect:
+    handler: src/handlers/websocket.on_connect
+    environment:
+      CONNECTIONS_TABLE_NAME: ${self:custom.tableName.connections}
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+      WEBSOCKET_API_ID: !Ref WebsocketsApi
+      AWS_STAGE: ${sls:stage}
+    events:
+      - websocket: $connect
+
+  wsDisconnect:
+    handler: src/handlers/websocket.on_disconnect
+    environment:
+      CONNECTIONS_TABLE_NAME: ${self:custom.tableName.connections}
+      WEBSOCKET_API_ID: !Ref WebsocketsApi
+      AWS_STAGE: ${sls:stage}
+    events:
+      - websocket: $disconnect
+
+  wsDefault:
+    handler: src/handlers/websocket.on_message
+    environment:
+      CONNECTIONS_TABLE_NAME: ${self:custom.tableName.connections}
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+      WEBSOCKET_API_ID: !Ref WebsocketsApi
+      AWS_STAGE: ${sls:stage}
+    events:
+      - websocket: $default
+
+  # 管理者用試合管理エンドポイント
+  getAdminMatches:
+    handler: src/handlers/admin_matches.get_admin_matches
+    environment:
+      MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+    events:
+      - httpApi:
+          path: /api/admin/matches
+          method: get
+          authorizer:
+            name: authHandler
+
+  getAdminMatchDetail:
+    handler: src/handlers/admin_matches.get_admin_match_detail
+    environment:
+      MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+    events:
+      - httpApi:
+          path: /api/admin/matches/{matchId}
+          method: get
+          authorizer:
+            name: authHandler
+
+  # Stripe決済関連 - セキュリティ重視の実装
+  createCheckoutSession:
+    handler: src/handlers/stripe_payment.create_checkout_session
+    environment:
+      STRIPE_SECRET_KEY: ${env:STRIPE_SECRET_KEY} # 環境変数から安全に取得
+      FRONTEND_URL: ${env:FRONTEND_URL}
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+    events:
+      - httpApi:
+          path: /api/create-checkout-session
+          method: post
+          authorizer:
+            name: authHandler  # フロントエンドからのアクセスは認証必須
+
+  stripeWebhook:
+    handler: src/handlers/stripe_payment.webhook_handler
+    environment:
+      STRIPE_SECRET_KEY: ${env:STRIPE_SECRET_KEY} # 環境変数から安全に取得
+      STRIPE_WEBHOOK_SECRET: ${env:STRIPE_WEBHOOK_SECRET} # Webhook署名検証用
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+    events:
+      - httpApi:
+          path: /api/stripe/webhook
+          method: post
+          # Webhookには認証不要（Stripe署名で検証）
+
+  # ===========================================
+  # BANPICKシミュレーターツール専用API（認証不要）
+  # ※メインアプリとは完全に独立したツール機能※
+  # ===========================================
+  
+  # BANPICKシミュレーター用ルーム作成
+  createPickSimulatorRoom:
+    handler: src/handlers/pick_simulator_rooms.create_pick_simulator_room
+    environment:
+      PICK_SIMULATOR_ROOMS_TABLE_NAME: ${self:custom.tableName.pickSimulatorRooms}
+    events:
+      - httpApi:
+          path: /api/tools/banpick/rooms
+          method: post
+          # ツール用APIのため認証不要
+
+  # BANPICKシミュレーター用ルーム存在確認
+  checkPickSimulatorRoom:
+    handler: src/handlers/pick_simulator_rooms.check_pick_simulator_room
+    environment:
+      PICK_SIMULATOR_ROOMS_TABLE_NAME: ${self:custom.tableName.pickSimulatorRooms}
+    events:
+      - httpApi:
+          path: /api/tools/banpick/rooms/{room_id}/check
+          method: get
+          # ツール用APIのため認証不要
+
+  # BANPICKシミュレーター用ルームデータ取得
+  getPickSimulatorRoomData:
+    handler: src/handlers/pick_simulator_rooms.get_pick_simulator_room_data
+    environment:
+      PICK_SIMULATOR_ROOMS_TABLE_NAME: ${self:custom.tableName.pickSimulatorRooms}
+    events:
+      - httpApi:
+          path: /api/tools/banpick/rooms/{room_id}
+          method: get
+          # ツール用APIのため認証不要
+
+  # BANPICKシミュレーター用ホストオファー更新
+  updatePickSimulatorRoomOffer:
+    handler: src/handlers/pick_simulator_rooms.update_pick_simulator_room_offer
+    environment:
+      PICK_SIMULATOR_ROOMS_TABLE_NAME: ${self:custom.tableName.pickSimulatorRooms}
+    events:
+      - httpApi:
+          path: /api/tools/banpick/rooms/{room_id}/offer
+          method: put
+          # ツール用APIのため認証不要
+
+  # BANPICKシミュレーター用ゲストアンサー更新
+  updatePickSimulatorRoomAnswer:
+    handler: src/handlers/pick_simulator_rooms.update_pick_simulator_room_answer
+    environment:
+      PICK_SIMULATOR_ROOMS_TABLE_NAME: ${self:custom.tableName.pickSimulatorRooms}
+    events:
+      - httpApi:
+          path: /api/tools/banpick/rooms/{room_id}/answer
+          method: put
+          # ツール用APIのため認証不要
+
+  # BANPICKシミュレーター用CORS対応
+  pickSimulatorRoomsOptionsHandler:
+    handler: src/handlers/pick_simulator_rooms.pick_simulator_rooms_options_handler
+    events:
+      - httpApi:
+          path: /api/tools/banpick/rooms
+          method: options
+      - httpApi:
+          path: /api/tools/banpick/rooms/{room_id}
+          method: options
+      - httpApi:
+          path: /api/tools/banpick/rooms/{room_id}/check
+          method: options
+      - httpApi:
+          path: /api/tools/banpick/rooms/{room_id}/offer
+          method: options
+      - httpApi:
+          path: /api/tools/banpick/rooms/{room_id}/answer
+          method: options
+
 
 plugins:
   - serverless-prune-plugin
   - serverless-python-requirements
   - serverless-offline
-  - serverless-dynamodb
+  - serverless-step-functions
+  # - serverless-dynamodb  # Disabled for AWS DynamoDB
 
 custom:
   tableName:
     users: ${self:service}-users-${sls:stage}
     matches: ${self:service}-matches-${sls:stage}
+    records: ${self:service}-records-${sls:stage}
+    queue: ${self:service}-queue-${sls:stage}
+    masterData: ${self:service}-master-data-${sls:stage}
+    connections: ${self:service}-connections-${sls:stage}
+    rankings: ${self:service}-rankings-${sls:stage}
+    pickSimulatorRooms: ${self:service}-pick-simulator-rooms-${sls:stage}  # BANPICKシミュレーター専用
+  cache:
+    prd:
+      schedule_enabled: true
+    dev:
+      schedule_enabled: false
   prune:
     automatic: true
     number: 3
   pythonRequirements:
     dockerizePip: true
+    pipCmdExtraArgs:
+      - --no-cache-dir
+    fileName: requirements.txt
   serverless-offline:
     httpPort: 3000
     useChildProcesses: false
     noPrependStageInUrl: true
     environment:
       IS_OFFLINE: true
-  serverless-dynamodb:
-    stages:
-      - dev
-    start:
-      port: 8000
-      inMemory: true
-      heapInitial: 200m
-      heapMax: 1g
-      migrate: true
-      seed: true
-      convertEmptyValues: true
-    seed:
-      domain:
-        sources:
-          - table: ${self:custom.tableName.users}
-            sources: [./migrations/users-seed.json]
+  # serverless-dynamodb:  # Disabled for AWS DynamoDB
+  #   stages:
+  #     - dev
+  #   start:
+  #     port: 8000
+  #     inMemory: true
+  #     heapInitial: 200m
+  #     heapMax: 1g
+  #     migrate: true
+  #     seed: true
+  #     convertEmptyValues: true
+  #   seed:
+  #     domain:
+  #       sources:
+  #         - table: ${self:custom.tableName.users}
+  #           sources: [./migrations/users-seed.json]
+  #         - table: ${self:custom.tableName.masterData}
+  #           sources: [./migrations/master-data-seed.json]
 
 resources:
   Resources:
@@ -170,53 +969,170 @@ resources:
       Properties:
         TableName: ${self:custom.tableName.users}
         AttributeDefinitions:
-          - AttributeName: user_id # Table Partition Key (Discord ID)
+          - AttributeName: namespace # Partition Key (Legacy準拠)
             AttributeType: S
+          - AttributeName: user_id # Sort Key (Discord ID)
+            AttributeType: S
+          - AttributeName: rate # LSI Sort Key
+            AttributeType: N
           - AttributeName: auth0_sub # GSI Partition Key
             AttributeType: S
-          - AttributeName: ranking_pk # Ranking GSI Partition Key (fixed value)
-            AttributeType: S
-          - AttributeName: ranking_sk # Ranking GSI Sort Key (R#<rate_padded>#U#<user_id>)
-            AttributeType: S
-          # --- オプションのGSIで将来的に必要になる可能性のある属性定義 ---
-          # - AttributeName: queue_status
-          #   AttributeType: S
-          # - AttributeName: rating
-          #   AttributeType: N
-          # ---------------------------------------------------------
         KeySchema:
-          - AttributeName: user_id
+          - AttributeName: namespace
             KeyType: HASH
+          - AttributeName: user_id
+            KeyType: RANGE
+        LocalSecondaryIndexes:
+          - IndexName: rate_index # Legacy準拠
+            KeySchema:
+              - AttributeName: namespace
+                KeyType: HASH
+              - AttributeName: rate
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
         GlobalSecondaryIndexes:
           - IndexName: Auth0SubIndex
             KeySchema:
               - AttributeName: auth0_sub
                 KeyType: HASH
             Projection:
-              ProjectionType: ALL # アプリケーションの要件に応じて 'KEYS_ONLY' や 'INCLUDE' も検討
-            # ProvisionedThroughput や BillingMode は環境やコスト戦略に合わせて設定
-            # 例: プロビジョニングスループットの場合 (開発環境では低めに設定)
-            # ProvisionedThroughput:
-            #   ReadCapacityUnits: 1
-            #   WriteCapacityUnits: 1
-          - IndexName: RankingIndex
+              ProjectionType: ALL
+        BillingMode: PAY_PER_REQUEST
+
+    MatchesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tableName.matches}
+        AttributeDefinitions:
+          - AttributeName: namespace # Partition Key (Legacy YML準拠)
+            AttributeType: S
+          - AttributeName: match_id # Sort Key (Legacy YML準拠、数値)
+            AttributeType: N
+          - AttributeName: status # LSI Sort Key
+            AttributeType: S
+          - AttributeName: matched_unixtime # LSI Sort Key
+            AttributeType: N
+        KeySchema:
+          - AttributeName: namespace
+            KeyType: HASH
+          - AttributeName: match_id
+            KeyType: RANGE
+        LocalSecondaryIndexes:
+          - IndexName: status_index # Legacy YML準拠
             KeySchema:
-              - AttributeName: ranking_pk
+              - AttributeName: namespace
                 KeyType: HASH
-              - AttributeName: ranking_sk
+              - AttributeName: status
                 KeyType: RANGE
             Projection:
-              ProjectionType: INCLUDE
-              NonKeyAttributes:
-                - user_id
-                - trainer_name
-                - discord_username
-                - discord_avatar_url
-                - twitter_id
-                - rate
-                - max_rate
-                - match_count
-                - win_count
-                - last_match_at
-        # テーブル自体のBillingMode (既存の設定を維持するか、新規に設定)
-        BillingMode: PAY_PER_REQUEST # 現在の設定が PAY_PER_REQUEST なので、それを維持
+              ProjectionType: ALL
+          - IndexName: match_time_index # Legacy YML準拠
+            KeySchema:
+              - AttributeName: namespace
+                KeyType: HASH
+              - AttributeName: matched_unixtime
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+        BillingMode: PAY_PER_REQUEST
+
+    RecordsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tableName.records}
+        AttributeDefinitions:
+          - AttributeName: user_id # Partition Key (Legacy準拠)
+            AttributeType: S
+          - AttributeName: match_id # Sort Key (Legacy準拠)
+            AttributeType: N
+        KeySchema:
+          - AttributeName: user_id
+            KeyType: HASH
+          - AttributeName: match_id
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+
+    QueueTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tableName.queue}
+        AttributeDefinitions:
+          - AttributeName: namespace # Partition Key (Legacy準拠)
+            AttributeType: S
+          - AttributeName: user_id # Sort Key (Legacy準拠)
+            AttributeType: S
+        KeySchema:
+          - AttributeName: namespace
+            KeyType: HASH
+          - AttributeName: user_id
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+
+
+    MasterDataTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tableName.masterData}
+        AttributeDefinitions:
+          - AttributeName: data_type # Partition Key (POKEMON, BADGE, ROLE, SEASON)
+            AttributeType: S
+          - AttributeName: id # Sort Key
+            AttributeType: S
+        KeySchema:
+          - AttributeName: data_type
+            KeyType: HASH
+          - AttributeName: id
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+
+    ConnectionsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tableName.connections}
+        AttributeDefinitions:
+          - AttributeName: connection_id # Partition Key
+            AttributeType: S
+        KeySchema:
+          - AttributeName: connection_id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+
+    RankingsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tableName.rankings}
+        AttributeDefinitions:
+          - AttributeName: ranking_type # Partition Key (e.g., "rate", "winrate")
+            AttributeType: S
+          - AttributeName: rank # Sort Key
+            AttributeType: N
+        KeySchema:
+          - AttributeName: ranking_type
+            KeyType: HASH
+          - AttributeName: rank
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+
+    # BANPICKシミュレーター専用テーブル（メインアプリとは完全分離）
+    PickSimulatorRoomsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tableName.pickSimulatorRooms}
+        AttributeDefinitions:
+          - AttributeName: room_id # Partition Key
+            AttributeType: S
+        KeySchema:
+          - AttributeName: room_id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true  # 1時間後に自動削除
+
+    WebsocketsApi:
+      Type: AWS::ApiGatewayV2::Api
+      Properties:
+        Name: ${self:service}-websockets-${sls:stage}
+        ProtocolType: WEBSOCKET
+        RouteSelectionExpression: $request.body.action
