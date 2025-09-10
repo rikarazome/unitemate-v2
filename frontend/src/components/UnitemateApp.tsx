@@ -285,7 +285,6 @@ const MyPageTab: React.FC = () => {
               </button>
 
               {/* テスト用ログイン（環境変数で制御） */}
-              {console.log('VITE_ENABLE_DUMMY_LOGIN:', import.meta.env.VITE_ENABLE_DUMMY_LOGIN, 'Type:', typeof import.meta.env.VITE_ENABLE_DUMMY_LOGIN)}
               {/* 開発環境ではデフォルトで表示、明示的にfalseの場合のみ非表示 */}
               {import.meta.env.VITE_ENABLE_DUMMY_LOGIN !== 'false' && (
                 <>
