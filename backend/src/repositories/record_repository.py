@@ -1,4 +1,5 @@
 import os
+from decimal import Decimal
 
 import boto3
 from boto3.dynamodb.conditions import Attr, Key
@@ -153,23 +154,15 @@ class RecordRepository:
                 return {
                     "total_matches": 0,
                     "wins": 0,
-                    "losses": 0,
-                    "win_rate": 0.0,
-                    "total_rate_change": 0,
-                    "avg_rate_change": 0.0,
+                    "win_rate": Decimal("0.0"),
                 }
 
             wins = sum(1 for r in records if r.is_winner)
-            losses = len(records) - wins
-            total_rate_change = sum(r.rate_delta for r in records)
 
             return {
                 "total_matches": len(records),
                 "wins": wins,
-                "losses": losses,
-                "win_rate": round((wins / len(records)) * 100, 1) if records else 0.0,
-                "total_rate_change": total_rate_change,
-                "avg_rate_change": total_rate_change / len(records) if records else 0.0,
+                "win_rate": Decimal(str(round((wins / len(records)) * 100, 1))) if records else Decimal("0.0"),
             }
         except ClientError as e:
             print(f"Error getting user stats for {user_id}: {e}")

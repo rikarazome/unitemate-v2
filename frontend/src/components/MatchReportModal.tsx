@@ -78,13 +78,13 @@ export const MatchReportModal: React.FC<MatchReportModalProps> = ({
   });
   const [pokemonData, setPokemonData] = useState<PokemonData[]>([]);
   const [selectedPokemon, setSelectedPokemon] = useState<PokemonData | null>(
-    null,
+    null
   );
   const [selectedTypeForBan, setSelectedTypeForBan] = useState<string | null>(
-    null,
+    null
   );
   const [selectedTypeForPick, setSelectedTypeForPick] = useState<string | null>(
-    null,
+    null
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -104,7 +104,7 @@ export const MatchReportModal: React.FC<MatchReportModalProps> = ({
         _1b: pokemon.moves.move_1b,
         _2a: pokemon.moves.move_2a,
         _2b: pokemon.moves.move_2b,
-        icon: pokemon.icon_url || '',
+        icon: pokemon.icon_url || "",
       }));
       setPokemonData(convertedData);
     } catch (error) {
@@ -188,11 +188,11 @@ export const MatchReportModal: React.FC<MatchReportModalProps> = ({
       };
       console.log(
         "MatchReportModal - Sending violation_report:",
-        reportData.violation_report,
+        reportData.violation_report
       );
       console.log(
         "MatchReportModal - Full legacyReportData:",
-        legacyReportData,
+        legacyReportData
       );
 
       if (isTestMode) {
@@ -206,7 +206,7 @@ export const MatchReportModal: React.FC<MatchReportModalProps> = ({
             JSON.stringify(reportData, null, 2) +
             "\n\n" +
             "API送信データ: " +
-            JSON.stringify(legacyReportData, null, 2),
+            JSON.stringify(legacyReportData, null, 2)
         );
       } else {
         // 実際のAPI呼び出し
@@ -252,7 +252,7 @@ export const MatchReportModal: React.FC<MatchReportModalProps> = ({
   // ポケモン選択時の処理（アイコンクリックで自動進行）
   const handlePokemonSelect = (
     pokemon: PokemonData,
-    field: "banned_pokemon" | "picked_pokemon",
+    field: "banned_pokemon" | "picked_pokemon"
   ) => {
     setReportData((prev) => ({ ...prev, [field]: pokemon.display }));
     if (field === "banned_pokemon") {
@@ -293,7 +293,7 @@ export const MatchReportModal: React.FC<MatchReportModalProps> = ({
 
   // win/loseをA-win/B-winに変換する関数
   const convertToTeamResult = (
-    result: "win" | "lose" | "invalid",
+    result: "win" | "lose" | "invalid"
   ): "A-win" | "B-win" | "invalid" => {
     if (result === "invalid") return "invalid";
     if (!currentUserTeam)
@@ -338,7 +338,9 @@ export const MatchReportModal: React.FC<MatchReportModalProps> = ({
         return (
           <div className="space-y-4">
             <p className="text-sm text-gray-600 mb-4">
-              自分がBANしたポケモンを選択してください
+              BANされたポケモンを選択してください
+              <br />
+              レート順3番目の人が1匹目、4番目が2匹目、5番目が3匹目を報告してください
             </p>
 
             {/* タイプフィルター行 */}
@@ -349,7 +351,7 @@ export const MatchReportModal: React.FC<MatchReportModalProps> = ({
                     key={typeKey}
                     onClick={() =>
                       setSelectedTypeForBan(
-                        selectedTypeForBan === typeKey ? null : typeKey,
+                        selectedTypeForBan === typeKey ? null : typeKey
                       )
                     }
                     className={`px-1 py-2 sm:px-3 sm:py-3 max-[500px]:px-0.5 max-[500px]:py-1 rounded-lg border text-xs sm:text-sm max-[500px]:text-[10px] max-[320px]:text-[8px] font-medium transition-all duration-200 whitespace-nowrap text-center flex items-center justify-center ${
@@ -419,7 +421,7 @@ export const MatchReportModal: React.FC<MatchReportModalProps> = ({
                 {filteredPokemonForBan
                   .sort(
                     (a, b) =>
-                      parseInt(a.index_number) - parseInt(b.index_number),
+                      parseInt(a.index_number) - parseInt(b.index_number)
                   )
                   .map((pokemon) => (
                     <button
@@ -508,7 +510,7 @@ export const MatchReportModal: React.FC<MatchReportModalProps> = ({
                         console.log(
                           "MatchReportModal - Invalid match player selected:",
                           player.user_id,
-                          player.trainer_name,
+                          player.trainer_name
                         );
                         setReportData((prev) => ({
                           ...prev,
@@ -545,7 +547,7 @@ export const MatchReportModal: React.FC<MatchReportModalProps> = ({
                         console.log(
                           "MatchReportModal - Invalid match player selected:",
                           player.user_id,
-                          player.trainer_name,
+                          player.trainer_name
                         );
                         setReportData((prev) => ({
                           ...prev,
@@ -575,7 +577,7 @@ export const MatchReportModal: React.FC<MatchReportModalProps> = ({
 
       case "picked": {
         const filteredPokemonForPick = getFilteredPokemon(
-          selectedTypeForPick,
+          selectedTypeForPick
         ).filter((p) => p.display !== reportData.banned_pokemon);
         return (
           <div className="space-y-4">
@@ -591,7 +593,7 @@ export const MatchReportModal: React.FC<MatchReportModalProps> = ({
                     key={typeKey}
                     onClick={() =>
                       setSelectedTypeForPick(
-                        selectedTypeForPick === typeKey ? null : typeKey,
+                        selectedTypeForPick === typeKey ? null : typeKey
                       )
                     }
                     className={`px-1 py-2 sm:px-3 sm:py-3 max-[500px]:px-0.5 max-[500px]:py-1 rounded-lg border text-xs sm:text-sm max-[500px]:text-[10px] max-[320px]:text-[8px] font-medium transition-all duration-200 whitespace-nowrap text-center flex items-center justify-center ${
@@ -634,7 +636,7 @@ export const MatchReportModal: React.FC<MatchReportModalProps> = ({
                 {filteredPokemonForPick
                   .sort(
                     (a, b) =>
-                      parseInt(a.index_number) - parseInt(b.index_number),
+                      parseInt(a.index_number) - parseInt(b.index_number)
                   )
                   .map((pokemon) => (
                     <button
@@ -835,11 +837,11 @@ export const MatchReportModal: React.FC<MatchReportModalProps> = ({
         // プレイヤーをチーム別に分割
         console.log(
           "MatchReportModal - violation case - matchPlayers:",
-          matchPlayers,
+          matchPlayers
         );
         console.log(
           "MatchReportModal - violation case - current violation_report:",
-          reportData.violation_report,
+          reportData.violation_report
         );
         const teamAPlayersViolation = matchPlayers.slice(0, 5);
         const teamBPlayersViolation = matchPlayers.slice(5, 10);
@@ -878,7 +880,7 @@ export const MatchReportModal: React.FC<MatchReportModalProps> = ({
                         console.log(
                           "MatchReportModal - TeamA Player selected for violation:",
                           player.user_id,
-                          player.trainer_name,
+                          player.trainer_name
                         );
                         setReportData((prev) => ({
                           ...prev,
@@ -915,7 +917,7 @@ export const MatchReportModal: React.FC<MatchReportModalProps> = ({
                         console.log(
                           "MatchReportModal - TeamB Player selected for violation:",
                           player.user_id,
-                          player.trainer_name,
+                          player.trainer_name
                         );
                         setReportData((prev) => ({
                           ...prev,

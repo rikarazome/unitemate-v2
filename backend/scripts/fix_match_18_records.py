@@ -2,6 +2,7 @@
 
 import boto3
 from datetime import datetime
+from decimal import Decimal
 
 # DynamoDB設定
 dynamodb = boto3.resource("dynamodb", region_name="ap-northeast-1")
@@ -115,7 +116,7 @@ def create_records_for_match_18():
             new_rate = int(user_data.get("rate", 1500)) + rate_delta
             new_match_count = int(user_data.get("match_count", 0)) + 1
             new_win_count = int(user_data.get("win_count", 0)) + (1 if is_winner else 0)
-            new_win_rate = round((new_win_count / new_match_count) * 100, 1) if new_match_count > 0 else 0.0
+            new_win_rate = Decimal(str(round((new_win_count / new_match_count) * 100, 1))) if new_match_count > 0 else Decimal("0.0")
             new_max_rate = max(new_rate, int(user_data.get("max_rate", 1500)))
             
             # ユーザーテーブルを更新

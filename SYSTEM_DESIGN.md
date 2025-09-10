@@ -2882,4 +2882,162 @@ jobs:
 
 ---
 
+## シーズン管理システム設計
+
+### 概要
+管理画面からシーズン設定を行い、スケジューラーと各種機能がシーズン期間とマッチ時間の両方をチェックして動作するシステム。
+
+### シーズンデータ構造
+
+#### DynamoDBマスターデータテーブル
+```
+data_type: "SEASON"
+id: [season_id]  # 例: "season_2024_winter"
+```
+
+#### シーズンモデル
+```typescript
+interface Season {
+  data_type: "SEASON";
+  id: string;              // シーズンID（例：season_2024_winter）
+  name: string;            // シーズン名（例：2024年冬シーズン）
+  description?: string;    // シーズンの説明
+  start_date: number;      // 開始日時（UNIXタイムスタンプ、JST）
+  end_date: number;        // 終了日時（UNIXタイムスタンプ、JST）
+  image_url?: string;      // シーズンイメージのURL
+  theme_color?: string;    // テーマカラー（HEX、デフォルト: #ff6b35）
+  is_active: boolean;      // アクティブ状態（同時に1つのみアクティブ可能）
+  created_at: number;      // 作成日時
+  updated_at: number;      // 更新日時
+}
+```
+
+### API エンドポイント
+
+#### 管理者用（認証必須）
+- `GET /api/admin/seasons` - 全シーズン取得
+- `GET /api/admin/seasons/{seasonId}` - シーズン詳細取得
+- `POST /api/admin/seasons` - シーズン作成
+- `PUT /api/admin/seasons/{seasonId}` - シーズン更新
+- `DELETE /api/admin/seasons/{seasonId}` - シーズン削除
+- `POST /api/admin/seasons/{seasonId}/activate` - シーズンアクティベート
+
+#### パブリック（認証不要）
+- `GET /api/seasons/active` - アクティブシーズン情報取得
+
+### スケジューラー統合設計
+
+#### 統合処理フロー
+1. **結果集計** - 完了した試合の結果を処理
+2. **ランキング計算** - ユーザーランキングを更新（2分ごと実行で高頻度更新）
+3. **マッチメイキング** - 新規マッチを作成
+
+#### 詳細スケジュール設定（レガシー準拠）
+```yaml
+# 平日午前（JST 00:00-04:00 = UTC 15:00-18:00 前日）
+cron(0/2 15-18 ? * SUN,MON,TUE,WED,THU *)
+
+# 平日午後（JST 14:00-23:59 = UTC 05:00-14:59）  
+cron(0/2 5-14 ? * MON,TUE,WED,THU,FRI *)
+
+# 金曜日（JST 14:00-23:59 = UTC 05:00-14:59）
+cron(0/2 5-14 ? * FRI *)
+
+# 土曜日（終日 = UTC 00:00-23:59）
+cron(0/2 * ? * SAT *)
+
+# 日曜日（JST 09:00-翌03:59 = UTC 00:00-18:59）
+cron(0/2 0-18 ? * SUN *)
+```
+
+#### 二重バリデーション
+全てのマッチ関連処理で以下をチェック：
+1. **シーズン期間チェック** - アクティブシーズンが存在し、現在時刻が期間内
+2. **マッチ時間チェック** - 平日14:00-翌04:00、土日終日の時間内
+
+### バリデーション適用箇所
+
+#### スケジューラー（match_make関数）
+```python
+# シーズン期間バリデーション
+season_service = SeasonService()
+if not season_service.is_season_active_now():
+    return {"statusCode": 200, "body": "No active season"}
+
+# マッチ時間バリデーション  
+if not is_match_time_active():
+    return {"statusCode": 200, "body": "Outside match hours"}
+```
+
+#### キュー参加（join_queue関数）
+```python
+# シーズン期間バリデーション
+if not season_service.is_season_active_now():
+    return create_error_response(400, "現在シーズン期間外のため、キューに参加できません。")
+
+# マッチ時間バリデーション
+if not is_match_time_active():
+    return create_error_response(400, "現在マッチ時間外です。...")
+```
+
+### フロントエンド連携
+
+#### シーズン情報取得
+- **取得タイミング**: アプリ読み込み時に1回のみ（マスターデータと同様）
+- **表示箇所**: メインページ上部にシーズンバナー表示
+- **表示内容**: 
+  - シーズン名、期間、説明
+  - テーマカラーでのスタイリング
+  - 残り日数警告（7日以下）
+  - 次シーズン予告
+
+#### 管理画面UI
+- **場所**: `/admin_control` の「シーズン管理」タブ
+- **機能**:
+  - シーズン一覧表示（作成日時順）
+  - 新規シーズン作成フォーム
+  - シーズン編集・削除
+  - アクティベーション（他シーズンは自動非アクティブ化）
+
+### 技術実装詳細
+
+#### SeasonService
+```python
+class SeasonService:
+    def get_active_season() -> Optional[Season]
+    def is_season_active_now() -> bool
+    def create_season(request: SeasonCreateRequest) -> bool
+    def update_season(season_id: str, request: SeasonUpdateRequest) -> bool
+    def activate_season(season_id: str) -> bool
+```
+
+#### TimeValidator
+```python
+def is_match_time_active() -> bool:
+    """JST時間でマッチ時間判定（平日14:00-翌04:00、土日終日）"""
+    
+def get_match_schedule_info() -> dict:
+    """スケジュール情報取得"""
+```
+
+#### フロントエンドHook
+```typescript
+export const useSeasonInfo = () => {
+  // 読み込み時に1回のみ取得（5分間隔更新は削除）
+  useEffect(() => {
+    fetchSeasonInfo();
+  }, []);
+}
+```
+
+### 運用上の注意点
+
+1. **シーズン切り替え**: 新シーズン開始前にアクティベーションが必要
+2. **時間設定**: JST基準での設定、UTCとの時差を考慮
+3. **データ整合性**: アクティブシーズンは常に1つのみ
+4. **バリデーション**: スケジューラーとキュー参加の両方でチェック
+5. **UI更新**: シーズン情報はページリロードで更新（リアルタイム更新なし）
+
+---
+
 **重要**: この設計仕様は確定版です。今後の実装はこの仕様に厳密に従って行ってください。変更が必要な場合は、必ずこのドキュメントを更新してから実装を進めること。

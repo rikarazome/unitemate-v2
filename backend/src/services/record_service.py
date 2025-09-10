@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from ..models.match import Match
 from ..models.record import Record, RecordSearchFilter
 from ..repositories.record_repository import RecordRepository
@@ -104,7 +106,7 @@ class RecordService:
 
         # 勝率を計算
         for pokemon, stats in pokemon_stats.items():
-            stats["win_rate"] = round((stats["wins"] / stats["total"]) * 100, 1) if stats["total"] > 0 else 0.0
+            stats["win_rate"] = Decimal(str(round((stats["wins"] / stats["total"]) * 100, 1))) if stats["total"] > 0 else Decimal("0.0")
 
         return pokemon_stats
 
@@ -116,7 +118,7 @@ class RecordService:
             return {
                 "recent_matches": 0,
                 "recent_wins": 0,
-                "recent_win_rate": 0.0,
+                "recent_win_rate": Decimal("0.0"),
                 "recent_rate_change": 0,
                 "streak": {"type": None, "count": 0},
             }

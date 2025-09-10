@@ -20,6 +20,7 @@ import { QueueStatus } from "./QueueStatus";
 import RoleSelector from "./RoleSelector";
 import DummyLogin from "./DummyLogin";
 import RankingScreen from "./RankingScreen";
+import SeasonBanner from "./SeasonBanner";
 import { useUnitemateApi } from "../hooks/useUnitemateApi";
 import { useDummyAuth } from "../hooks/useDummyAuth";
 import { useWebSocket } from "../hooks/useWebSocket";
@@ -1478,6 +1479,9 @@ const UnitemateApp: React.FC = () => {
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 lg:py-8 max-[500px]:px-0 max-[500px]:py-2">
+        {/* シーズンバナー */}
+        <SeasonBanner />
+
         {/* スマホ用タブ（横並び） */}
         <div className="lg:hidden mb-4 max-[500px]:mb-2">
           <nav className="flex justify-center space-x-1 max-[500px]:space-x-0 bg-white/80 backdrop-blur-md rounded-xl max-[500px]:rounded-none p-1.5 max-[500px]:p-1 shadow-xl">

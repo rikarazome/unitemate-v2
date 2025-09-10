@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from decimal import Decimal
 
 import boto3
 from boto3.dynamodb.conditions import Key
@@ -48,9 +49,9 @@ class UserRepository:
                 match_count = item.get("match_count", 0)
                 win_count = item.get("win_count", 0)
                 if match_count > 0:
-                    item["win_rate"] = round((win_count / match_count) * 100, 1)
+                    item["win_rate"] = Decimal(str(round((win_count / match_count) * 100, 1)))
                 else:
-                    item["win_rate"] = 0.0
+                    item["win_rate"] = Decimal("0.0")
 
             # レガシーフィールドの処理: app_username -> trainer_name
             if "trainer_name" not in item and "app_username" in item:
@@ -108,9 +109,9 @@ class UserRepository:
                 match_count = item.get("match_count", 0)
                 win_count = item.get("win_count", 0)
                 if match_count > 0:
-                    item["win_rate"] = round((win_count / match_count) * 100, 1)
+                    item["win_rate"] = Decimal(str(round((win_count / match_count) * 100, 1)))
                 else:
-                    item["win_rate"] = 0.0
+                    item["win_rate"] = Decimal("0.0")
 
             # レガシーフィールドの処理: app_username -> trainer_name
             if "trainer_name" not in item and "app_username" in item:

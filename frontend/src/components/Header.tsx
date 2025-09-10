@@ -144,7 +144,8 @@ const Header: React.FC<HeaderProps> = ({ user, onLogin, onLogout }) => {
                         <span className="font-medium">ユナメイトとは</span>
                       </Link>
 
-                      <Link
+                      {/* 開発中のためツールリンクは無効化 */}
+                      {/* <Link
                         to="/tools"
                         onClick={closeMenu}
                         className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-orange-50 hover:text-orange-700 rounded-lg transition-colors"
@@ -171,7 +172,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogin, onLogout }) => {
                           </svg>
                         </div>
                         <span className="font-medium">ツール</span>
-                      </Link>
+                      </Link> */}
 
                       <a
                         href="https://lookerstudio.google.com/u/0/reporting/dea387a8-d512-492b-8cfa-bf4e584ff6a3/page/p_r088ru6bad"

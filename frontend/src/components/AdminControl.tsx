@@ -9,6 +9,7 @@ import DummyLogin from "./DummyLogin";
 import AdminUserManagement from "./AdminUserManagement";
 import AdminContentManager from "./AdminContentManager";
 import AdminMatchManagement from "./AdminMatchManagement";
+import AdminSeasonManagement from "./AdminSeasonManagement";
 
 /**
  * 管理者専用コントロールページ
@@ -28,7 +29,7 @@ const AdminControl: React.FC = () => {
 
   // タブ管理
   const [activeTab, setActiveTab] = useState<
-    "overview" | "users" | "matches" | "content"
+    "overview" | "users" | "matches" | "content" | "seasons"
   >("overview");
 
   const API_BASE_URL =
@@ -772,6 +773,16 @@ const AdminControl: React.FC = () => {
             >
               コンテンツ管理
             </button>
+            <button
+              onClick={() => setActiveTab("seasons")}
+              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === "seasons"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              シーズン管理
+            </button>
           </nav>
         </div>
 
@@ -779,6 +790,7 @@ const AdminControl: React.FC = () => {
         {activeTab === "users" && <AdminUserManagement />}
         {activeTab === "matches" && <AdminMatchManagement />}
         {activeTab === "content" && <AdminContentManager />}
+        {activeTab === "seasons" && <AdminSeasonManagement />}
 
         {activeTab === "overview" && (
           <div>
