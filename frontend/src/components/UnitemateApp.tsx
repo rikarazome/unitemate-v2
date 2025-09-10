@@ -285,6 +285,7 @@ const MyPageTab: React.FC = () => {
               </button>
 
               {/* テスト用ログイン（環境変数で制御） */}
+              {console.log('VITE_ENABLE_DUMMY_LOGIN:', import.meta.env.VITE_ENABLE_DUMMY_LOGIN)}
               {import.meta.env.VITE_ENABLE_DUMMY_LOGIN === 'true' && (
                 <>
                   <div className="text-gray-400">または</div>
