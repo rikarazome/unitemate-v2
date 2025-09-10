@@ -13,6 +13,7 @@ import json
 import logging
 import os
 import time
+from decimal import Decimal
 
 import boto3
 from botocore.exceptions import ClientError
