@@ -3,6 +3,15 @@ org: rikarazome
 app: unitemate-v2
 service: unitemate-v2
 
+# 環境別設定
+# デプロイ時: serverless deploy --stage dev または --stage prod
+# 環境変数は .env.dev または .env.prod から読み込まれる
+custom:
+  stage: ${sls:stage, 'dev'}
+  frontendUrls:
+    dev: https://unitemate-v2-git-dev-rikarazomes-projects.vercel.app
+    prod: https://unitemate-v2-iota.vercel.app
+
 provider:
   name: aws
   region: ap-northeast-1
@@ -21,7 +30,7 @@ provider:
       allowedOrigins:
         - ${env:FRONTEND_URL}
         - "http://localhost:5173"
-        - "https://unitemate-v2-git-main-rikarazomes-projects.vercel.app"
+        - "http://localhost:5174"
       allowedHeaders:
         - Content-Type
         - Authorization
