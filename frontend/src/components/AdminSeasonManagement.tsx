@@ -91,7 +91,7 @@ const AdminSeasonManagement: React.FC = () => {
     try {
       const response = await callApi("/api/admin/seasons", {
         method: "POST",
-        body: JSON.stringify(formData),
+        body: formData,
         headers: {
           "Content-Type": "application/json",
         },
@@ -120,7 +120,7 @@ const AdminSeasonManagement: React.FC = () => {
     try {
       const response = await callApi(`/api/admin/seasons/${editingSeason.id}`, {
         method: "PUT",
-        body: JSON.stringify(formData),
+        body: formData,
         headers: {
           "Content-Type": "application/json",
         },
@@ -206,15 +206,20 @@ const AdminSeasonManagement: React.FC = () => {
     return new Date(timestamp * 1000).toLocaleString("ja-JP");
   };
 
-  // 日時入力用のフォーマット（YYYY-MM-DDTHH:mm）
+  // 日時入力用のフォーマット（YYYY-MM-DDTHH:mm）JST
   const timestampToInputFormat = (timestamp: number) => {
     const date = new Date(timestamp * 1000);
-    return date.toISOString().slice(0, 16);
+    // JSTに変換（UTC+9時間）
+    const jstDate = new Date(date.getTime() + (9 * 60 * 60 * 1000));
+    return jstDate.toISOString().slice(0, 16);
   };
 
-  // 入力フォーマットからタイムスタンプへ
+  // 入力フォーマットからタイムスタンプへ（JSTとして扱う）
   const inputFormatToTimestamp = (dateString: string) => {
-    return Math.floor(new Date(dateString).getTime() / 1000);
+    // 入力された時間をJSTとして扱い、UTCタイムスタンプに変換
+    const localDate = new Date(dateString);
+    // JSTからUTCに変換（-9時間）
+    return Math.floor((localDate.getTime() - (9 * 60 * 60 * 1000)) / 1000);
   };
 
   return (
