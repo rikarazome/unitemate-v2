@@ -11,7 +11,7 @@ import {
   type UpdateUserRequest,
   type User,
 } from "../types/user";
-import pokemons from "../data/pokemons.json";
+import { getAllPokemon } from "../data/pokemon";
 import PokemonSelector from "./PokemonSelector";
 import {
   formatTwitterId,
@@ -322,26 +322,20 @@ export default function MyPage() {
                       <div className="mt-2">
                         <div className="flex flex-wrap gap-2 mb-2">
                           {(formData.favorite_pokemon || []).map((id) => {
-                            const p = (
-                              pokemons as {
-                                id: string;
-                                name: string;
-                                imageUrl: string;
-                              }[]
-                            ).find((x) => x.id === id);
+                            const p = getAllPokemon().find((x) => x.pokemon_id.toLowerCase() === id.toLowerCase());
                             return (
                               <span
                                 key={id}
                                 className="inline-flex items-center gap-2 px-2 py-1 bg-indigo-50 text-indigo-700 rounded-full border border-indigo-200 text-sm"
                               >
-                                {p && (
+                                {p && p.icon_url && (
                                   <img
-                                    src={p.imageUrl}
-                                    alt={p.name}
+                                    src={p.icon_url}
+                                    alt={p.name_ja}
                                     className="w-5 h-5 rounded object-cover"
                                   />
                                 )}
-                                <span>{p ? p.name : id}</span>
+                                <span>{p ? p.name_ja : id}</span>
                                 <button
                                   type="button"
                                   className="ml-1 text-indigo-500 hover:text-indigo-700"

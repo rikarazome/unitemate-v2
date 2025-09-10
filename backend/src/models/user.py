@@ -116,7 +116,7 @@ class User(BaseModel):
     def win_rate(self) -> float:
         if self.match_count == 0:
             return 0.0
-        return (self.win_count / self.match_count) * 100
+        return round((self.win_count / self.match_count) * 100, 1)
 
     @property
     def effective_penalty(self) -> int:

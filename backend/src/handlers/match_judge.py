@@ -170,7 +170,7 @@ def update_player_data(
             # 更新するデータを計算
             new_match_count = match_count + 1
             new_win_count = win_count + 1 if win else win_count
-            new_win_rate = round(new_win_count * 100.0 / new_match_count) if new_match_count > 0 else 0
+            new_win_rate = round(new_win_count * 100.0 / new_match_count, 1) if new_match_count > 0 else 0.0
             logger.info(
                 f"Win rate calculation for {user_id}: win_count={new_win_count}, match_count={new_match_count}, calculated_rate={new_win_rate}"
             )

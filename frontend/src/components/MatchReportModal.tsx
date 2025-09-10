@@ -11,6 +11,7 @@
 import React, { useState, useEffect } from "react";
 import { useUnitemateApi } from "../hooks/useUnitemateApi";
 import { POKEMON_TYPES } from "../data/pokemon/types";
+import { getAllPokemon } from "../data/pokemon";
 import type { MatchPlayer } from "./MatchScreen";
 
 interface MatchReportModalProps {
@@ -88,18 +89,27 @@ export const MatchReportModal: React.FC<MatchReportModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Pokemon JSONデータを読み込み
+  // Pokemon データを読み込み
   useEffect(() => {
-    const loadPokemonData = async () => {
-      try {
-        const response = await fetch("/src/data/pokemon/pokemon.json");
-        const data = await response.json();
-        setPokemonData(data);
-      } catch (error) {
-        console.error("Failed to load Pokemon data:", error);
-      }
-    };
-    loadPokemonData();
+    try {
+      // pokemon/index.tsから直接データを取得
+      const data = getAllPokemon();
+      // 古い形式に変換（既存のコードとの互換性のため）
+      const convertedData = data.map((pokemon) => ({
+        display: pokemon.pokemon_id.toLowerCase(),
+        jp_name: pokemon.name_ja,
+        index_number: pokemon.index_number.toString(),
+        type: pokemon.type,
+        _1a: pokemon.moves.move_1a,
+        _1b: pokemon.moves.move_1b,
+        _2a: pokemon.moves.move_2a,
+        _2b: pokemon.moves.move_2b,
+        icon: pokemon.icon_url || '',
+      }));
+      setPokemonData(convertedData);
+    } catch (error) {
+      console.error("Failed to load Pokemon data:", error);
+    }
   }, []);
 
   if (!isOpen) return null;
