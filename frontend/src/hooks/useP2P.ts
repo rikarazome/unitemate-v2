@@ -42,7 +42,6 @@ export const useP2P = (_roomId: string, isHost: boolean) => {
       });
 
       dataChannel.onopen = () => {
-        console.log("Data channel opened (Host)");
         setIsConnected(true);
       };
 
@@ -58,7 +57,6 @@ export const useP2P = (_roomId: string, isHost: boolean) => {
       };
 
       dataChannel.onclose = () => {
-        console.log("Data channel closed (Host)");
         setIsConnected(false);
       };
     } else {
@@ -67,7 +65,6 @@ export const useP2P = (_roomId: string, isHost: boolean) => {
         dataChannel = event.channel;
 
         dataChannel.onopen = () => {
-          console.log("Data channel opened (Guest)");
           setIsConnected(true);
         };
 
@@ -83,7 +80,6 @@ export const useP2P = (_roomId: string, isHost: boolean) => {
         };
 
         dataChannel.onclose = () => {
-          console.log("Data channel closed (Guest)");
           setIsConnected(false);
         };
 
@@ -94,7 +90,6 @@ export const useP2P = (_roomId: string, isHost: boolean) => {
     }
 
     peerConnection.oniceconnectionstatechange = () => {
-      console.log("ICE connection state:", peerConnection.iceConnectionState);
       if (
         peerConnection.iceConnectionState === "disconnected" ||
         peerConnection.iceConnectionState === "failed"

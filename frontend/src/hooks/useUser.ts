@@ -26,10 +26,6 @@ export const useUser = () => {
       if (!auth0User || !isAuthenticated) return;
 
       try {
-        console.log(
-          "useUser - Updating Discord info from Auth0 profile:",
-          auth0User,
-        );
         const token = await getAccessTokenSilently();
 
         // Auth0のIDトークンから取得したDiscord情報を専用エンドポイントで更新
@@ -47,10 +43,6 @@ export const useUser = () => {
         });
 
         if (response.data && !response.error) {
-          console.log(
-            "useUser - Discord info updated successfully:",
-            response.data,
-          );
           setUserData(response.data);
           setShouldShowUserCreation(false);
         } else {
@@ -76,12 +68,9 @@ export const useUser = () => {
     if (!auth0User || !isAuthenticated) return false;
 
     try {
-      console.log("useUser - Attempting to create user automatically");
       const token = await getAccessTokenSilently();
 
       // First, debug what Auth0 info we're sending
-      console.log("useUser - Auth0 user object:", auth0User);
-      console.log("useUser - Auth0 sub:", auth0User.sub);
 
       // Call debug endpoint to see what the backend receives
       const debugResponse = await callApi<unknown>("/api/debug/auth", {
@@ -99,7 +88,6 @@ export const useUser = () => {
         },
       });
 
-      console.log("useUser - Debug response:", debugResponse);
 
       // Create user with Auth0 profile data
       // 重要: useApiで自動的にJSON.stringify()されるため、ここでは生のオブジェクトを渡す
@@ -119,7 +107,6 @@ export const useUser = () => {
       });
 
       if (response.data && !response.error) {
-        console.log("useUser - User created successfully:", response.data);
         setUserData(response.data);
         return true;
       } else {
@@ -144,16 +131,12 @@ export const useUser = () => {
         "/api/users/me",
       );
 
-      console.log("useUser - API response:", {
         status: response.status,
         data: response.data,
         error: response.error,
       });
 
       if (response.status === 404) {
-        console.log(
-          "useUser - User not found, attempting to create automatically",
-        );
         // Try to create user automatically
         const created = await createUserIfNeeded();
         if (!created) {
@@ -161,16 +144,11 @@ export const useUser = () => {
           setShouldShowUserCreation(true);
         }
       } else if (response.error) {
-        console.log("useUser - API error:", response.error);
         setError(response.error);
       } else if (response.data) {
-        console.log("useUser - User found:", response.data);
 
         // プレースホルダーのDiscordユーザー名の場合、IDトークンから取得した情報で更新
         if (response.data.discord_username?.startsWith("User_") && auth0User) {
-          console.log(
-            "useUser - Updating placeholder Discord username with Auth0 profile data",
-          );
           await updateDiscordInfo(response.data);
         } else {
           setUserData(response.data);

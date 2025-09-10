@@ -151,21 +151,9 @@ class UnitemateApiClient {
       ...((options.headers as Record<string, string>) || {}),
     };
 
-    console.log("UnitemateApiClient.request - endpoint:", endpoint);
-    console.log("UnitemateApiClient.request - token provided:", !!token);
-    console.log(
-      "UnitemateApiClient.request - token prefix:",
-      token ? token.substring(0, 50) + "..." : "null",
-    );
-
     // Auth0トークンがある場合は認証ヘッダーを追加
     if (token) {
       headers.Authorization = `Bearer ${token}`;
-      console.log("UnitemateApiClient.request - Authorization header set");
-    } else {
-      console.log(
-        "UnitemateApiClient.request - No token, no Authorization header",
-      );
     }
 
     const response = await fetch(url, {
@@ -260,8 +248,7 @@ class UnitemateApiClient {
     data: UpdateProfileRequest,
     token?: string,
   ): Promise<void> {
-    console.log("APIClient.updateProfile - Request data:", data);
-    const result = await this.request<void>(
+    return this.request<void>(
       `/users/me/profile`,
       {
         method: "PUT",
@@ -269,8 +256,6 @@ class UnitemateApiClient {
       },
       token,
     );
-    console.log("APIClient.updateProfile - Response:", result);
-    return result;
   }
 
   // Pokemon関連
@@ -497,26 +482,11 @@ export const useUserInfo = () => {
     setNeedsRegistration(false);
     try {
       let token: string;
-      console.log("useUserInfo - Auth state:", {
-        dummyAuth_isAuthenticated: dummyAuth.isAuthenticated,
-        dummyAuth_hasToken: !!dummyAuth.accessToken,
-        auth0_isAuthenticated: isAuthenticated,
-      });
-
       if (dummyAuth.isAuthenticated && dummyAuth.accessToken) {
-        console.log(
-          "useUserInfo - Using dummy auth token:",
-          dummyAuth.accessToken.substring(0, 50) + "...",
-        );
         token = dummyAuth.accessToken;
       } else {
-        console.log("useUserInfo - Using Auth0 token");
         token = await getAccessTokenSilently();
       }
-      console.log(
-        "useUserInfo - Calling apiClient.getUserInfo with token:",
-        token.substring(0, 50) + "...",
-      );
       const data = await apiClient.getUserInfo(token);
       setUserInfo(data);
     } catch (err) {
@@ -536,9 +506,6 @@ export const useUserInfo = () => {
             err.message.includes("404") ||
             err.message.includes("User not found")
           ) {
-            console.log(
-              "useUserInfo - 404 error detected, backend should auto-create user, retrying...",
-            );
             setTimeout(() => {
               fetchUserInfo();
             }, 1000); // 1秒後にリトライ

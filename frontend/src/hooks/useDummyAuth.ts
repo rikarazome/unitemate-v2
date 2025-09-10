@@ -33,9 +33,6 @@ export const useDummyAuth = (): DummyAuthState => {
     const storedToken = localStorage.getItem(DUMMY_TOKEN_KEY);
     const storedUser = localStorage.getItem(DUMMY_USER_KEY);
 
-    console.log("useDummyAuth.init - storedToken exists:", !!storedToken);
-    console.log("useDummyAuth.init - storedUser exists:", !!storedUser);
-
     if (storedToken && storedUser) {
       try {
         const userData = JSON.parse(storedUser);
@@ -44,31 +41,16 @@ export const useDummyAuth = (): DummyAuthState => {
         const payload = JSON.parse(atob(storedToken.split(".")[1]));
         const now = Math.floor(Date.now() / 1000);
 
-        console.log(
-          "useDummyAuth.init - token exp:",
-          payload.exp,
-          "now:",
-          now,
-          "valid:",
-          payload.exp > now,
-        );
-
         if (payload.exp > now) {
-          console.log(
-            "useDummyAuth.init - Restoring dummy auth with token:",
-            storedToken.substring(0, 50) + "...",
-          );
           setAccessToken(storedToken);
           setUser(userData);
           setIsAuthenticated(true);
         } else {
           // トークンが期限切れの場合はクリア
-          console.log("useDummyAuth.init - Token expired, clearing");
           localStorage.removeItem(DUMMY_TOKEN_KEY);
           localStorage.removeItem(DUMMY_USER_KEY);
         }
       } catch (error) {
-        console.error("Failed to restore dummy auth state:", error);
         localStorage.removeItem(DUMMY_TOKEN_KEY);
         localStorage.removeItem(DUMMY_USER_KEY);
       }
@@ -76,8 +58,6 @@ export const useDummyAuth = (): DummyAuthState => {
   }, []);
 
   const login = (token: string, userInfo: DummyUser) => {
-    console.log("useDummyAuth.login - token:", token.substring(0, 50) + "...");
-    console.log("useDummyAuth.login - userInfo:", userInfo);
 
     setAccessToken(token);
     setUser(userInfo);
@@ -133,12 +113,6 @@ export const useDummyAuth = (): DummyAuthState => {
       is_dummy: true,
     };
 
-    console.log(
-      "loginAsUser - userId:",
-      userId,
-      "token:",
-      dummyToken.substring(0, 50) + "...",
-    );
 
     login(dummyToken, dummyUserData);
   };

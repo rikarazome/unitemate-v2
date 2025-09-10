@@ -30,41 +30,21 @@ export const useApi = () => {
         };
 
         // ダミー認証またはAuth0認証のトークンを設定
-        console.log("useApi - Auth state:", {
-          dummyAuth_isAuthenticated: dummyAuth.isAuthenticated,
-          dummyAuth_hasToken: !!dummyAuth.accessToken,
-          auth0_isAuthenticated: isAuthenticated,
-          dummyTokenPrefix: dummyAuth.accessToken
-            ? dummyAuth.accessToken.substring(0, 20) + "..."
-            : "null",
-        });
-
         if (dummyAuth.isAuthenticated && dummyAuth.accessToken) {
-          console.log(
-            "useApi - Using dummy auth token:",
-            dummyAuth.accessToken.substring(0, 50) + "...",
-          );
           headers.Authorization = `Bearer ${dummyAuth.accessToken}`;
         } else if (isAuthenticated) {
-          console.log("useApi - Using Auth0 token");
           const token = await getAccessTokenSilently();
-          console.log(
-            "useApi - Auth0 token prefix:",
-            token.substring(0, 20) + "...",
-          );
           headers.Authorization = `Bearer ${token}`;
-        } else {
-          console.log("useApi - No authentication available");
         }
 
-        const response = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}${endpoint}`,
-          {
-            method: config.method || "GET",
-            headers,
-            body: config.body ? JSON.stringify(config.body) : undefined,
-          },
-        );
+        const API_BASE_URL =
+          import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+          method: config.method || "GET",
+          headers,
+          body: config.body ? JSON.stringify(config.body) : undefined,
+        });
 
         const data = await response.json();
 

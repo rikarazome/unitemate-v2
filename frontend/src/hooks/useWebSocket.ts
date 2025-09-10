@@ -94,7 +94,6 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
   const connect = useCallback(async () => {
     // WebSocket URLが設定されていない場合はスキップ
     if (!wsUrl) {
-      console.log("[WebSocket] WebSocket URL not configured, skipping connection");
       return;
     }
 
@@ -107,7 +106,6 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     if (isConnecting.current || 
         ws.current?.readyState === WebSocket.OPEN || 
         ws.current?.readyState === WebSocket.CONNECTING) {
-      console.log("[WebSocket] Connection already exists, skipping connection attempt");
       return;
     }
 
@@ -117,12 +115,10 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
 
       // Legacyと同じ方式：user_idをクエリパラメータで送信
       const websocketUrl = `${wsUrl}?user_id=${userId}`;
-      console.log("[WebSocket] Attempting connection to:", websocketUrl);
       const websocket = new WebSocket(websocketUrl);
       ws.current = websocket;
 
       websocket.onopen = () => {
-        console.log("[WebSocket] Connected", { userId });
         setReadyState(WebSocketReadyState.OPEN);
         reconnectCount.current = 0;
         shouldReconnect.current = true;
@@ -131,12 +127,10 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         // 接続直後に即座に askQueueInfo を送信（Legacyと同様）
         if (websocket.readyState === WebSocket.OPEN) {
           websocket.send(JSON.stringify({ action: "askQueueInfo" }));
-          console.log("[WebSocket] Immediate askQueueInfo sent");
         }
 
         // 再接続時に以前のsubscriptionを復元
         if (subscribedMatchId) {
-          console.log("[WebSocket] Restoring match subscription after reconnection:", subscribedMatchId);
           websocket.send(JSON.stringify({
             action: "subscribeMatch",
             matchId: subscribedMatchId
@@ -147,7 +141,6 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         pingInterval.current = setInterval(() => {
           if (websocket.readyState === WebSocket.OPEN) {
             websocket.send(JSON.stringify({ action: "ping" }));
-            console.log("[WebSocket] Ping sent");
           }
         }, 60000) as unknown as number;
 
@@ -155,7 +148,6 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         askQueueInterval.current = setInterval(() => {
           if (websocket.readyState === WebSocket.OPEN) {
             websocket.send(JSON.stringify({ action: "askQueueInfo" }));
-            console.log("[WebSocket] askQueueInfo sent");
           }
         }, 5000) as unknown as number;
       };
@@ -172,25 +164,21 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
           if (message.type) {
             switch (message.type) {
               case "subscribeMatchSuccess":
-                console.log("[WebSocket] Match subscription successful:", message.matchId);
                 if (message.dynamicData) {
                   setMatchDynamicData(message.dynamicData);
                   onMatchSubscribed?.(message.dynamicData);
                 }
                 break;
               case "subscribeMatchError":
-                console.log("[WebSocket] Match subscription error:", message.error);
                 onMatchError?.(message.error || "Subscription failed");
                 break;
               case "unsubscribeMatchSuccess":
-                console.log("[WebSocket] Match unsubscription successful:", message.matchId);
                 if (message.matchId === subscribedMatchId) {
                   setMatchDynamicData(null);
                   setSubscribedMatchId(null);
                 }
                 break;
               case "matchUpdate":
-                console.log("[WebSocket] Match dynamic update received:", message.matchId, message.updateType);
                 if (message.dynamicData) {
                   setMatchDynamicData(message.dynamicData);
                   onMatchUpdate?.(message.dynamicData, message.updateType);
@@ -202,11 +190,9 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
           // Legacyと同じアクション処理
           switch (message.action) {
             case "updateQueue":
-              console.log("[WebSocket] Queue update received");
               onQueueUpdate?.(message.data);
               break;
             case "updateQueueInfo":
-              console.log("[WebSocket] updateQueueInfo received:", message.body);
               try {
                 if (message.body) {
                   const data = JSON.parse(message.body);
@@ -217,18 +203,14 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
               }
               break;
             case "updateStatus":
-              console.log("[WebSocket] Status update received");
               onStatusUpdate?.(message.data);
               break;
             case "match_found":
-              console.log("[WebSocket] Match found:", message.data);
               onMatchFound?.(message.data);
               break;
             case "pong":
-              console.log("[WebSocket] Pong received");
               break;
             default:
-              console.log("[WebSocket] Unknown action:", message.action);
           }
         } catch (err) {
           console.error("Failed to parse WebSocket message:", err);
@@ -236,7 +218,6 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
       };
 
       websocket.onclose = (event) => {
-        console.log("WebSocket disconnected:", event.code, event.reason);
         setReadyState(WebSocketReadyState.CLOSED);
         ws.current = null;
         isConnecting.current = false;
@@ -254,9 +235,6 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         // 自動再接続（最大試行回数まで）
         if (reconnectCount.current < reconnectAttempts && !event.wasClean && shouldReconnect.current) {
           reconnectCount.current++;
-          console.log(
-            `Attempting to reconnect... (${reconnectCount.current}/${reconnectAttempts})`,
-          );
 
           // 既存のタイムアウトをクリア
           if (reconnectTimeoutId.current) {
@@ -269,7 +247,6 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
             }
           }, reconnectInterval) as unknown as number;
         } else if (reconnectCount.current >= reconnectAttempts) {
-          console.log("[WebSocket] Max reconnection attempts reached");
           shouldReconnect.current = false; // 再接続を停止
           setError("WebSocket connection failed after maximum attempts");
         }
@@ -333,7 +310,6 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     (matchId: string) => {
       // 既に同じ試合を購読している場合はスキップ
       if (subscribedMatchId === matchId) {
-        console.log("[WebSocket] Already subscribed to match:", matchId);
         return true;
       }
 
@@ -344,7 +320,6 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         return false;
       }
 
-      console.log("[WebSocket] Subscribing to match:", matchId);
       ws.current.send(JSON.stringify({
         action: "subscribeMatch",
         matchId
@@ -360,7 +335,6 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     const currentMatchId = subscribedMatchId;
     
     if (!currentMatchId) {
-      console.log("[WebSocket] No subscription to unsubscribe from");
       return false;
     }
 
@@ -369,13 +343,11 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     setMatchDynamicData(null);
 
     if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-      console.log("[WebSocket] Unsubscribing from match:", currentMatchId);
       ws.current.send(JSON.stringify({
         action: "unsubscribeMatch",
         matchId: currentMatchId
       }));
     } else {
-      console.log("[WebSocket] WebSocket not connected, but cleared subscription state for match:", currentMatchId);
     }
     
     return true;
