@@ -52,7 +52,7 @@ const AdminSeasonManagement: React.FC = () => {
       });
 
       if (response.status === 200 && response.data) {
-        setSeasons(response.data);
+        setSeasons(Array.isArray(response.data) ? response.data as Season[] : []);
       } else {
         setMessage(`シーズン取得エラー: ${response.error || 'Unknown error'}`);
       }
