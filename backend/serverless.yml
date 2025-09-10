@@ -166,6 +166,8 @@ functions:
       MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
       USERS_TABLE_NAME: ${self:custom.tableName.users}
       RECORDS_TABLE_NAME: ${self:custom.tableName.records}
+      RANKINGS_TABLE_NAME: ${self:custom.tableName.rankings}
+      MASTER_DATA_TABLE_NAME: ${self:custom.tableName.masterData}
       DISCORD_WEBHOOK_URL: ${env:DISCORD_WEBHOOK_URL, 'https://discord.com/api/webhooks/1185019044391305226/NbOT6mnrZNHS61T5ro7iu2smxyhhSPH_tecLnWmZ91kup96-mtpdcGwvvo3kjmyzR96_'}
     timeout: 25
 
@@ -527,6 +529,8 @@ functions:
       MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
       USERS_TABLE_NAME: ${self:custom.tableName.users}
       RECORDS_TABLE_NAME: ${self:custom.tableName.records}
+      RANKINGS_TABLE_NAME: ${self:custom.tableName.rankings}
+      MASTER_DATA_TABLE_NAME: ${self:custom.tableName.masterData}
       DISCORD_WEBHOOK_URL: ${env:DISCORD_WEBHOOK_URL, 'https://discord.com/api/webhooks/1185019044391305226/NbOT6mnrZNHS61T5ro7iu2smxyhhSPH_tecLnWmZ91kup96-mtpdcGwvvo3kjmyzR96_'}
     events:
       - httpApi:
