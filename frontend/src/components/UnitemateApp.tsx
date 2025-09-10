@@ -24,6 +24,7 @@ import SeasonBanner from "./SeasonBanner";
 import { useUnitemateApi } from "../hooks/useUnitemateApi";
 import { useDummyAuth } from "../hooks/useDummyAuth";
 import { useWebSocket } from "../hooks/useWebSocket";
+import { useSeasonInfo } from "../hooks/useSeasonInfo";
 import { Header } from "./Header";
 // import { useAdmin } from '../hooks/useAdmin'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import type { MatchData } from "./MatchScreen";
@@ -1304,7 +1305,8 @@ const MatchTab: React.FC<MatchTabProps> = ({
                 isPenaltyTimeout ||
                 isPenaltyBanned ||
                 isDiscordMember === false ||
-                checkingDiscord
+                checkingDiscord ||
+                isSeasonInactive
               }
               className={`px-8 py-3 rounded-lg font-medium text-lg transition-all duration-200 disabled:opacity-50 shadow-lg transform hover:scale-105 ${
                 isInQueue
@@ -1315,7 +1317,9 @@ const MatchTab: React.FC<MatchTabProps> = ({
                       ? "bg-gray-400 text-gray-100 cursor-not-allowed"
                       : isPenaltyTimeout
                         ? "bg-gray-400 text-gray-100 cursor-not-allowed"
-                        : "bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700"
+                        : isSeasonInactive
+                          ? "bg-gray-400 text-gray-100 cursor-not-allowed"
+                          : "bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700"
               }`}
               title={
                 !hasUsername
@@ -1324,7 +1328,9 @@ const MatchTab: React.FC<MatchTabProps> = ({
                     ? `ペナルティが${effectivePenalty}のため、マッチングに参加できません`
                     : isPenaltyTimeout
                       ? `ペナルティタイムアウト中（残り${Math.ceil(penaltyTimeoutRemaining / 60)}分）`
-                      : ""
+                      : isSeasonInactive
+                        ? "現在シーズン期間外のため、マッチングに参加できません"
+                        : ""
               }
             >
               {matchLoading
@@ -1364,6 +1370,15 @@ const MatchTab: React.FC<MatchTabProps> = ({
                 <span className="text-lg mr-2">🚫</span>
                 ペナルティタイムアウト中です（残り
                 {Math.ceil(penaltyTimeoutRemaining / 60)}分）
+              </p>
+            </div>
+          )}
+
+          {isSeasonInactive && (
+            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
+              <p className="text-yellow-800 font-medium text-sm">
+                <span className="text-lg mr-2">📅</span>
+                現在シーズン期間外のため、マッチングに参加できません
               </p>
             </div>
           )}
@@ -1412,6 +1427,10 @@ const UnitemateApp: React.FC = () => {
   const { loading: isUserLoading } = useUser();
   const { userInfo } = useUserInfo();
   const dummyAuth = useDummyAuth();
+  const { seasonInfo } = useSeasonInfo();
+  
+  // シーズン期間外チェック
+  const isSeasonInactive = !seasonInfo?.is_season_active;
 
   const handleLogin = () => {
     loginWithRedirect({

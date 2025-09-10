@@ -22,7 +22,6 @@ from boto3.dynamodb.conditions import Key
 
 from src.utils.response import create_error_response, create_success_response
 from src.services.penalty_service import PenaltyService
-from src.services.season_service import SeasonService
 from src.utils.time_validator import is_match_time_active, get_match_schedule_info
 
 
@@ -146,11 +145,6 @@ def join_queue(event: dict, _context: object) -> dict:
     """
     if is_locked():
         return create_error_response(423, "Match making in progress, please retry later.")
-
-    # シーズン期間バリデーション
-    season_service = SeasonService()
-    if not season_service.is_season_active_now():
-        return create_error_response(400, "現在シーズン期間外のため、キューに参加できません。")
 
     # マッチ時間バリデーション
     if not is_match_time_active():

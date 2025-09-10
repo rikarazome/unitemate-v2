@@ -426,7 +426,6 @@ functions:
     environment:
       QUEUE_TABLE_NAME: ${self:custom.tableName.queue}
       USERS_TABLE_NAME: ${self:custom.tableName.users}
-      MASTER_DATA_TABLE_NAME: ${self:custom.tableName.masterData}
     events:
       - httpApi:
           path: /api/queue/join
