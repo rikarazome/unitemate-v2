@@ -206,7 +206,7 @@ def report_match_result(event: dict, _context: object) -> dict:
                 record_item = record_response["Item"]
                 # pokemonがnullまたは"null"の場合のみ更新
                 current_pokemon = record_item.get("pokemon", "null")
-                if current_pokemon in [None, "null", ""]:
+                if current_pokemon in [None, "null", "", "unknown"]:
                     records_table.update_item(
                         Key=record_key,
                         UpdateExpression="SET pokemon = :p",

@@ -41,7 +41,8 @@ export default function RankingPage() {
               </thead>
               <tbody>
                 {rankings.map((r) => {
-                  const winRate = calcWinRate(r.match_count, r.win_count);
+                  // サーバーのwin_rateを優先、なければ計算
+                  const winRate = r.win_rate ?? calcWinRate(r.match_count, r.win_count);
                   const avatar = r.discord_avatar_url || "/unitemate-logo.png";
                   return (
                     <tr key={r.user_id} className="border-t border-gray-100">

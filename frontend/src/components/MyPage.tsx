@@ -73,10 +73,8 @@ export default function MyPage() {
     }
   }, [userData]);
 
-  const computedWinRate = useMemo(() => {
-    if (!userData || userData.match_count === 0) return 0;
-    return Math.round((userData.win_count / userData.match_count) * 1000) / 10; // 0.1%単位
-  }, [userData]);
+  // サーバーから送られてくるwin_rateを使用（既に小数点1位で計算済み）
+  const displayWinRate = userData?.win_rate ?? 0;
 
   useEffect(() => {
     if (!toast) return;
@@ -443,7 +441,7 @@ export default function MyPage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">勝率</span>
-                    <span className="font-medium">{computedWinRate}%</span>
+                    <span className="font-medium">{displayWinRate}%</span>
                   </div>
                 </div>
 

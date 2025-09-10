@@ -9,5 +9,6 @@ export interface RankingEntry {
   max_rate?: number;
   match_count?: number;
   win_count?: number;
+  win_rate?: number;
   last_match_at?: string | null;
 }

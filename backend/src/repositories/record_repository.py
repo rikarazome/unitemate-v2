@@ -176,7 +176,7 @@ class RecordRepository:
                 "total_matches": len(records),
                 "wins": wins,
                 "losses": losses,
-                "win_rate": (wins / len(records)) * 100 if records else 0.0,
+                "win_rate": round((wins / len(records)) * 100, 1) if records else 0.0,
                 "total_rate_change": total_rate_change,
                 "avg_rate_change": total_rate_change / len(records) if records else 0.0,
             }

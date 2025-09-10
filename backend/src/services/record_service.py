@@ -107,7 +107,7 @@ class RecordService:
 
         # 勝率を計算
         for pokemon, stats in pokemon_stats.items():
-            stats["win_rate"] = (stats["wins"] / stats["total"]) * 100 if stats["total"] > 0 else 0.0
+            stats["win_rate"] = round((stats["wins"] / stats["total"]) * 100, 1) if stats["total"] > 0 else 0.0
 
         return pokemon_stats
 
@@ -145,7 +145,7 @@ class RecordService:
         return {
             "recent_matches": len(records),
             "recent_wins": recent_wins,
-            "recent_win_rate": (recent_wins / len(records)) * 100,
+            "recent_win_rate": round((recent_wins / len(records)) * 100, 1),
             "recent_rate_change": recent_rate_change,
             "streak": {"type": streak_type, "count": streak_count},
         }

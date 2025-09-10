@@ -144,11 +144,10 @@ class PokemonService:
 
             if role_specific_stats:
                 total_picks = sum(s.total_matches for s in role_specific_stats)
-                avg_win_rate = (
-                    sum(s.win_rate * s.total_matches for s in role_specific_stats) / total_picks
-                    if total_picks > 0
-                    else 0
-                )
+                avg_win_rate = round(
+                    sum(s.win_rate * s.total_matches for s in role_specific_stats) / total_picks,
+                    1
+                ) if total_picks > 0 else 0.0
 
                 role_stats[role.value] = {
                     "total_picks": total_picks,
