@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { useAuth0 } from "@auth0/auth0-react";
 import { useApi } from "../hooks/useApi";
 
 interface Season {
@@ -52,10 +51,10 @@ const AdminSeasonManagement: React.FC = () => {
         method: "GET",
       });
 
-      if (response.success) {
+      if (response.status === 200 && response.data) {
         setSeasons(response.data);
       } else {
-        setMessage(`シーズン取得エラー: ${response.error}`);
+        setMessage(`シーズン取得エラー: ${response.error || 'Unknown error'}`);
       }
     } catch (error) {
       setMessage(`シーズン取得エラー: ${error}`);
@@ -98,12 +97,12 @@ const AdminSeasonManagement: React.FC = () => {
         },
       });
 
-      if (response.success) {
+      if (response.status === 200) {
         setMessage("シーズンが作成されました");
         resetForm();
         await fetchSeasons();
       } else {
-        setMessage(`作成エラー: ${response.error}`);
+        setMessage(`作成エラー: ${response.error || 'Unknown error'}`);
       }
     } catch (error) {
       setMessage(`作成エラー: ${error}`);
@@ -127,12 +126,12 @@ const AdminSeasonManagement: React.FC = () => {
         },
       });
 
-      if (response.success) {
+      if (response.status === 200) {
         setMessage("シーズンが更新されました");
         resetForm();
         await fetchSeasons();
       } else {
-        setMessage(`更新エラー: ${response.error}`);
+        setMessage(`更新エラー: ${response.error || 'Unknown error'}`);
       }
     } catch (error) {
       setMessage(`更新エラー: ${error}`);
@@ -151,11 +150,11 @@ const AdminSeasonManagement: React.FC = () => {
         method: "DELETE",
       });
 
-      if (response.success) {
+      if (response.status === 200) {
         setMessage("シーズンが削除されました");
         await fetchSeasons();
       } else {
-        setMessage(`削除エラー: ${response.error}`);
+        setMessage(`削除エラー: ${response.error || 'Unknown error'}`);
       }
     } catch (error) {
       setMessage(`削除エラー: ${error}`);
@@ -174,11 +173,11 @@ const AdminSeasonManagement: React.FC = () => {
         method: "POST",
       });
 
-      if (response.success) {
+      if (response.status === 200) {
         setMessage("シーズンがアクティブになりました");
         await fetchSeasons();
       } else {
-        setMessage(`アクティベートエラー: ${response.error}`);
+        setMessage(`アクティベートエラー: ${response.error || 'Unknown error'}`);
       }
     } catch (error) {
       setMessage(`アクティベートエラー: ${error}`);
