@@ -70,23 +70,6 @@ export const useUser = () => {
     try {
       const token = await getAccessTokenSilently();
 
-      // First, debug what Auth0 info we're sending
-
-      // Call debug endpoint to see what the backend receives
-      const debugResponse = await callApi<unknown>("/api/debug/auth", {
-        method: "POST",
-        body: JSON.stringify({
-          auth0_profile: auth0User,
-          trainer_name: auth0User.nickname || auth0User.name || "Trainer",
-          twitter_id: "",
-          preferred_roles: [],
-          bio: "",
-        }),
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
 
 
       // Create user with Auth0 profile data
