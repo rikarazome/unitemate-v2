@@ -183,6 +183,12 @@ def join_queue(event: dict, _context: object) -> dict:
             return create_error_response(404, "User not found")
 
         user_item = user_resp["Item"]
+        
+        # 既に試合にアサインされているかチェック
+        assigned_match_id = user_item.get("assigned_match_id", 0)
+        if assigned_match_id != 0:
+            print(f"joinQueue: User {user_id} is already assigned to match {assigned_match_id}")
+            return create_error_response(409, f"既に試合 {assigned_match_id} にアサインされています")
 
         # ペナルティチェック
         penalty_service = PenaltyService()
