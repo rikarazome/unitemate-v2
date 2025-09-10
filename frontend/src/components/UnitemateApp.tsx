@@ -284,11 +284,14 @@ const MyPageTab: React.FC = () => {
                 🎮 Discordでログイン
               </button>
 
-              <div className="text-gray-400">または</div>
+              {/* テスト用ログイン（環境変数で制御） */}
+              {import.meta.env.VITE_ENABLE_DUMMY_LOGIN === 'true' && (
+                <>
+                  <div className="text-gray-400">または</div>
 
-              <DummyLogin
-                onLogin={(token, dummyUser) =>
-                  handleDummyLogin(token, {
+                  <DummyLogin
+                    onLogin={(token, dummyUser) =>
+                      handleDummyLogin(token, {
                     user_id: dummyUser.user_id,
                     auth0_sub: "",
                     discord_username: dummyUser.discord_username,
@@ -311,6 +314,8 @@ const MyPageTab: React.FC = () => {
                   })
                 }
               />
+                </>
+              )}
             </div>
 
             {/* プライバシーポリシーリンク */}
