@@ -22,7 +22,6 @@ from boto3.dynamodb.conditions import Key
 
 from src.utils.response import create_error_response, create_success_response
 from src.services.penalty_service import PenaltyService
-from src.utils.time_validator import is_match_time_active, get_match_schedule_info
 
 
 # DynamoDB設定 - Legacy準拠の複合キー構造
@@ -145,11 +144,6 @@ def join_queue(event: dict, _context: object) -> dict:
     """
     if is_locked():
         return create_error_response(423, "Match making in progress, please retry later.")
-
-    # マッチ時間バリデーション
-    if not is_match_time_active():
-        schedule_info = get_match_schedule_info()
-        return create_error_response(400, f"現在マッチ時間外です。{schedule_info['schedule_info']['weekdays']} / {schedule_info['schedule_info']['weekends']}")
 
     try:
         print("joinQueue: Starting to process request")

@@ -26,7 +26,6 @@ from src.repositories.queue_repository import QueueRepository
 from src.services.discord_service import send_discord_match_notification
 from src.services.season_service import SeasonService
 from src.utils.response import create_error_response, create_success_response
-from src.utils.time_validator import is_match_time_active, get_match_schedule_info
 from decimal import Decimal
 from boto3.dynamodb.conditions import Key
 
@@ -872,16 +871,7 @@ def match_make(event, context):
             logger.info("Match processing skipped: No active season")
             return {"statusCode": 200, "body": json.dumps({"message": "No active season - match processing skipped"})}
 
-        # バリデーション: マッチ時間チェック
-        if not is_match_time_active():
-            schedule_info = get_match_schedule_info()
-            logger.info(f"Match processing skipped: Outside match hours. Next: {schedule_info['next_match_time']}")
-            return {"statusCode": 200, "body": json.dumps({
-                "message": "Outside match hours - match processing skipped",
-                "schedule_info": schedule_info
-            })}
-
-        logger.info("Season and time validation passed - proceeding with match processing")
+        logger.info("Season validation passed - proceeding with match processing")
 
         # 1. ロック取得
         if not acquire_lock():
