@@ -12,6 +12,7 @@ import {
   useMasterData,
   type UserInfo,
 } from "../hooks/useUnitemateApi";
+import { useSeasonInfo } from "../hooks/useSeasonInfo";
 import ProfileEditModal from "./ProfileEditModal";
 import SeasonDataModal from "./SeasonDataModal";
 import NamePlate from "./NamePlate";
@@ -24,7 +25,6 @@ import SeasonBanner from "./SeasonBanner";
 import { useUnitemateApi } from "../hooks/useUnitemateApi";
 import { useDummyAuth } from "../hooks/useDummyAuth";
 import { useWebSocket } from "../hooks/useWebSocket";
-import { useSeasonInfo } from "../hooks/useSeasonInfo";
 import { Header } from "./Header";
 // import { useAdmin } from '../hooks/useAdmin'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import type { MatchData } from "./MatchScreen";
@@ -649,6 +649,10 @@ const MatchTab: React.FC<MatchTabProps> = ({
   const { userInfo, refetch: _refetchUserInfo } = useUserInfo();
   const { queueInfo, error: queueError, refetch: refetchQueueInfo } = useQueueInfo();
   const { unitemateApi } = useUnitemateApi();
+  const { seasonInfo } = useSeasonInfo();
+  
+  // シーズン期間外チェック
+  const isSeasonInactive = !seasonInfo?.is_season_active;
 
   // WebSocket接続とリアルタイム更新
   const { 
@@ -1427,10 +1431,6 @@ const UnitemateApp: React.FC = () => {
   const { loading: isUserLoading } = useUser();
   const { userInfo } = useUserInfo();
   const dummyAuth = useDummyAuth();
-  const { seasonInfo } = useSeasonInfo();
-  
-  // シーズン期間外チェック
-  const isSeasonInactive = !seasonInfo?.is_season_active;
 
   const handleLogin = () => {
     loginWithRedirect({
