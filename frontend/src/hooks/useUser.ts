@@ -131,11 +131,6 @@ export const useUser = () => {
         "/api/users/me",
       );
 
-        status: response.status,
-        data: response.data,
-        error: response.error,
-      });
-
       if (response.status === 404) {
         // Try to create user automatically
         const created = await createUserIfNeeded();
