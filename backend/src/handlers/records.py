@@ -5,28 +5,6 @@ from src.services.record_service import RecordService
 from src.utils.response import create_error_response, create_success_response
 
 
-def get_record(event: dict, _context: object) -> dict:
-    """レコード情報取得.
-
-    Args:
-        event (dict): Lambdaイベントオブジェクト.
-        _context (object): Lambda実行コンテキスト.
-
-    Returns:
-        dict: レコード情報またはエラーレスポンス.
-
-    """
-    record_id = event["pathParameters"]["recordId"]
-
-    record_service = RecordService()
-    record = record_service.get_record_by_id(record_id)
-
-    if not record:
-        return create_error_response(404, "Record not found")
-
-    return create_success_response(record.model_dump())
-
-
 def get_user_records(event: dict, _context: object) -> dict:
     """認証済みユーザーの試合記録取得.
 

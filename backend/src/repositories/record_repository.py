@@ -12,15 +12,6 @@ class RecordRepository:
         self.dynamodb = boto3.resource("dynamodb")
         self.table = self.dynamodb.Table(os.environ["RECORDS_TABLE_NAME"])
 
-    def get_by_record_id(self, record_id: str) -> Record | None:
-        try:
-            response = self.table.get_item(Key={"record_id": record_id})
-            if "Item" not in response:
-                return None
-            return Record(**response["Item"])
-        except ClientError as e:
-            print(f"Error getting record by record_id {record_id}: {e}")
-            return None
 
     def get_user_records(self, user_id: str, limit: int = 50) -> list[Record]:
         try:

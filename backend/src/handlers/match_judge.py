@@ -207,8 +207,16 @@ def update_player_data(
                 "winlose": (1 if win else 0),  # 0: lose, 1: win, 2: invalid
             }
 
-            records_table.put_item(Item=record_data)
-            logger.info(f"Created record for user {user_id}, match {match_id}")
+            logger.info(f"[RECORD CREATE] Creating record for user {user_id}, match {match_id}")
+            logger.info(f"[RECORD CREATE] Record data: {record_data}")
+            
+            try:
+                records_table.put_item(Item=record_data)
+                logger.info(f"[RECORD CREATE] Successfully created record for user {user_id}, match {match_id}")
+            except Exception as record_error:
+                logger.error(f"[RECORD CREATE ERROR] Failed to create record for user {user_id}, match {match_id}: {record_error}")
+                logger.error(f"[RECORD CREATE ERROR] Record data that failed: {record_data}")
+                raise
 
             # 50試合ごとのペナルティ軽減処理
             penalty_service = PenaltyService()
@@ -344,15 +352,18 @@ def process_match_result(match_id: int) -> bool:
 
     """
     try:
+        logger.info(f"[PROCESS START] Processing match {match_id}")
+        
         # マッチデータを取得
         response = matches_table.get_item(Key={"namespace": NAMESPACE, "match_id": match_id})
 
         if "Item" not in response:
-            logger.warning(f"Match {match_id} not found")
+            logger.warning(f"[PROCESS ERROR] Match {match_id} not found")
             return False
 
         match_item = response["Item"]
         user_reports = match_item.get("user_reports", [])
+        logger.info(f"[PROCESS] Match {match_id} has {len(user_reports)} reports")
         timeout_count = match_item.get("judge_timeout_count", 0)
 
         logger.info(f"Processing match {match_id}: {len(user_reports)} reports, timeout_count={timeout_count}")
@@ -528,13 +539,14 @@ def gather_match(event, context):
 
                 # 既にdoneの場合はスキップして、ongoing_match_idsからの削除対象に追加
                 if match_status == "done":
-                    logger.info(f"Match {match_id} already done, adding to removal list")
+                    logger.info(f"[AGGREGATE SKIP] Match {match_id} already done, adding to removal list")
                     completed_match_ids.append(match_id)
                     continue
 
                 # doneでない場合のみ処理を実行
+                logger.info(f"[AGGREGATE PROCESS] Starting process_match_result for match {match_id}")
                 success = process_match_result(match_id)
-                logger.info(f"Match {match_id} processing result: {success}")
+                logger.info(f"[AGGREGATE PROCESS] Match {match_id} processing result: {success}")
                 if success:
                     processed_count += 1
                     # 処理成功後、改めてステータスを確認

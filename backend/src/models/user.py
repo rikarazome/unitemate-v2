@@ -22,6 +22,7 @@ class User(BaseModel):
     max_rate: int = Field(default=1500, description="最高レート")
     match_count: int = Field(default=0, description="総試合数")
     win_count: int = Field(default=0, description="勝利数")
+    win_rate: float = Field(default=0.0, description="勝率（小数点1位）")
     assigned_match_id: int = Field(default=0, description="現在アサインされた試合ID (0=非試合中)")
     penalty_count: int = Field(default=0, description="累積ペナルティ数（減らない）")
     penalty_correction: int = Field(default=0, description="ペナルティ軽減数")
@@ -112,11 +113,6 @@ class User(BaseModel):
         """試合中かどうか"""
         return self.assigned_match_id != 0
 
-    @property
-    def win_rate(self) -> float:
-        if self.match_count == 0:
-            return 0.0
-        return round((self.win_count / self.match_count) * 100, 1)
 
     @property
     def effective_penalty(self) -> int:

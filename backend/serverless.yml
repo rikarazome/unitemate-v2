@@ -607,17 +607,6 @@ functions:
             name: authHandler
 
   # Record関連のエンドポイント
-  getRecord:
-    handler: src/handlers/records.get_record
-    environment:
-      RECORDS_TABLE_NAME: ${self:custom.tableName.records}
-    events:
-      - httpApi:
-          path: /api/records/{recordId}
-          method: get
-          authorizer:
-            name: authHandler
-
   getUserRecords:
     handler: src/handlers/records.get_user_records
     environment:

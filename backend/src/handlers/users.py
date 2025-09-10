@@ -154,7 +154,9 @@ def get_me(event: dict, _context: object) -> dict:
 
             if auto_created_user:
                 print(f"getMe - Auto-created user: {auto_created_user}")
-                return create_success_response(auto_created_user.model_dump())
+                response_data = auto_created_user.model_dump()
+                response_data["win_rate"] = auto_created_user.win_rate
+                return create_success_response(response_data)
             else:
                 print(f"getMe - Failed to auto-create user for: {auth0_user_id}")
                 return create_error_response(500, "Failed to create user automatically")
@@ -310,7 +312,9 @@ def create_user(event: dict, _context: object) -> dict:
             return create_error_response(500, "ユーザー作成に失敗しました。")
 
         print(f"createUser - User created successfully: {user}")
-        return create_success_response(user.model_dump(), 201)
+        response_data = user.model_dump()
+        response_data["win_rate"] = user.win_rate
+        return create_success_response(response_data, 201)
     except Exception as e:
         print(f"createUser - Error in UserService.create_user: {e}")
         print(f"createUser - Error type: {type(e).__name__}")
@@ -578,13 +582,17 @@ def update_discord_info(event: dict, _context: object) -> dict:
             user.updated_at = int(__import__("time").time())
             if user_service.user_repository.update(user):
                 print(f"updateDiscordInfo - Successfully updated Discord info")
-                return create_success_response(user.model_dump())
+                response_data = user.model_dump()
+                response_data["win_rate"] = user.win_rate
+                return create_success_response(response_data)
             else:
                 print(f"updateDiscordInfo - Failed to update Discord info")
                 return create_error_response(500, "Failed to update Discord info")
         else:
             print(f"updateDiscordInfo - No Discord info to update")
-            return create_success_response(user.model_dump())
+            response_data = user.model_dump()
+            response_data["win_rate"] = user.win_rate
+            return create_success_response(response_data)
 
     except Exception as e:
         print(f"updateDiscordInfo - Error: {e}")

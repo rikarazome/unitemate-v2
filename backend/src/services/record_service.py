@@ -7,9 +7,6 @@ class RecordService:
     def __init__(self):
         self.record_repository = RecordRepository()
 
-    def get_record_by_id(self, record_id: str) -> Record | None:
-        return self.record_repository.get_by_record_id(record_id)
-
     def get_user_records(self, user_id: str, limit: int = 50) -> list[Record]:
         return self.record_repository.get_user_records(user_id, limit)
 

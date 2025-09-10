@@ -42,6 +42,15 @@ class UserRepository:
             item.setdefault("last_penalty_time", None)
             item.setdefault("penalty_timeout_until", None)
             item.setdefault("is_banned", False)
+            
+            # win_rateフィールドがない場合は計算して設定
+            if "win_rate" not in item:
+                match_count = item.get("match_count", 0)
+                win_count = item.get("win_count", 0)
+                if match_count > 0:
+                    item["win_rate"] = round((win_count / match_count) * 100, 1)
+                else:
+                    item["win_rate"] = 0.0
 
             # レガシーフィールドの処理: app_username -> trainer_name
             if "trainer_name" not in item and "app_username" in item:
@@ -93,6 +102,15 @@ class UserRepository:
             item.setdefault("last_penalty_time", None)
             item.setdefault("penalty_timeout_until", None)
             item.setdefault("is_banned", False)
+            
+            # win_rateフィールドがない場合は計算して設定
+            if "win_rate" not in item:
+                match_count = item.get("match_count", 0)
+                win_count = item.get("win_count", 0)
+                if match_count > 0:
+                    item["win_rate"] = round((win_count / match_count) * 100, 1)
+                else:
+                    item["win_rate"] = 0.0
 
             # レガシーフィールドの処理: app_username -> trainer_name
             if "trainer_name" not in item and "app_username" in item:

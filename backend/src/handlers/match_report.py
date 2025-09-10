@@ -201,26 +201,41 @@ def report_match_result(event: dict, _context: object) -> dict:
                 "match_id": int(model.match_id)  # Number型を明示
             }
             
+            print(f"[RECORD UPDATE] Attempting to get record with key: {record_key}")
+            print(f"[RECORD UPDATE] user_id type: {type(model.user_id)}, value: {model.user_id}")
+            print(f"[RECORD UPDATE] match_id type: {type(model.match_id)}, value: {model.match_id}")
+            
             record_response = records_table.get_item(Key=record_key)
+            
             if "Item" in record_response:
                 record_item = record_response["Item"]
+                print(f"[RECORD UPDATE] Found existing record for user {model.user_id} in match {model.match_id}")
+                
                 # pokemonがnullまたは"null"の場合のみ更新
                 current_pokemon = record_item.get("pokemon", "null")
+                print(f"[RECORD UPDATE] Current pokemon value: {current_pokemon} (type: {type(current_pokemon)})")
+                
                 if current_pokemon in [None, "null", "", "unknown"]:
+                    print(f"[RECORD UPDATE] Updating pokemon from '{current_pokemon}' to '{model.picked_pokemon}'")
                     records_table.update_item(
                         Key=record_key,
                         UpdateExpression="SET pokemon = :p",
                         ExpressionAttributeValues={":p": model.picked_pokemon},
                     )
-                    print(f"Updated record for user {model.user_id}: pokemon null -> {model.picked_pokemon}")
+                    print(f"[RECORD UPDATE] Successfully updated record for user {model.user_id}: pokemon '{current_pokemon}' -> '{model.picked_pokemon}'")
                 else:
-                    print(f"Record already has pokemon data: {current_pokemon}, skipping update")
+                    print(f"[RECORD UPDATE] Record already has valid pokemon data: '{current_pokemon}', skipping update")
             else:
-                print(f"No record found for user {model.user_id} in match {model.match_id}")
-                print(f"Attempted key: {record_key}")
+                print(f"[RECORD UPDATE] No record found for user {model.user_id} in match {model.match_id}")
+                print(f"[RECORD UPDATE] This is expected if the match hasn't been aggregated yet")
+                print(f"[RECORD UPDATE] Attempted key: {record_key}")
         except Exception as e:
-            print(f"Error updating record table: {e}")
-            print(f"Key used: user_id={model.user_id} (type: {type(model.user_id)}), match_id={model.match_id} (type: {type(model.match_id)})")
+            print(f"[RECORD UPDATE ERROR] Exception occurred: {type(e).__name__}: {e}")
+            print(f"[RECORD UPDATE ERROR] Key used: {record_key}")
+            print(f"[RECORD UPDATE ERROR] user_id={model.user_id} (type: {type(model.user_id)})")
+            print(f"[RECORD UPDATE ERROR] match_id={model.match_id} (type: {type(model.match_id)})")
+            import traceback
+            print(f"[RECORD UPDATE ERROR] Traceback: {traceback.format_exc()}")
 
         return create_success_response({"message": "Match result reported successfully"})
 
