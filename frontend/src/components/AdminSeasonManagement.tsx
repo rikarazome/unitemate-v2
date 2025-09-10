@@ -209,17 +209,17 @@ const AdminSeasonManagement: React.FC = () => {
   // 日時入力用のフォーマット（YYYY-MM-DDTHH:mm）JST
   const timestampToInputFormat = (timestamp: number) => {
     const date = new Date(timestamp * 1000);
-    // JSTに変換（UTC+9時間）
-    const jstDate = new Date(date.getTime() + (9 * 60 * 60 * 1000));
-    return jstDate.toISOString().slice(0, 16);
+    // JST表示用に変換（ローカルタイムゾーンオフセットを考慮）
+    const offset = date.getTimezoneOffset() * 60000; // ミリ秒に変換
+    const localDate = new Date(date.getTime() - offset);
+    return localDate.toISOString().slice(0, 16);
   };
 
   // 入力フォーマットからタイムスタンプへ（JSTとして扱う）
   const inputFormatToTimestamp = (dateString: string) => {
-    // 入力された時間をJSTとして扱い、UTCタイムスタンプに変換
+    // 入力された時間をそのままローカルタイムとして扱う
     const localDate = new Date(dateString);
-    // JSTからUTCに変換（-9時間）
-    return Math.floor((localDate.getTime() - (9 * 60 * 60 * 1000)) / 1000);
+    return Math.floor(localDate.getTime() / 1000);
   };
 
   return (
