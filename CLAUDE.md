@@ -38,6 +38,13 @@
 
 ## 重要な注意事項
 
+### 🚨 最重要事項 - 環境名の統一
+
+- **Production環境の略称は必ず `prod` を使用する**
+- `prd` は絶対に使用しない
+- ファイル名、環境変数、ブランチ名、ドキュメント等すべてで `prod` に統一
+- 例: `.env.production`, `--stage prod`, `build:prod`
+
 ### Serverless Framework / Python ランタイム
 
 - **このプロジェクトは Python 3.12 を使用する**

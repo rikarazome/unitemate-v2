@@ -44,14 +44,14 @@
 
 3. 環境変数を設定
 
-   **フロントエンド（frontend/.env）:**
+   **フロントエンド:**
 
    ```bash
    cd frontend
-   cp .env.example .env
+   cp .env.local.example .env.local
    ```
 
-   以下の環境変数を設定してください：
+   `.env.local`ファイルで以下の環境変数を設定してください：
 
    ```
    VITE_AUTH0_DOMAIN=your-auth0-domain
@@ -90,6 +90,41 @@
 ```bash
 make check
 ```
+
+## 環境管理
+
+### 環境構成
+
+- **Development (dev)** - 開発環境
+- **Production (prod)** - 本番環境
+
+### ブランチ戦略
+
+- `main` - 本番環境（自動デプロイ）
+- `dev` - 開発環境（開発用デプロイ）
+- `feature/*` - 機能開発（devにマージ）
+
+### ビルドコマンド
+
+```bash
+# 開発環境用ビルド
+cd frontend && npm run build:dev
+
+# 本番環境用ビルド  
+cd frontend && npm run build:prod
+```
+
+### バックエンドデプロイ
+
+```bash
+# 開発環境
+cd backend && serverless deploy --stage dev
+
+# 本番環境
+cd backend && serverless deploy --stage prod
+```
+
+詳細は [docs/ENVIRONMENT_MANAGEMENT.md](docs/ENVIRONMENT_MANAGEMENT.md) を参照。
 
 ## デプロイ
 

@@ -19,7 +19,7 @@ const About: React.FC = () => {
         {/* 歴史と背景 */}
         <div className="bg-white rounded-lg shadow p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4 flex items-center">
-            <span className="text-2xl mr-2">📜</span>
+            <span className="text-lg mr-2">📜</span>
             ユナメイトの歴史
           </h2>
           <p className="text-gray-700 leading-relaxed mb-4">
@@ -35,28 +35,28 @@ const About: React.FC = () => {
         </div>
 
         {/* 現状の課題 */}
-        <div className="bg-gradient-to-r from-orange-50 to-pink-50 rounded-lg p-6 mb-8">
+        <div className="bg-gray-50 rounded-lg p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4 flex items-center">
-            <span className="text-2xl mr-2">🎮</span>
+            <span className="text-lg mr-2">🎮</span>
             現在の環境と課題
           </h2>
           <p className="text-gray-700 leading-relaxed mb-4">
-            現在、このゲームはリリースから4年が経ち、プレイ歴の浅いプレイヤーから長いプレイヤーまで幅広く遊ばれています。
+            現在、このゲームはリリースから4年が経ち、初心者からプロプレイヤーまで幅広いプレイヤー層に遊ばれています。
           </p>
           <p className="text-gray-700 leading-relaxed mb-4">
-            プレイ歴の差は環境理解やマクロ・セオリーの習熟度に大きな開きを生み出し、その開きが拡大するにつれて、他プレイヤーに対する不満や不公平感を生みやすくなっているのが実情です。
+            プレイ歴や熟練度の差は当然勝敗に大きく影響し、その差が拡大するにつれて、他プレイヤーに対する不満や不公平感を生みやすくなっているのが実情です。
           </p>
           <p className="text-gray-700 leading-relaxed font-semibold">
-            大抵の場合ベテランとビギナーは同じ環境でプレイすることを望んでいません。
+            大抵の場合、ベテランとビギナーは同じ環境でプレイすることを望んでいません。
           </p>
         </div>
 
         {/* 新たな目標 */}
-        <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg shadow-lg p-6 mb-8">
-          <h2 className="text-2xl font-bold mb-4">🚀 新たな目標</h2>
-          <p className="text-lg leading-relaxed">
+        <div className="bg-white rounded-lg shadow p-6 mb-8">
+          <h2 className="text-xl font-semibold mb-4">新たな目標</h2>
+          <p className="text-gray-700 leading-relaxed">
             そのためユナメイトでは今後、
-            <strong className="text-yellow-300">
+            <strong className="text-gray-800">
               マスターランクの一つ上のランクを疑似的に再現すること
             </strong>
             を目標に掲げます。
@@ -66,59 +66,48 @@ const About: React.FC = () => {
         {/* 参加条件 */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4 flex items-center">
-            <span className="text-2xl mr-2">🎯</span>
+            <span className="text-lg mr-2">🎯</span>
             参加基準
           </h2>
 
-          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4">
-            <p className="text-gray-700 mb-3">
-              これを実現するために、ゲーム内のランクマッチにおける
-              <strong className="text-blue-600">
-                レート1600で貰えるシール
-              </strong>
-              を所持しているかどうかを基準に、プレイヤーが相応の実力を持っているかどうかを判断して、参加基準といたします。
-            </p>
-            <p className="text-gray-700">
-              対象のシールは
-              <strong className="text-blue-600">
-                直近4シーズン以内のシールのみ
-              </strong>
-              です。
-            </p>
-          </div>
+          <p className="text-gray-700 mb-4">
+            これを実現するために、ゲーム内のランクマッチにおける
+            <strong className="text-gray-800">レート1600で貰えるシール</strong>
+            を所持しているかどうかを基準に、プレイヤーが相応の実力を持っているかどうかを判断して、参加基準といたします。
+          </p>
+          <p className="text-gray-700 mb-4">
+            対象のシールは
+            <strong className="text-gray-800">
+              直近4シーズン以内のシールのみ
+            </strong>
+            です。
+          </p>
 
-          <div className="bg-gray-50 rounded p-4 mb-4">
-            <h3 className="font-semibold mb-2 flex items-center">
-              <span className="text-lg mr-2">📌</span>例
-            </h3>
-            <p className="text-gray-700">
-              シーズン30では、シーズン27、28、29、30のいずれかのシールの所持が参加条件となります。
-            </p>
-          </div>
+          <p className="text-gray-700 mb-4">
+            <strong>例：</strong>{" "}
+            シーズン30では、シーズン27、28、29、30のいずれかのシールの所持が参加条件となります。
+          </p>
 
-          <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4">
-            <p className="text-gray-700">
-              <span className="font-semibold">⚠️ ご注意：</span>
-              公式レート1600に一度も到達したことがないプレイヤーは、ユナメイトを始める前に、ランクマッチで腕を磨いてから参加してください。
-            </p>
-          </div>
+          <p className="text-gray-700">
+            公式レート1600に一度も到達したことがないプレイヤーは、ユナメイトを始める前に、ランクマッチで腕を磨いてから参加してください。
+          </p>
         </div>
 
         {/* システムの特徴 */}
         <div className="grid md:grid-cols-2 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold mb-3 flex items-center">
-              <span className="text-xl mr-2">⚔️</span>
-              ドラフトピック形式
+              <span className="text-base mr-2">⚔️</span>
+              公式大会準拠のルール
             </h3>
             <p className="text-gray-600 text-sm">
-              公式大会で採用されているドラフトピックルールを採用。戦略的なピック&バンが楽しめます。
+              公式大会で採用されているルールを採用。戦略的なピック&バンが楽しめます。
             </p>
           </div>
 
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold mb-3 flex items-center">
-              <span className="text-xl mr-2">📊</span>
+              <span className="text-base mr-2">📊</span>
               独自レーティング
             </h3>
             <p className="text-gray-600 text-sm">
@@ -128,7 +117,7 @@ const About: React.FC = () => {
 
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold mb-3 flex items-center">
-              <span className="text-xl mr-2">🏆</span>
+              <span className="text-base mr-2">🏆</span>
               競技志向
             </h3>
             <p className="text-gray-600 text-sm">
@@ -138,23 +127,23 @@ const About: React.FC = () => {
 
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold mb-3 flex items-center">
-              <span className="text-xl mr-2">🤝</span>
-              有志運営
+              <span className="text-base mr-2">🤝</span>
+              コミュニケーション
             </h3>
             <p className="text-gray-600 text-sm">
-              コミュニティの有志によって運営される、プレイヤーのためのシステム。
+              Discordを用いたコミュニティの活性化や、VCでチーム連携のとれる試合を提供。
             </p>
           </div>
         </div>
 
         {/* 締めのメッセージ */}
-        <div className="text-center bg-gradient-to-r from-purple-100 to-pink-100 rounded-lg p-8">
-          <p className="text-xl font-bold text-gray-800 mb-4">
+        <div className="text-center bg-gray-50 rounded-lg p-6">
+          <p className="text-lg text-gray-700 mb-4">
             今後ともユナメイトをよろしくお願いいたします。
           </p>
           <button
             onClick={() => (window.location.href = "/")}
-            className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-3 rounded-full font-bold hover:opacity-90 transform hover:scale-105 transition-all"
+            className="bg-blue-600 text-white px-6 py-2 rounded font-medium hover:bg-blue-700 transition-colors"
           >
             トップページへ戻る
           </button>

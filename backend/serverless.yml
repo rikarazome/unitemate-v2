@@ -20,6 +20,8 @@ provider:
     cors:
       allowedOrigins:
         - ${env:FRONTEND_URL}
+        - "http://localhost:5173"
+        - "https://unitemate-v2-git-main-rikarazomes-projects.vercel.app"
       allowedHeaders:
         - Content-Type
         - Authorization
