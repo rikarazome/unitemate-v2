@@ -6,11 +6,6 @@ service: unitemate-v2
 # 環境別設定
 # デプロイ時: serverless deploy --stage dev または --stage prod
 # 環境変数は .env.dev または .env.prod から読み込まれる
-custom:
-  stage: ${sls:stage, 'dev'}
-  frontendUrls:
-    dev: https://unitemate-v2-git-dev-rikarazomes-projects.vercel.app
-    prod: https://unitemate-v2-iota.vercel.app
 
 provider:
   name: aws
@@ -31,6 +26,8 @@ provider:
         - ${env:FRONTEND_URL}
         - "http://localhost:5173"
         - "http://localhost:5174"
+        - "https://unitemate-v2-git-dev-rikarazomes-projects.vercel.app"
+        - "https://unitemate-v2-iota.vercel.app"
       allowedHeaders:
         - Content-Type
         - Authorization
@@ -926,6 +923,10 @@ plugins:
   # - serverless-dynamodb  # Disabled for AWS DynamoDB
 
 custom:
+  stage: ${sls:stage, 'dev'}
+  frontendUrls:
+    dev: https://unitemate-v2-git-dev-rikarazomes-projects.vercel.app
+    prod: https://unitemate-v2-iota.vercel.app
   tableName:
     users: ${self:service}-users-${sls:stage}
     matches: ${self:service}-matches-${sls:stage}
