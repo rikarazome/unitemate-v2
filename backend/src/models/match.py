@@ -1,7 +1,8 @@
 from datetime import datetime
 from typing import List, Literal, Optional
+from decimal import Decimal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 
 
 class MatchPlayer(BaseModel):
@@ -20,6 +21,13 @@ class MatchPlayer(BaseModel):
     role: str | None = Field(None, description="希望ロール")
     pokemon: str | None = Field(None, description="選択ポケモン")
 
+    @field_serializer('rate', 'max_rate')
+    def serialize_int_fields(self, value):
+        """Convert integer fields to Decimal for DynamoDB compatibility"""
+        if value is None:
+            return None
+        return Decimal(int(value))
+
 
 class MatchTeam(BaseModel):
     """マッチチーム情報"""
@@ -30,6 +38,13 @@ class MatchTeam(BaseModel):
     voice_channel: str | None = Field(None, description="VCチャンネル番号")
     players: List[MatchPlayer] = Field(description="チームプレイヤーリスト")
     average_rate: float = Field(description="チーム平均レート")
+
+    @field_serializer('average_rate')
+    def serialize_average_rate(self, value):
+        """Convert average_rate to Decimal for DynamoDB compatibility"""
+        if value is None:
+            return None
+        return Decimal(str(value))
 
 
 class Match(BaseModel):
@@ -60,6 +75,14 @@ class Match(BaseModel):
     # メタデータ
     created_at: int = Field(description="作成日時（UNIX時間）")
     updated_at: int = Field(description="更新日時（UNIX時間）")
+
+    @field_serializer('match_id', 'matched_unixtime', 'estimated_duration', 
+                      'finished_unixtime', 'judge_timeout_count', 'created_at', 'updated_at')
+    def serialize_int_fields(self, value):
+        """Convert integer fields to Decimal for DynamoDB compatibility"""
+        if value is None:
+            return None
+        return Decimal(int(value))
 
     @classmethod
     def create_new_match(

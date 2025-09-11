@@ -1,6 +1,7 @@
 from datetime import datetime
+from decimal import Decimal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 
 
 class Record(BaseModel):
@@ -18,6 +19,14 @@ class Record(BaseModel):
     team_a_players: list[str] = Field(..., description="チームAのプレイヤーリスト")
     team_b_players: list[str] = Field(..., description="チームBのプレイヤーリスト")
     created_at: int = Field(..., description="レコード作成日時（unixtime）")
+
+    @field_serializer('rate_before', 'rate_after', 'rate_delta', 'started_date', 
+                      'completed_date', 'created_at')
+    def serialize_int_fields(self, value):
+        """Convert integer fields to Decimal for DynamoDB compatibility"""
+        if value is None:
+            return None
+        return Decimal(int(value))
 
     @classmethod
     def create_from_match_result(

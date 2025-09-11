@@ -2,6 +2,7 @@
 
 import json
 import os
+import traceback
 from functools import lru_cache
 
 from jose import jwt
@@ -94,8 +95,6 @@ def authorize(event: dict, _context: object) -> dict:
 
     except Exception as e:
         print(f"AUTH: Authorization failed with error: {e}")
-        import traceback
-
         traceback.print_exc()
 
         # Return Deny response instead of letting the exception propagate

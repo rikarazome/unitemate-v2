@@ -59,7 +59,6 @@ class UserRepository:
 
             # updated_atが文字列形式の場合は整数値に変換
             if "updated_at" in item and isinstance(item["updated_at"], str):
-                from datetime import datetime
                 try:
                     # ISO形式の場合はパースして変換
                     dt = datetime.fromisoformat(item["updated_at"].replace('Z', '+00:00'))
@@ -77,65 +76,6 @@ class UserRepository:
             print(f"Item data: {response.get('Item', 'No Item')}")
             return None
 
-    def get_by_auth0_sub(self, auth0_sub: str) -> User | None:
-        try:
-            response = self.table.query(
-                IndexName="Auth0SubIndex",
-                KeyConditionExpression=Key("auth0_sub").eq(auth0_sub),
-            )
-            items = response.get("Items", [])
-            if not items:
-                return None
-
-            item = items[0]
-            print(f"Raw DynamoDB item for auth0_sub {auth0_sub}: {item}")
-
-            # 新しいフィールドがない場合はデフォルト値を設定
-            item.setdefault("twitter_id", None)
-            item.setdefault("preferred_roles", None)
-            item.setdefault("favorite_pokemon", None)
-            item.setdefault("current_badge", None)
-            item.setdefault("current_badge_2", None)
-            item.setdefault("bio", None)
-            item.setdefault("is_admin", False)
-            item.setdefault("penalty_count", 0)
-            item.setdefault("penalty_correction", 0)
-            item.setdefault("last_penalty_time", None)
-            item.setdefault("penalty_timeout_until", None)
-            item.setdefault("is_banned", False)
-            
-            # win_rateフィールドがない場合は計算して設定
-            if "win_rate" not in item:
-                match_count = item.get("match_count", 0)
-                win_count = item.get("win_count", 0)
-                if match_count > 0:
-                    item["win_rate"] = Decimal(str(round((win_count / match_count) * 100, 1)))
-                else:
-                    item["win_rate"] = Decimal("0.0")
-
-            # レガシーフィールドの処理: app_username -> trainer_name
-            if "trainer_name" not in item and "app_username" in item:
-                item["trainer_name"] = item["app_username"]
-
-            # updated_atが文字列形式の場合は整数値に変換
-            if "updated_at" in item and isinstance(item["updated_at"], str):
-                from datetime import datetime
-                try:
-                    # ISO形式の場合はパースして変換
-                    dt = datetime.fromisoformat(item["updated_at"].replace('Z', '+00:00'))
-                    item["updated_at"] = int(dt.timestamp())
-                except (ValueError, AttributeError):
-                    # パースできない場合は現在時刻を使用
-                    item["updated_at"] = int(datetime.now().timestamp())
-
-            return User(**item)
-        except ClientError as e:
-            print(f"Error getting user by auth0_sub {auth0_sub}: {e}")
-            return None
-        except Exception as e:
-            print(f"Error creating User model from DynamoDB item: {e}")
-            print(f"Item data: {items[0] if items else 'No Items'}")
-            return None
 
     def create(self, user: User) -> bool:
         try:
@@ -145,16 +85,11 @@ class UserRepository:
                 print(f"User with user_id {user.user_id} already exists")
                 return False
 
-            # auth0_subの重複チェック
-            existing_auth0_user = self.get_by_auth0_sub(user.auth0_sub)
-            if existing_auth0_user:
-                print(f"User with auth0_sub {user.auth0_sub} already exists")
-                return False
 
             # DynamoDBの条件付きput_itemで二重作成を防止
             self.table.put_item(
                 Item=user.model_dump(),
-                ConditionExpression="attribute_not_exists(user_id) AND attribute_not_exists(auth0_sub)"
+                ConditionExpression="attribute_not_exists(user_id)"
             )
             return True
         except ClientError as e:

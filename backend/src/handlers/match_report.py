@@ -2,6 +2,7 @@
 
 import json
 import os
+import traceback
 from datetime import datetime
 from decimal import Decimal
 from typing import Literal
@@ -179,7 +180,7 @@ def report_match_result(event: dict, _context: object) -> dict:
         users_table.update_item(
             Key={"namespace": "default", "user_id": model.user_id},
             UpdateExpression="SET assigned_match_id = :zero",
-            ExpressionAttributeValues={":zero": 0},
+            ExpressionAttributeValues={":zero": Decimal(0)},
         )
 
         # ongoing_match_playersからプレイヤーを削除（自動試合画面切り替え用）
@@ -234,7 +235,6 @@ def report_match_result(event: dict, _context: object) -> dict:
             print(f"[RECORD UPDATE ERROR] Key used: {record_key}")
             print(f"[RECORD UPDATE ERROR] user_id={model.user_id} (type: {type(model.user_id)})")
             print(f"[RECORD UPDATE ERROR] match_id={model.match_id} (type: {type(model.match_id)})")
-            import traceback
             print(f"[RECORD UPDATE ERROR] Traceback: {traceback.format_exc()}")
 
         return create_success_response({"message": "Match result reported successfully"})

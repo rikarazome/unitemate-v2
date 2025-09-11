@@ -1,6 +1,6 @@
 """Time validation utility for match scheduling."""
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, time
 from typing import Optional
 
 # JST timezone
@@ -27,7 +27,6 @@ def is_match_time_active() -> bool:
     
     # 平日の場合
     # 14:00-23:59 または 00:00-04:00
-    from datetime import time
     afternoon_start = time(14, 0)  # 14:00
     midnight = time(23, 59, 59)  # 23:59:59
     morning_end = time(4, 0)  # 04:00
@@ -52,8 +51,6 @@ def format_next_match_time() -> str:
     now_jst = datetime.now(JST)
     current_time = now_jst.time()
     weekday = now_jst.weekday()
-    
-    from datetime import time, timedelta
     
     # 土日の場合、すでにマッチ時間なので「現在」を返す
     if weekday >= 5:

@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timedelta
 from decimal import Decimal
 
 import boto3
@@ -143,8 +144,6 @@ class RecordRepository:
     def get_user_stats(self, user_id: str, days: int = 30) -> dict:
         """ユーザーの統計情報を取得"""
         try:
-            from datetime import datetime, timedelta
-
             # 指定日数前のUNIXタイムスタンプを計算
             start_date = int((datetime.now() - timedelta(days=days)).timestamp())
 

@@ -2,6 +2,7 @@
 
 import json
 import os
+import traceback
 from datetime import datetime
 from enum import Enum
 
@@ -87,8 +88,6 @@ def check_admin_permission(event: dict) -> tuple[bool, str | None]:
 
     except Exception as e:
         print(f"check_admin_permission error: {e}")
-        import traceback
-
         print(f"check_admin_permission traceback: {traceback.format_exc()}")
         return False, f"権限チェックエラー: {e!s}"
 
@@ -163,7 +162,6 @@ def search_users(event: dict, _context: object) -> dict:
 
             user_data = {
                 "user_id": user.user_id,
-                "auth0_sub": user.auth0_sub,
                 "discord_username": user.discord_username,
                 "trainer_name": user.trainer_name,
                 "rate": user.rate,
@@ -299,7 +297,6 @@ def get_user_details(event: dict, _context: object) -> dict:
         # 詳細情報を整形
         user_details = {
             "user_id": user.user_id,
-            "auth0_sub": user.auth0_sub,
             "discord_username": user.discord_username,
             "discord_discriminator": user.discord_discriminator,
             "discord_avatar_url": user.discord_avatar_url,

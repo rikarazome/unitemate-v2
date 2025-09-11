@@ -6,25 +6,17 @@ class UserService:
     def __init__(self):
         self.user_repository = UserRepository()
 
-    def get_user_by_auth0_sub(self, auth0_sub: str) -> User | None:
-        return self.user_repository.get_by_auth0_sub(auth0_sub)
-
     def get_user_by_user_id(self, user_id: str) -> User | None:
         return self.user_repository.get_by_user_id(user_id)
 
-    def create_user(self, user_id: str, auth0_sub: str, request: CreateUserRequest) -> User | None:
-        # Discord IDとAuth0 subの両方をチェック
+    def create_user(self, user_id: str, request: CreateUserRequest) -> User | None:
+        # Discord IDをチェック
         existing_user = self.user_repository.get_by_user_id(user_id)
         if existing_user:
             return None
 
-        existing_auth0_user = self.user_repository.get_by_auth0_sub(auth0_sub)
-        if existing_auth0_user:
-            return None
-
         user = User.create_new_user(
             user_id=user_id,
-            auth0_sub=auth0_sub,
             discord_username=request.discord_username,
             discord_discriminator=request.discord_discriminator,
             discord_avatar_url=request.discord_avatar_url,
@@ -98,14 +90,13 @@ class UserService:
 
     def create_user_auto(
         self,
-        auth0_sub: str,
         discord_id: str,
         discord_username: str | None = None,
         discord_discriminator: str | None = None,
         discord_avatar_url: str | None = None,
     ) -> User | None:
-        """Auth0認証後に自動的にユーザーを作成する."""
-        print(f"UserService.create_user_auto - auth0_sub: {auth0_sub}, discord_id: {discord_id}")
+        """認証後に自動的にユーザーを作成する."""
+        print(f"UserService.create_user_auto - discord_id: {discord_id}")
         print(f"UserService.create_user_auto - discord_username: {discord_username}")
 
         # 既存ユーザーチェック
@@ -114,16 +105,11 @@ class UserService:
             print(f"UserService.create_user_auto - User already exists: {discord_id}")
             return existing_user
 
-        existing_auth0_user = self.user_repository.get_by_auth0_sub(auth0_sub)
-        if existing_auth0_user:
-            print(f"UserService.create_user_auto - Auth0 user already exists: {auth0_sub}")
-            return existing_auth0_user
 
         # 自動ユーザー作成（Auth0から取得した情報を使用）
         try:
             user = User.create_new_user(
                 user_id=discord_id,
-                auth0_sub=auth0_sub,
                 discord_username=discord_username
                 or f"User_{discord_id[:8]}",  # Auth0から取得できない場合のフォールバック
                 discord_discriminator=discord_discriminator,

@@ -1,6 +1,7 @@
 from datetime import datetime
+from decimal import Decimal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 
 
 class QueueEntry(BaseModel):
@@ -8,6 +9,13 @@ class QueueEntry(BaseModel):
     blocking: str | None = Field(None, description="ブロックするユーザーID")
     selected_roles: list[str] = Field(..., description="選択したロールのリスト")
     inqueued_at: int = Field(..., description="キュー参加日時（unixtime）")
+
+    @field_serializer('inqueued_at')
+    def serialize_inqueued_at(self, value):
+        """Convert inqueued_at to Decimal for DynamoDB compatibility"""
+        if value is None:
+            return None
+        return Decimal(int(value))
 
     @classmethod
     def create_new_entry(
@@ -41,6 +49,21 @@ class QueueMeta(BaseModel):
     total_matched: int = Field(default=0, description="累計マッチ成立数")
     previous_matched_unixtime: int = Field(default=0, description="前回マッチ成立時刻（unixtime）")
     previous_user_count: int = Field(default=0, description="前回マッチメイキング時のユーザー数")
+
+    @field_serializer('lock', 'latest_match_id', 'ongoing_matches', 'total_queued', 
+                      'total_matched', 'previous_matched_unixtime', 'previous_user_count')
+    def serialize_int_fields(self, value):
+        """Convert integer fields to Decimal for DynamoDB compatibility"""
+        if value is None:
+            return None
+        return Decimal(int(value))
+
+    @field_serializer('rate_list', 'range_list', 'unused_vc', 'ongoing_match_ids')
+    def serialize_list_fields(self, value):
+        """Convert list of integers to list of Decimals for DynamoDB compatibility"""
+        if value is None:
+            return None
+        return [Decimal(int(item)) for item in value]
 
 
 class InQueueRequest(BaseModel):

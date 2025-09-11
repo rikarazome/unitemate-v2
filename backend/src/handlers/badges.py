@@ -5,6 +5,7 @@ import os
 import boto3
 import logging
 from datetime import datetime
+from decimal import Decimal
 from boto3.dynamodb.conditions import Key
 from src.utils.response import create_success_response, create_error_response
 # from src.utils.auth import get_user_id_from_event  # この関数は存在しないため削除
@@ -61,7 +62,7 @@ def grant_badge(event, context):
             UpdateExpression="SET owned_badges = :owned_badges, updated_at = :updated_at",
             ExpressionAttributeValues={
                 ":owned_badges": list(current_owned_badges),
-                ":updated_at": int(datetime.now().timestamp()),
+                ":updated_at": Decimal(int(datetime.now().timestamp())),
             },
         )
 
@@ -116,7 +117,7 @@ def revoke_badge(event, context):
         update_expression = "SET owned_badges = :owned_badges, updated_at = :updated_at"
         expression_values = {
             ":owned_badges": list(current_owned_badges),
-            ":updated_at": int(datetime.now().timestamp()),
+            ":updated_at": Decimal(int(datetime.now().timestamp())),
         }
 
         if user.get("current_badge") in badge_ids:
@@ -230,7 +231,7 @@ def equip_badges(event, context):
             ExpressionAttributeValues={
                 ":primary": primary_badge,
                 ":secondary": secondary_badge,
-                ":updated_at": int(datetime.now().timestamp()),
+                ":updated_at": Decimal(int(datetime.now().timestamp())),
             },
         )
 

@@ -6,6 +6,7 @@ import json
 import time
 import boto3
 import os
+from decimal import Decimal
 from botocore.exceptions import ClientError
 
 # DynamoDB設定（ツール専用テーブル）
@@ -28,13 +29,14 @@ def create_pick_simulator_room(event, context):
             }
 
         # BANPICKシミュレーター用ルームをDynamoDBに保存（TTL: 1時間）
+        current_time = int(time.time())
         table.put_item(
             Item={
                 "room_id": room_id,
                 "host_offer": host_offer,
                 "guest_answer": "",
-                "created_at": int(time.time()),
-                "ttl": int(time.time()) + 3600,  # 1時間後に自動削除
+                "created_at": Decimal(current_time),
+                "ttl": Decimal(current_time + 3600),  # 1時間後に自動削除
                 "tool_type": "banpick_simulator",  # ツール識別用
             }
         )

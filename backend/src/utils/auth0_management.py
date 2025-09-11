@@ -3,6 +3,7 @@
 import os
 import json
 import requests
+import traceback
 from functools import lru_cache
 from typing import Dict, Any, Optional
 import time
@@ -192,7 +193,5 @@ def get_user_info_from_token(token: str) -> Optional[Dict[str, Any]]:
 
     except Exception as e:
         print(f"get_user_info_from_token - Error: {e}")
-        import traceback
-
         traceback.print_exc()
         return None

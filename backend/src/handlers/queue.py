@@ -17,7 +17,9 @@ Legacy準拠の複合キー構造を使用:
 
 import json
 import os
+import traceback
 import boto3
+from decimal import Decimal
 from boto3.dynamodb.conditions import Key
 
 from src.utils.response import create_error_response, create_success_response
@@ -217,7 +219,7 @@ def join_queue(event: dict, _context: object) -> dict:
             "user_id": user_id,  # Discord IDを使用
             "blocking": blocking,
             "selected_roles": selected_roles,  # 希望ロールのリスト
-            "inqueued_at": int(__import__("time").time()),
+            "inqueued_at": Decimal(int(__import__("time").time())),
         }
         print(f"joinQueue: Created queue entry: {json.dumps(queue_entry, default=str)}")
 
@@ -234,8 +236,6 @@ def join_queue(event: dict, _context: object) -> dict:
 
     except Exception as e:
         print(f"join_queue error: {e}")
-        import traceback
-
         print(f"join_queue traceback: {traceback.format_exc()}")
         return create_error_response(500, f"Failed to join queue: {str(e)}")
 

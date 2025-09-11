@@ -3,6 +3,7 @@
 import json
 import logging
 import os
+import traceback
 import boto3
 from botocore.exceptions import ClientError
 
@@ -389,11 +390,9 @@ def update_lobby_id(event: dict, _context: object) -> dict:
             logger.info(f"[LOBBY_UPDATE_DEBUG] Successfully called broadcast_match_update for match {assigned_match_id}")
         except ImportError as import_error:
             logger.error(f"[LOBBY_UPDATE_DEBUG] Import error: {import_error}")
-            import traceback
             logger.error(f"[LOBBY_UPDATE_DEBUG] Import traceback: {traceback.format_exc()}")
         except Exception as ws_error:
             logger.error(f"[LOBBY_UPDATE_DEBUG] Failed to broadcast match update via WebSocket: {ws_error}")
-            import traceback
             logger.error(f"[LOBBY_UPDATE_DEBUG] WebSocket broadcast traceback: {traceback.format_exc()}")
 
         return create_success_response(

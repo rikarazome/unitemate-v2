@@ -1,12 +1,12 @@
 from datetime import datetime
+from decimal import Decimal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 
 
 class User(BaseModel):
     namespace: str = Field(default="default", description="名前空間（Legacy準拠）")
     user_id: str = Field(..., description="ユーザーのプライマリキー（Discord ID）")
-    auth0_sub: str = Field(..., description="Auth0のユーザー識別子")
     discord_username: str = Field(..., description="Discordのユーザー名")
     discord_discriminator: str | None = Field(None, description="Discordの識別子（#1234）")
     discord_avatar_url: str | None = Field(None, description="DiscordのアバターURL")
@@ -37,7 +37,6 @@ class User(BaseModel):
     def create_new_user(
         cls,
         user_id: str,
-        auth0_sub: str,
         discord_username: str,
         discord_discriminator: str | None = None,
         discord_avatar_url: str | None = None,
@@ -47,7 +46,6 @@ class User(BaseModel):
         return cls(
             namespace="default",
             user_id=user_id,
-            auth0_sub=auth0_sub,
             discord_username=discord_username,
             discord_discriminator=discord_discriminator,
             discord_avatar_url=discord_avatar_url,
@@ -96,6 +94,11 @@ class User(BaseModel):
         self.match_count += 1
         if is_win:
             self.win_count += 1
+        # Recalculate win_rate
+        if self.match_count > 0:
+            self.win_rate = round((self.win_count / self.match_count) * 100, 1)
+        else:
+            self.win_rate = 0.0
         self.updated_at = int(datetime.now().timestamp())
 
     def assign_to_match(self, match_id: int) -> None:
@@ -118,6 +121,22 @@ class User(BaseModel):
     def effective_penalty(self) -> int:
         """実効ペナルティ数を計算"""
         return max(0, self.penalty_count - self.penalty_correction)
+
+    @field_serializer('rate', 'max_rate', 'match_count', 'win_count', 'assigned_match_id', 
+                      'penalty_count', 'penalty_correction', 'last_penalty_time', 
+                      'penalty_timeout_until', 'created_at', 'updated_at')
+    def serialize_int_fields(self, value):
+        """Convert integer fields to Decimal for DynamoDB compatibility"""
+        if value is None:
+            return None
+        return Decimal(int(value))
+
+    @field_serializer('win_rate')
+    def serialize_win_rate(self, value):
+        """Convert win_rate to Decimal for DynamoDB compatibility"""
+        if value is None:
+            return None
+        return Decimal(str(value))
 
 
 class CreateUserRequest(BaseModel):

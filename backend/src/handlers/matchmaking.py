@@ -17,6 +17,7 @@ import logging
 import os
 import random
 import time
+import traceback
 from typing import Any
 
 import boto3
@@ -397,8 +398,8 @@ def create_match_record(
                         "discord_username": user_data.get("discord_username"),
                         "discord_avatar_url": user_data.get("discord_avatar_url"),
                         "twitter_id": user_data.get("twitter_id"),
-                        "rate": current_rate,
-                        "best_rate": best_rate,
+                        "rate": Decimal(current_rate),
+                        "best_rate": Decimal(best_rate),
                         "current_badge": user_data.get("current_badge"),
                         "current_badge_2": user_data.get("current_badge_2"),
                         "role": role,
@@ -423,8 +424,8 @@ def create_match_record(
                 formatted = {
                     "user_id": user_id,
                     "trainer_name": user_id,
-                    "rate": 1500,
-                    "best_rate": 1500,
+                    "rate": Decimal(1500),
+                    "best_rate": Decimal(1500),
                     "role": role,
                     "preferred_roles": [],
                     "favorite_pokemon": [],
@@ -454,8 +455,8 @@ def create_match_record(
                         "discord_username": user_data.get("discord_username"),
                         "discord_avatar_url": user_data.get("discord_avatar_url"),
                         "twitter_id": user_data.get("twitter_id"),
-                        "rate": current_rate,
-                        "best_rate": best_rate,
+                        "rate": Decimal(current_rate),
+                        "best_rate": Decimal(best_rate),
                         "current_badge": user_data.get("current_badge"),
                         "current_badge_2": user_data.get("current_badge_2"),
                         "role": role,
@@ -480,8 +481,8 @@ def create_match_record(
                 formatted = {
                     "user_id": user_id,
                     "trainer_name": user_id,
-                    "rate": 1500,
-                    "best_rate": 1500,
+                    "rate": Decimal(1500),
+                    "best_rate": Decimal(1500),
                     "role": role,
                     "preferred_roles": [],
                     "favorite_pokemon": [],
@@ -490,17 +491,17 @@ def create_match_record(
 
             team_b_formatted.append(formatted)
 
-        # マッチレコード作成
+        # マッチレコード作成（DynamoDB用にDecimal変換）
         match_record = {
             "namespace": NAMESPACE,
-            "match_id": match_id,
+            "match_id": Decimal(match_id),
             "team_a": team_a_formatted,
             "team_b": team_b_formatted,
-            "matched_unixtime": int(time.time()),
+            "matched_unixtime": Decimal(int(time.time())),
             "status": "matched",
             "user_reports": [],
             "penalty_player": [],
-            "judge_timeout_count": 0,
+            "judge_timeout_count": Decimal(0),
             "vc_a": vc_a,
             "vc_b": vc_b,
         }
@@ -840,8 +841,6 @@ def execute_match_gathering() -> dict:
         }
 
     except Exception as e:
-        import traceback
-
         error_details = traceback.format_exc()
         logger.error(f"Error in match gathering: {e}")
         logger.error(f"Full traceback: {error_details}")

@@ -23,7 +23,7 @@ def get_user_records(event: dict, _context: object) -> dict:
     from src.services.user_service import UserService
 
     user_service = UserService()
-    user = user_service.get_user_by_auth0_sub(auth0_user_id)
+    user = user_service.get_user_by_user_id(auth0_user_id)
 
     if not user:
         return create_error_response(404, "User not found")

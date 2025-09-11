@@ -73,19 +73,19 @@ def calculate_rankings(event, context):
                 rank = i + 1
                 item = {
                     "ranking_type": "rate",  # レートランキング
-                    "rank": rank,
+                    "rank": Decimal(rank),
                     "user_id": user["user_id"],
                     "trainer_name": user["trainer_name"],
-                    "rate": user["rate"],
-                    "best_rate": user["best_rate"],
-                    "win_rate": user["win_rate"],
-                    "win_count": user["win_count"],
+                    "rate": Decimal(user["rate"]) if isinstance(user["rate"], (int, float)) else user["rate"],
+                    "best_rate": Decimal(user["best_rate"]) if isinstance(user["best_rate"], (int, float)) else user["best_rate"],
+                    "win_rate": Decimal(str(user["win_rate"])) if isinstance(user["win_rate"], (int, float)) else user["win_rate"],
+                    "win_count": Decimal(user["win_count"]) if isinstance(user["win_count"], (int, float)) else user["win_count"],
                     "discord_username": user.get("discord_username"),
                     "discord_avatar_url": user.get("discord_avatar_url"),
                     "twitter_id": user.get("twitter_id"),
                     "current_badge": user.get("current_badge"),
                     "current_badge_2": user.get("current_badge_2"),
-                    "updated_at": timestamp,
+                    "updated_at": Decimal(timestamp),
                 }
                 # DynamoDBのNoneフィールドを削除
                 item = {k: v for k, v in item.items() if v is not None}

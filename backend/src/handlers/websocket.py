@@ -2,7 +2,10 @@
 
 import json
 import os
+import traceback
 from typing import Any
+from decimal import Decimal
+from datetime import datetime
 
 import boto3
 
@@ -38,7 +41,7 @@ def on_connect(event: dict[str, Any], _context: Any) -> dict[str, Any]:
             Item={
                 "connection_id": connection_id,
                 "user_id": user_id,
-                "connected_at": int(__import__("datetime").datetime.now().timestamp()),
+                "connected_at": Decimal(int(datetime.now().timestamp())),
             }
         )
 
@@ -47,7 +50,6 @@ def on_connect(event: dict[str, Any], _context: Any) -> dict[str, Any]:
         
     except Exception as e:
         print(f"[WebSocket] Connection error: {e}")
-        import traceback
         traceback.print_exc()
         return {"statusCode": 500, "body": f"Connection failed: {str(e)}"}
 
@@ -365,7 +367,6 @@ def broadcast_match_update(match_id: str, update_type: str):
         
     except Exception as e:
         print(f"[WebSocket] Error broadcasting match update: {e}")
-        import traceback
         print(f"[WebSocket] Broadcast traceback: {traceback.format_exc()}")
 
 

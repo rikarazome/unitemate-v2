@@ -53,9 +53,9 @@ class QueueService:
             参加成功時True、失敗時False
         """
         # ユーザー情報を取得
-        user = self.user_service.get_user_by_auth0_sub(auth0_user_id)
+        user = self.user_service.get_user_by_user_id(auth0_user_id)
         if not user:
-            print(f"User not found for auth0_sub: {auth0_user_id}")
+            print(f"User not found for user_id: {auth0_user_id}")
             return False
 
         # 既にキューに入っているかチェック
@@ -86,9 +86,9 @@ class QueueService:
             離脱成功時True、失敗時False
         """
         # ユーザー情報を取得
-        user = self.user_service.get_user_by_auth0_sub(auth0_user_id)
+        user = self.user_service.get_user_by_user_id(auth0_user_id)
         if not user:
-            print(f"User not found for auth0_sub: {auth0_user_id}")
+            print(f"User not found for user_id: {auth0_user_id}")
             return False
 
         # キューから削除
@@ -108,9 +108,9 @@ class QueueService:
             キュー状態情報、キューにいない場合None
         """
         # ユーザー情報を取得
-        user = self.user_service.get_user_by_auth0_sub(auth0_user_id)
+        user = self.user_service.get_user_by_user_id(auth0_user_id)
         if not user:
-            print(f"User not found for auth0_sub: {auth0_user_id}")
+            print(f"User not found for user_id: {auth0_user_id}")
             return None
 
         # キューエントリを取得

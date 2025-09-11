@@ -1,10 +1,12 @@
 import json
 import os
 import logging
+import traceback
 from typing import Dict, Any
+from datetime import datetime
+from decimal import Decimal
 import stripe
 import boto3
-from datetime import datetime
 
 # ロギング設定
 logging.basicConfig(level=logging.INFO, format="%(levelname)s - %(message)s")
@@ -284,7 +286,7 @@ def webhook_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 users_table.update_item(
                     Key={"namespace": "default", "user_id": user_id},
                     UpdateExpression="SET owned_badges = :badges, updated_at = :now",
-                    ExpressionAttributeValues={":badges": owned_badges, ":now": int(datetime.now().timestamp())},
+                    ExpressionAttributeValues={":badges": owned_badges, ":now": Decimal(int(datetime.now().timestamp()))},
                 )
 
                 print(f"Successfully granted badge {badge_id} to user {user_id}")
@@ -293,8 +295,6 @@ def webhook_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             except Exception as e:
                 print(f"Failed to grant badge to user: {str(e)}")
                 print(f"Error type: {type(e)}")
-                import traceback
-
                 print(f"Traceback: {traceback.format_exc()}")
                 logger.error(f"Failed to grant badge to user: {str(e)}")
                 # Webhookは成功として処理（再送を防ぐため）

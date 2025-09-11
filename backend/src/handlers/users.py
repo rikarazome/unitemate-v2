@@ -2,6 +2,7 @@
 
 import json
 import os
+import traceback
 import boto3
 from boto3.dynamodb.conditions import Key
 
@@ -131,21 +132,20 @@ def get_me(event: dict, _context: object) -> dict:
     else:
         # 通常のAuth0ユーザーの場合：常にDiscord IDで検索
         actual_user_id = auth0_user_id.split("|")[-1] if "|" in auth0_user_id else auth0_user_id
-        print(f"getMe - Extracted Discord ID from auth0_sub: {actual_user_id}")
+        print(f"getMe - Extracted Discord ID from user_id: {actual_user_id}")
 
     # Discord IDで直接検索
     user = user_service.get_user_by_user_id(actual_user_id)
     print(f"getMe - User lookup result: {user}")
 
     if not user:
-        print(f"getMe - User not found for auth0_sub: {auth0_user_id}, attempting auto-creation")
+        print(f"getMe - User not found for user_id: {auth0_user_id}, attempting auto-creation")
 
         # 自動ユーザー作成を試行
         try:
             # 自動ユーザー作成時はプレースホルダー値を使用
             # Discord情報の更新は後でフロントエンドからのプロファイル更新で行う
             auto_created_user = user_service.create_user_auto(
-                auth0_sub=auth0_user_id,
                 discord_id=actual_user_id,
                 discord_username=f"User_{actual_user_id[:8]}",
                 discord_discriminator=None,
@@ -235,7 +235,7 @@ def create_user(event: dict, _context: object) -> dict:
 
     # まず既存ユーザーをチェック
     user_service = UserService()
-    existing_user = user_service.get_user_by_auth0_sub(auth0_user_id)
+    existing_user = user_service.get_user_by_user_id(auth0_user_id)
     if existing_user:
         return create_error_response(409, "このアカウントは既に登録されています。")
 
@@ -270,7 +270,7 @@ def create_user(event: dict, _context: object) -> dict:
         print(f"createUser - Extracted discord_info: {discord_info}")
 
         # Discord IDを抽出（Auth0のsubからDiscord IDを取得）
-        discord_id = _extract_discord_id_from_auth0_sub(auth0_user_id)
+        discord_id = _extract_discord_id_from_user_id(auth0_user_id)
         print(f"createUser - Extracted discord_id: {discord_id} from auth0_user_id: {auth0_user_id}")
 
         if not discord_id:
@@ -291,8 +291,6 @@ def create_user(event: dict, _context: object) -> dict:
     except Exception as e:
         print(f"createUser - Unexpected error during user creation: {e}")
         print(f"createUser - Error type: {type(e).__name__}")
-        import traceback
-
         print(f"createUser - Traceback: {traceback.format_exc()}")
         return create_error_response(500, f"Internal server error: {str(e)}")
 
@@ -306,7 +304,7 @@ def create_user(event: dict, _context: object) -> dict:
         print(
             f"createUser - Calling UserService.create_user with discord_id: {discord_id}, auth0_user_id: {auth0_user_id}"
         )
-        user = user_service.create_user(discord_id, auth0_user_id, create_request)
+        user = user_service.create_user(discord_id, create_request)
 
         if not user:
             return create_error_response(500, "ユーザー作成に失敗しました。")
@@ -318,49 +316,47 @@ def create_user(event: dict, _context: object) -> dict:
     except Exception as e:
         print(f"createUser - Error in UserService.create_user: {e}")
         print(f"createUser - Error type: {type(e).__name__}")
-        import traceback
-
         print(f"createUser - Traceback: {traceback.format_exc()}")
         return create_error_response(500, f"ユーザー作成エラー: {str(e)}")
 
 
-def _extract_discord_id_from_auth0_sub(auth0_sub: str) -> str | None:
-    """Auth0のsubからDiscord IDを抽出.
+def _extract_discord_id_from_user_id(user_id: str) -> str | None:
+    """user_idからDiscord IDを抽出.
 
-    Auth0のsubは 'discord|{discord_id}' または 'oauth2|discord|{discord_id}' の形式
+    user_idは 'discord|{discord_id}' または 'oauth2|discord|{discord_id}' の形式
     非Discord認証の場合はNoneを返す
 
     Args:
-        auth0_sub (str): Auth0のsubフィールド
+        user_id (str): user_idフィールド
 
     Returns:
         str | None: Discord ID、抽出できない場合またはDiscord認証でない場合はNone
 
     """
-    if not auth0_sub:
+    if not user_id:
         return None
 
-    print(f"_extract_discord_id_from_auth0_sub - Input auth0_sub: {auth0_sub}")
+    print(f"_extract_discord_id_from_user_id - Input user_id: {user_id}")
 
     # 'oauth2|discord|' プレフィックスを確認して除去
-    if auth0_sub.startswith("oauth2|discord|"):
-        discord_id = auth0_sub[15:]  # 'oauth2|discord|' の15文字を除去
-        print(f"_extract_discord_id_from_auth0_sub - Extracted from oauth2|discord|: {discord_id}")
+    if user_id.startswith("oauth2|discord|"):
+        discord_id = user_id[15:]  # 'oauth2|discord|' の15文字を除去
+        print(f"_extract_discord_id_from_user_id - Extracted from oauth2|discord|: {discord_id}")
         return discord_id
 
     # 'discord|' プレフィックスを確認して除去
-    if auth0_sub.startswith("discord|"):
-        discord_id = auth0_sub[8:]  # 'discord|' の8文字を除去
-        print(f"_extract_discord_id_from_auth0_sub - Extracted from discord|: {discord_id}")
+    if user_id.startswith("discord|"):
+        discord_id = user_id[8:]  # 'discord|' の8文字を除去
+        print(f"_extract_discord_id_from_user_id - Extracted from discord|: {discord_id}")
         return discord_id
 
     # プレフィックスがない場合でも、数値のIDであれば受け入れる（Discord IDの可能性）
-    if auth0_sub.isdigit():
-        print(f"_extract_discord_id_from_auth0_sub - Using raw numeric ID: {auth0_sub}")
-        return auth0_sub
+    if user_id.isdigit():
+        print(f"_extract_discord_id_from_user_id - Using raw numeric ID: {user_id}")
+        return user_id
 
     # その他の認証プロバイダー（Google, GitHub等）の場合はNoneを返す
-    print(f"_extract_discord_id_from_auth0_sub - Non-Discord authentication detected: {auth0_sub}")
+    print(f"_extract_discord_id_from_user_id - Non-Discord authentication detected: {user_id}")
     return None
 
 
@@ -483,7 +479,7 @@ def update_profile(event: dict, _context: object) -> dict:
     else:
         # 通常のAuth0ユーザーの場合：常にDiscord IDで検索
         actual_user_id = auth0_user_id.split("|")[-1] if "|" in auth0_user_id else auth0_user_id
-        print(f"updateProfile - Extracted Discord ID from auth0_sub: {actual_user_id}")
+        print(f"updateProfile - Extracted Discord ID from user_id: {actual_user_id}")
 
     # Discord IDで直接検索
     user = user_service.get_user_by_user_id(actual_user_id)
@@ -491,7 +487,7 @@ def update_profile(event: dict, _context: object) -> dict:
     print(f"updateProfile - Found user: {user}")
 
     if not user:
-        print(f"updateProfile - User not found in database for auth0_sub: {auth0_user_id}")
+        print(f"updateProfile - User not found in database for user_id: {auth0_user_id}")
         return create_error_response(404, "User not found")
 
     # Pydanticモデルでリクエストボディをバリデーション
@@ -547,7 +543,7 @@ def update_discord_info(event: dict, _context: object) -> dict:
     else:
         # 通常のAuth0ユーザーの場合：常にDiscord IDで検索
         actual_user_id = auth0_user_id.split("|")[-1] if "|" in auth0_user_id else auth0_user_id
-        print(f"updateDiscordInfo - Extracted Discord ID from auth0_sub: {actual_user_id}")
+        print(f"updateDiscordInfo - Extracted Discord ID from user_id: {actual_user_id}")
 
     # Discord IDで直接検索
     user = user_service.get_user_by_user_id(actual_user_id)

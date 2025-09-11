@@ -13,6 +13,7 @@ import json
 import logging
 import os
 import time
+import traceback
 from decimal import Decimal
 
 import boto3
@@ -197,14 +198,14 @@ def update_player_data(
                 },
             )
 
-            # 戦績レコードを作成
+            # 戦績レコードを作成（DynamoDB用にDecimal変換）
             record_data = {
                 "user_id": user_id,  # Partition Key
-                "match_id": int(match_id),  # Sort Key
+                "match_id": Decimal(int(match_id)),  # Sort Key
                 "pokemon": pokemon if pokemon and pokemon != "null" else "null",
-                "rate_delta": int(corrected_rate_delta),
-                "started_date": int(started_date),
-                "winlose": (1 if win else 0),  # 0: lose, 1: win, 2: invalid
+                "rate_delta": Decimal(int(corrected_rate_delta)),
+                "started_date": Decimal(int(started_date)),
+                "winlose": Decimal(1 if win else 0),  # 0: lose, 1: win, 2: invalid
             }
 
             logger.info(f"[RECORD CREATE] Creating record for user {user_id}, match {match_id}")
@@ -280,9 +281,13 @@ def process_violation_reports(user_reports: list[dict], team_a: list, team_b: li
             violation_report = report.get("violation_report", "") or report.get("vioration_report", "")
 
             # デバッグログ追加
-            logger.info(f"Reporter: {reporter_id}, violation_report field value: '{violation_report}'")
+            logger.info(f"[VIOLATION DEBUG] Reporter: {reporter_id}")
+            logger.info(f"[VIOLATION DEBUG] Raw report data: {report}")
+            logger.info(f"[VIOLATION DEBUG] violation_report field value: '{violation_report}'")
+            logger.info(f"[VIOLATION DEBUG] violation_report type: {type(violation_report)}")
 
-            if not violation_report:
+            if not violation_report or violation_report.strip() == "":
+                logger.info(f"[VIOLATION DEBUG] Skipping empty violation report from {reporter_id}")
                 continue
 
             # 通報されたプレイヤーIDをパース（カンマ区切りで複数可能）
@@ -305,7 +310,10 @@ def process_violation_reports(user_reports: list[dict], team_a: list, team_b: li
                     violation_counts[reported_user_id]["different_team"] += 1
 
         # ペナルティ閾値チェックと適用
-        logger.info(f"Final violation counts: {violation_counts}")
+        logger.info(f"[VIOLATION DEBUG] Final violation counts: {violation_counts}")
+        if not violation_counts:
+            logger.info(f"[VIOLATION DEBUG] No violations to process")
+            
         for reported_user_id, counts in violation_counts.items():
             same_team_count = counts["same_team"]
             total_count = counts["total"]
@@ -313,24 +321,26 @@ def process_violation_reports(user_reports: list[dict], team_a: list, team_b: li
             # 閾値チェック: 同チーム4人以上 OR 全体6人以上
             should_apply_penalty = same_team_count >= 4 or total_count >= 6
             logger.info(
-                f"User {reported_user_id}: same_team={same_team_count}, total={total_count}, should_apply={should_apply_penalty}"
+                f"[VIOLATION DEBUG] User {reported_user_id}: same_team={same_team_count}, total={total_count}, should_apply={should_apply_penalty}"
             )
 
             if should_apply_penalty:
                 logger.info(
-                    f"Applying penalty to user {reported_user_id}: same_team={same_team_count}, total={total_count}"
+                    f"[PENALTY] Applying penalty to user {reported_user_id}: same_team={same_team_count}, total={total_count}"
                 )
 
                 success = penalty_service.apply_penalty(
                     reported_user_id, f"match_reports (same_team: {same_team_count}, total: {total_count})"
                 )
 
-                if not success:
-                    logger.error(f"Failed to apply penalty to user {reported_user_id}")
+                if success:
+                    logger.info(f"[PENALTY SUCCESS] Successfully applied penalty to user {reported_user_id}")
+                else:
+                    logger.error(f"[PENALTY FAILED] Failed to apply penalty to user {reported_user_id}")
             else:
                 logger.info(
-                    f"User {reported_user_id} reported but under threshold: "
-                    f"same_team={same_team_count}, total={total_count}"
+                    f"[VIOLATION DEBUG] User {reported_user_id} reported but under threshold: "
+                    f"same_team={same_team_count}, total={total_count} (threshold: same_team>=4 OR total>=6)"
                 )
 
         return True
@@ -493,8 +503,6 @@ def gather_match(event, context):
             logger.info("QueueRepository initialized successfully")
         except Exception as e:
             logger.error(f"Failed to initialize QueueRepository: {e}")
-            import traceback
-
             logger.error(f"QueueRepository init traceback: {traceback.format_exc()}")
             raise
 
@@ -505,8 +513,6 @@ def gather_match(event, context):
             logger.info(f"Retrieved ongoing_match_ids: {ongoing_match_ids}")
         except Exception as e:
             logger.error(f"Failed to get ongoing match IDs: {e}")
-            import traceback
-
             logger.error(f"Get ongoing match IDs traceback: {traceback.format_exc()}")
             raise
 
@@ -586,8 +592,6 @@ def gather_match(event, context):
         }
 
     except Exception as e:
-        import traceback
-
         error_details = traceback.format_exc()
         logger.error(f"Error in match result gathering: {e}")
         logger.error(f"Full traceback: {error_details}")

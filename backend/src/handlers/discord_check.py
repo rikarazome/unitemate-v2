@@ -5,6 +5,7 @@ Discord サーバー参加確認 API Handler
 import json
 import os
 import requests
+import traceback
 from typing import Dict, Any
 from src.utils.response import create_success_response, create_error_response
 from src.utils.auth0_management import get_user_info_from_token
@@ -107,8 +108,6 @@ def check_discord_server_membership(discord_user_id: str) -> bool:
 
     except requests.RequestException as e:
         print(f"check_discord_server_membership - Request exception: {e}")
-        import traceback
-
         traceback.print_exc()
         return False
 
@@ -155,8 +154,6 @@ def lambda_handler(event, context):
 
         except Exception as e:
             print(f"Token validation error: {e}")
-            import traceback
-
             traceback.print_exc()
             return create_error_response(401, "Invalid token")
 
@@ -194,7 +191,5 @@ def lambda_handler(event, context):
 
     except Exception as e:
         print(f"Discord check error: {e}")
-        import traceback
-
         traceback.print_exc()
         return create_error_response(500, f"Discord server membership check failed: {str(e)}")
