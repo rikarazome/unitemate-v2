@@ -105,7 +105,7 @@ const RulesTab: React.FC = () => {
       )}
 
       {/* ルール */}
-      {rulesContent && (
+      {rulesContent ? (
         <div className="text-gray-700">
           <ReactMarkdown
             components={{
