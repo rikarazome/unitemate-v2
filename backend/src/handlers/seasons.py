@@ -58,6 +58,9 @@ def get_active_season(event: dict, _context: object) -> dict:
     Returns:
         dict: アクティブシーズンデータまたはエラーレスポンス.
     """
+    # Originヘッダーを取得（CORS対応）
+    origin = event.get("headers", {}).get("origin") or event.get("headers", {}).get("Origin")
+    
     season_service = SeasonService()
     active_season = season_service.get_active_season()
     next_season = season_service.get_next_season()
@@ -68,7 +71,7 @@ def get_active_season(event: dict, _context: object) -> dict:
         "next_season": next_season.model_dump() if next_season else None,
     }
     
-    return create_success_response(response_data)
+    return create_success_response(response_data, origin=origin)
 
 
 def create_season(event: dict, _context: object) -> dict:

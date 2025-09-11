@@ -99,6 +99,9 @@ def get_public_master_data(event: dict, _context: object) -> dict:
         dict: 勲章マスターデータまたはエラーレスポンス.
 
     """
+    # Originヘッダーを取得（CORS対応）
+    origin = event.get("headers", {}).get("origin") or event.get("headers", {}).get("Origin")
+    
     table = get_master_data_table()
 
     try:
@@ -115,10 +118,10 @@ def get_public_master_data(event: dict, _context: object) -> dict:
             "pokemon": pokemon
         }
 
-        return create_success_response(master_data)
+        return create_success_response(master_data, origin=origin)
 
     except Exception as e:
-        return create_error_response(500, f"パブリックマスターデータの取得に失敗しました: {e!s}")
+        return create_error_response(500, f"パブリックマスターデータの取得に失敗しました: {e!s}", origin=origin)
 
 
 def update_setting(event: dict, _context: object) -> dict:
