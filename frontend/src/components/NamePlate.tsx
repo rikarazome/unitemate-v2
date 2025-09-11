@@ -301,21 +301,23 @@ const NamePlate: React.FC<NamePlateProps> = ({
         <div
           className={`flex w-full gap-2 ${isRightAligned ? "flex-row-reverse" : ""}`}
         >
-          {/* Rate ラベル */}
+          {/* Rate */}
           <div className="flex-1 flex justify-center">
-            <div className="inline-flex items-center bg-blue-500/70 text-white px-1 py-px rounded text-center">
-              <span className={`${fontSizes.label} mr-0.5`}>Rate</span>
-              <span className={`font-semibold ${fontSizes.rate}`}>
+            <div className="flex items-center gap-1 bg-gradient-to-r from-cyan-100 to-blue-100 px-2 py-0.5 rounded-full">
+              <div className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse"></div>
+              <span className={`${fontSizes.label} text-gray-700`}>Rate</span>
+              <span className={`font-bold ${fontSizes.rate} text-gray-900`}>
                 {Math.round(rate)}
               </span>
             </div>
           </div>
 
-          {/* Best ラベル */}
+          {/* Best */}
           <div className="flex-1 flex justify-center">
-            <div className="inline-flex items-center bg-amber-500/70 text-white px-1 py-px rounded text-center">
-              <span className={`${fontSizes.label} mr-0.5`}>Best</span>
-              <span className={`font-semibold ${fontSizes.rate}`}>
+            <div className="flex items-center gap-1 bg-gradient-to-r from-purple-100 to-pink-100 px-2 py-0.5 rounded-full">
+              <div className="w-2 h-2 bg-purple-500 animate-pulse transform rotate-45"></div>
+              <span className={`${fontSizes.label} text-gray-700`}>Best</span>
+              <span className={`font-bold ${fontSizes.rate} text-gray-900`}>
                 {Math.round(maxRate)}
               </span>
             </div>

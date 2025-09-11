@@ -1349,6 +1349,14 @@ const MatchTab: React.FC<MatchTabProps> = ({
             </button>
           </div>
 
+          {/* マッチング時間の説明 */}
+          <div className="mt-3 text-center text-sm text-gray-600">
+            <p>マッチングは2分おきに行われます</p>
+            <p className="mt-1">
+              マッチング時間 平日：14時～翌4時　土日：終日
+            </p>
+          </div>
+
           {!hasUsername && (
             <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
               <p className="text-yellow-800 font-medium text-sm">
