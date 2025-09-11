@@ -353,14 +353,21 @@ const MyPageTab: React.FC = () => {
             <h3 className="text-lg font-semibold">プロフィール</h3>
           </div>
 
-          {!userInfo?.trainer_name && (
+          {userInfoLoading ? (
+            <div className="mb-4 p-3 bg-blue-100 border border-blue-300 rounded-lg">
+              <p className="text-sm text-blue-800">
+                <span className="font-semibold">🔄 読み込み中...</span>
+                プロフィール情報を取得しています。
+              </p>
+            </div>
+          ) : !userInfo?.trainer_name ? (
             <div className="mb-4 p-3 bg-orange-100 border border-orange-300 rounded-lg">
               <p className="text-sm text-orange-800">
                 <span className="font-semibold">👋 ようこそ！</span>
                 編集ボタンからトレーナー名を設定してください。
               </p>
             </div>
-          )}
+          ) : null}
           <div className="space-y-3">
             {/* ネームプレート */}
             <div className="flex justify-center">
