@@ -106,7 +106,7 @@ const RulesTab: React.FC = () => {
 
       {/* ルール */}
       {rulesContent ? (
-        <div className="text-gray-700">
+        <div className="prose prose-sm max-w-none text-gray-700">
           <ReactMarkdown
             components={{
               blockquote: ({ children }) => (
