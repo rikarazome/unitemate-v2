@@ -24,6 +24,9 @@ build/
 .env.local
 .env.*.local
 
+# Export files
+export_*.csv
+
 # Cache
 .cache/
 *.tmp
