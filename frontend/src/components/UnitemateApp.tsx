@@ -53,13 +53,15 @@ const RulesTab: React.FC = () => {
   const { isAuthenticated } = useAuth0();
   const dummyAuth = useDummyAuth();
   
-  // 認証状態に応じて適切なフックを選択
+  // 認証状態を確認
   const isUserAuthenticated = isAuthenticated || dummyAuth.isAuthenticated;
   
+  // 認証状態に応じて適切なフックのみを使用
   const authenticatedData = useMasterData();
   const publicData = usePublicMasterData();
   
-  const { masterData, loading: masterDataLoading } = isUserAuthenticated 
+  // データとローディング状態を取得（非認証の場合は常にpublicDataを使用）
+  const { masterData, loading: masterDataLoading } = isUserAuthenticated && authenticatedData.masterData 
     ? authenticatedData 
     : publicData;
 
