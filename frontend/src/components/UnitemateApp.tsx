@@ -105,27 +105,21 @@ const RulesTab: React.FC = () => {
       )}
 
       {/* ルール */}
-      {rulesContent ? (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4 flex items-center">
-            <span className="text-xl mr-2">📋</span>
-            ルール
-          </h3>
-          <div className="text-gray-700 prose prose-sm max-w-none">
-            <ReactMarkdown
-              components={{
-                blockquote: ({ children }) => (
-                  <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4 shadow-sm not-prose">
-                    <div className="prose prose-sm max-w-none text-gray-700">
-                      {children}
-                    </div>
+      {rulesContent && (
+        <div className="text-gray-700">
+          <ReactMarkdown
+            components={{
+              blockquote: ({ children }) => (
+                <div className="bg-white border border-gray-200 rounded-lg p-6 mb-4 shadow not-prose">
+                  <div className="prose prose-sm max-w-none text-gray-700">
+                    {children}
                   </div>
-                ),
-              }}
-            >
-              {rulesContent}
-            </ReactMarkdown>
-          </div>
+                </div>
+              ),
+            }}
+          >
+            {rulesContent}
+          </ReactMarkdown>
         </div>
       ) : (
         // フォールバック用のデフォルトルール
