@@ -112,7 +112,19 @@ const RulesTab: React.FC = () => {
             ルール
           </h3>
           <div className="text-gray-700 prose prose-sm max-w-none">
-            <ReactMarkdown>{rulesContent}</ReactMarkdown>
+            <ReactMarkdown
+              components={{
+                blockquote: ({ children }) => (
+                  <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4 shadow-sm not-prose">
+                    <div className="prose prose-sm max-w-none text-gray-700">
+                      {children}
+                    </div>
+                  </div>
+                ),
+              }}
+            >
+              {rulesContent}
+            </ReactMarkdown>
           </div>
         </div>
       ) : (
