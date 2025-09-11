@@ -23,11 +23,12 @@ provider:
   httpApi:
     cors:
       allowedOrigins:
-        - ${env:FRONTEND_URL}
         - "http://localhost:5173"
         - "http://localhost:5174"
         - "https://unitemate-v2-git-dev-rikarazomes-projects.vercel.app"
         - "https://unitemate-v2-iota.vercel.app"
+        - "https://unitemate.com"
+        - "https://www.unitemate.com"
       allowedHeaders:
         - Content-Type
         - Authorization

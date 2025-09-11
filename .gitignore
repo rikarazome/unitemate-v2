@@ -84,3 +84,6 @@ legacy-bubbleapp_chunks/
 
 # Serverless temp files
 C:*node-dependencies-*
+
+# Environment files with secrets
+backend/.env.prod
