@@ -230,7 +230,7 @@ class UnitemateApiClient {
 
   // 公開マスターデータ取得（認証不要）
   async getPublicMasterData(): Promise<MasterDataResponse> {
-    return this.request<MasterDataResponse>("/master/public");
+    return this.request<MasterDataResponse>("/public/master");
   }
 
   // 設定更新
