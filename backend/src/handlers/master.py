@@ -89,14 +89,14 @@ def get_master_data(event: dict, _context: object) -> dict:
 
 
 def get_public_master_data(event: dict, _context: object) -> dict:
-    """パブリック向けマスターデータ取得（勲章データのみ）.
+    """パブリック向けマスターデータ取得（勲章、ポケモン、設定データ）.
 
     Args:
         event (dict): Lambdaイベントオブジェクト.
         _context (object): Lambda実行コンテキスト.
 
     Returns:
-        dict: 勲章マスターデータまたはエラーレスポンス.
+        dict: パブリックマスターデータまたはエラーレスポンス.
 
     """
     # Originヘッダーを取得（CORS対応）
@@ -112,10 +112,15 @@ def get_public_master_data(event: dict, _context: object) -> dict:
         # ポケモンデータも取得（ランキング表示で使用）
         pokemon_response = table.query(KeyConditionExpression=Key("data_type").eq("POKEMON"))
         pokemon = pokemon_response.get("Items", [])
+        
+        # 設定データも取得（ルール表示で使用）
+        settings_response = table.query(KeyConditionExpression=Key("data_type").eq("SETTING"))
+        settings = settings_response.get("Items", [])
 
         master_data = {
             "badges": badges,
-            "pokemon": pokemon
+            "pokemon": pokemon,
+            "settings": settings
         }
 
         return create_success_response(master_data, origin=origin)

@@ -10,6 +10,7 @@ import {
   useQueueInfo,
   useMatchQueue,
   useMasterData,
+  usePublicMasterData,
   type UserInfo,
 } from "../hooks/useUnitemateApi";
 import { useSeasonInfo } from "../hooks/useSeasonInfo";
@@ -49,7 +50,18 @@ const tabs: Tab[] = [
 
 // 各タブコンポーネント
 const RulesTab: React.FC = () => {
-  const { masterData, loading: masterDataLoading } = useMasterData();
+  const { isAuthenticated } = useAuth0();
+  const dummyAuth = useDummyAuth();
+  
+  // 認証状態に応じて適切なフックを選択
+  const isUserAuthenticated = isAuthenticated || dummyAuth.isAuthenticated;
+  
+  const authenticatedData = useMasterData();
+  const publicData = usePublicMasterData();
+  
+  const { masterData, loading: masterDataLoading } = isUserAuthenticated 
+    ? authenticatedData 
+    : publicData;
 
   // マスターデータから設定値を取得
   const getRulesContent = () => {

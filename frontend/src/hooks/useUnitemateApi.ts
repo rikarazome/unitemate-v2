@@ -228,6 +228,11 @@ class UnitemateApiClient {
     return this.request<MasterDataResponse>("/master", {}, token);
   }
 
+  // 公開マスターデータ取得（認証不要）
+  async getPublicMasterData(): Promise<MasterDataResponse> {
+    return this.request<MasterDataResponse>("/master/public");
+  }
+
   // 設定更新
   async updateSetting(
     data: { id: string; value: string | number },
@@ -876,6 +881,32 @@ export const useMasterData = () => {
     dummyAuth.isAuthenticated,
     dummyAuth.accessToken,
   ]);
+
+  return { masterData, loading, error };
+};
+
+// 公開マスターデータ取得フック（認証不要）
+export const usePublicMasterData = () => {
+  const [masterData, setMasterData] = useState<MasterDataResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchPublicMasterData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await apiClient.getPublicMasterData();
+        setMasterData(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unknown error");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPublicMasterData();
+  }, []);
 
   return { masterData, loading, error };
 };
