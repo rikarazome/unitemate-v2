@@ -1084,6 +1084,10 @@ resources:
             AttributeType: N
           - AttributeName: auth0_sub # GSI Partition Key
             AttributeType: S
+          - AttributeName: trainer_name # GSI Partition Key for search
+            AttributeType: S
+          - AttributeName: discord_username # GSI Partition Key for search
+            AttributeType: S
         KeySchema:
           - AttributeName: namespace
             KeyType: HASH
@@ -1102,6 +1106,18 @@ resources:
           - IndexName: Auth0SubIndex
             KeySchema:
               - AttributeName: auth0_sub
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+          - IndexName: TrainerNameIndex
+            KeySchema:
+              - AttributeName: trainer_name
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+          - IndexName: DiscordUsernameIndex
+            KeySchema:
+              - AttributeName: discord_username
                 KeyType: HASH
             Projection:
               ProjectionType: ALL

@@ -124,13 +124,59 @@ const RulesTab: React.FC = () => {
         <div className="prose prose-sm max-w-none text-gray-700">
           <ReactMarkdown
             components={{
+              h1: ({ children }) => (
+                <h1 className="text-2xl font-bold text-gray-800 mb-4 mt-6">
+                  {children}
+                </h1>
+              ),
+              h2: ({ children }) => (
+                <h2 className="text-xl font-semibold text-gray-800 mb-3 mt-5">
+                  {children}
+                </h2>
+              ),
+              h3: ({ children }) => (
+                <h3 className="text-lg font-semibold text-gray-800 mb-2 mt-4">
+                  {children}
+                </h3>
+              ),
+              p: ({ children }) => (
+                <p className="text-gray-700 mb-4 leading-relaxed">{children}</p>
+              ),
+              ul: ({ children }) => (
+                <ul className="list-disc list-inside space-y-2 mb-4 ml-4">
+                  {children}
+                </ul>
+              ),
+              ol: ({ children }) => (
+                <ol className="list-decimal list-inside space-y-2 mb-4 ml-4">
+                  {children}
+                </ol>
+              ),
+              li: ({ children }) => (
+                <li className="text-gray-700">{children}</li>
+              ),
               blockquote: ({ children }) => (
-                <div className="bg-white border border-gray-200 rounded-lg p-6 mb-4 shadow not-prose">
-                  <div className="prose prose-sm max-w-none text-gray-700">
-                    {children}
-                  </div>
+                <div className="bg-white border border-gray-200 rounded-lg p-6 mb-4 shadow">
+                  <div className="text-gray-700">{children}</div>
                 </div>
               ),
+              code: ({ children }) => (
+                <code className="bg-gray-100 text-red-600 px-1 py-0.5 rounded text-sm">
+                  {children}
+                </code>
+              ),
+              pre: ({ children }) => (
+                <pre className="bg-gray-100 p-4 rounded-lg overflow-x-auto mb-4">
+                  {children}
+                </pre>
+              ),
+              strong: ({ children }) => (
+                <strong className="font-semibold text-gray-800">{children}</strong>
+              ),
+              em: ({ children }) => (
+                <em className="italic">{children}</em>
+              ),
+              hr: () => <hr className="my-6 border-gray-300" />,
             }}
           >
             {rulesContent}

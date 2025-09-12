@@ -201,7 +201,7 @@ def search_users(event: dict, _context: object) -> dict:
 
 def search_users_by_discord_name(query: str, limit: int) -> list:
     """
-    Discord名での部分一致検索
+    Discord名での部分一致検索（GSI使用）
 
     Args:
         query: 検索クエリ
@@ -212,21 +212,38 @@ def search_users_by_discord_name(query: str, limit: int) -> list:
 
     """
     try:
-        # DynamoDBで部分一致検索を行う（スキャン）
-        response = users_table.scan(
-            FilterExpression="contains(discord_username, :query)",
-            ExpressionAttributeValues={":query": query},
-            Limit=limit,
-        )
-
         user_repo = UserRepository()
         users = []
 
-        for item in response.get("Items", []):
-            # UserRepositoryを使って正しいモデルに変換
-            user = user_repo.get_by_user_id(item["user_id"])
-            if user:
-                users.append(user)
+        # 完全一致検索（GSI使用）
+        try:
+            response = users_table.query(
+                IndexName="DiscordUsernameIndex",
+                KeyConditionExpression="discord_username = :query",
+                ExpressionAttributeValues={":query": query},
+                Limit=limit,
+            )
+
+            for item in response.get("Items", []):
+                user = user_repo.get_by_user_id(item["user_id"])
+                if user:
+                    users.append(user)
+
+        except Exception as e:
+            print(f"GSI query failed, falling back to scan: {e}")
+
+        # 完全一致で見つからない場合、部分一致検索（Scan）にフォールバック
+        if not users:
+            response = users_table.scan(
+                FilterExpression="contains(discord_username, :query)",
+                ExpressionAttributeValues={":query": query},
+                Limit=limit,
+            )
+
+            for item in response.get("Items", []):
+                user = user_repo.get_by_user_id(item["user_id"])
+                if user:
+                    users.append(user)
 
         return users
 
@@ -237,7 +254,7 @@ def search_users_by_discord_name(query: str, limit: int) -> list:
 
 def search_users_by_trainer_name(query: str, limit: int) -> list:
     """
-    トレーナー名での部分一致検索
+    トレーナー名での部分一致検索（GSI使用）
 
     Args:
         query: 検索クエリ
@@ -248,19 +265,38 @@ def search_users_by_trainer_name(query: str, limit: int) -> list:
 
     """
     try:
-        # DynamoDBで部分一致検索を行う（スキャン）
-        response = users_table.scan(
-            FilterExpression="contains(trainer_name, :query)", ExpressionAttributeValues={":query": query}, Limit=limit
-        )
-
         user_repo = UserRepository()
         users = []
 
-        for item in response.get("Items", []):
-            # UserRepositoryを使って正しいモデルに変換
-            user = user_repo.get_by_user_id(item["user_id"])
-            if user:
-                users.append(user)
+        # 完全一致検索（GSI使用）
+        try:
+            response = users_table.query(
+                IndexName="TrainerNameIndex",
+                KeyConditionExpression="trainer_name = :query",
+                ExpressionAttributeValues={":query": query},
+                Limit=limit,
+            )
+
+            for item in response.get("Items", []):
+                user = user_repo.get_by_user_id(item["user_id"])
+                if user:
+                    users.append(user)
+
+        except Exception as e:
+            print(f"GSI query failed, falling back to scan: {e}")
+
+        # 完全一致で見つからない場合、部分一致検索（Scan）にフォールバック
+        if not users:
+            response = users_table.scan(
+                FilterExpression="contains(trainer_name, :query)",
+                ExpressionAttributeValues={":query": query},
+                Limit=limit,
+            )
+
+            for item in response.get("Items", []):
+                user = user_repo.get_by_user_id(item["user_id"])
+                if user:
+                    users.append(user)
 
         return users
 
