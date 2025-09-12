@@ -23,6 +23,7 @@ build/
 .env
 .env.local
 .env.*.local
+.env.dev
 
 # Export files
 export_*.csv
