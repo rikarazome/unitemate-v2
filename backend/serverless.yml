@@ -481,7 +481,7 @@ functions:
       - schedule:
           name: ${sls:stage}-${self:service}-weekday-afternoon
           description: "Weekday afternoon match processing (JST 14:00-23:59)"
-          rate: cron(0/2 5-14 ? * MON,TUE,WED,THU,FRI *)
+          rate: cron(0/2 5-14 ? * MON,TUE,WED,THU *)
           enabled: ${self:custom.cache.${sls:stage}.schedule_enabled, true}
       # 金曜日（JST 14:00-23:59 = UTC 05:00-14:59）
       - schedule:
@@ -1031,6 +1031,8 @@ custom:
     pickSimulatorRooms: ${self:service}-pick-simulator-rooms-${sls:stage}  # BANPICKシミュレーター専用
   cache:
     prd:
+      schedule_enabled: true
+    prod:
       schedule_enabled: true
     dev:
       schedule_enabled: false
