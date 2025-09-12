@@ -51,6 +51,7 @@ db.sqlite3
 .env
 .flaskenv
 .env.local
+.env.prod
 
 # Serverless directories
 .serverless
