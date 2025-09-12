@@ -22,7 +22,7 @@ def create_dummy_users():
     dummy_users = []
     roles = ["TOP", "MID", "BOTTOM", "SUPPORT", "TANK"]
 
-    for i in range(1, 11):
+    for i in range(11, 21):  # 追加で11〜20番を作成
         user_id = f"dummy_user_{i:02d}"
 
         # レートはランダムに設定（1200-2000）
@@ -32,6 +32,7 @@ def create_dummy_users():
         # 実際のユーザーモデルに合わせたフィールド構造
         win_count = random.randint(10, 50)
         match_count = win_count + random.randint(5, 30)
+        win_rate = round(win_count / match_count, 3) if match_count > 0 else 0
 
         user_data = {
             "namespace": "default",  # Legacy準拠の複合キー
@@ -48,19 +49,20 @@ def create_dummy_users():
             "current_badge": None,
             "current_badge_2": None,
             "bio": None,
-            "rate": base_rate,
-            "max_rate": max_rate,
-            "match_count": match_count,
-            "win_count": win_count,
-            "assigned_match_id": 0,
-            "penalty_count": 0,
-            "penalty_correction": 0,
+            "rate": Decimal(base_rate),
+            "max_rate": Decimal(max_rate),
+            "win_rate": Decimal(str(win_rate)),
+            "match_count": Decimal(match_count),
+            "win_count": Decimal(win_count),
+            "assigned_match_id": Decimal(0),
+            "penalty_count": Decimal(0),
+            "penalty_correction": Decimal(0),
             "last_penalty_time": None,
             "penalty_timeout_until": None,
             "is_admin": False,
             "is_banned": False,
-            "created_at": int(1735689600),  # 2025-01-01 00:00:00 UTC timestamp
-            "updated_at": int(1735689600),
+            "created_at": Decimal(1735689600),  # 2025-01-01 00:00:00 UTC timestamp
+            "updated_at": Decimal(1735689600),
             "is_dummy": True,  # ダミーアカウント識別フラグ
             "dummy_password": f"test_password_{i:02d}",  # テスト用パスワード
         }
@@ -92,7 +94,7 @@ def verify_dummy_users():
 
     print("\nVerifying created dummy users:")
 
-    for i in range(1, 11):
+    for i in range(11, 21):  # 11〜20番をチェック
         user_id = f"dummy_user_{i:02d}"
 
         try:
@@ -100,7 +102,8 @@ def verify_dummy_users():
 
             if "Item" in response:
                 user = response["Item"]
-                print(f"{user_id}: Rate {user['rate']}, Role {user['preferred_role']}")
+                roles = user.get('preferred_roles', ['Unknown'])
+                print(f"{user_id}: Rate {user['rate']}, Role {roles[0] if roles else 'None'}")
             else:
                 print(f"{user_id}: Not found")
 
@@ -118,8 +121,8 @@ if __name__ == "__main__":
     verify_dummy_users()
 
     print("\nDummy user creation completed!")
-    print("\nAvailable dummy accounts:")
-    for i in range(1, 11):
+    print("\nNew dummy accounts created:")
+    for i in range(11, 21):  # 11〜20番
         user_id = f"dummy_user_{i:02d}"
         password = f"test_password_{i:02d}"
         print(f"   - Username: {user_id}, Password: {password}")

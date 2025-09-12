@@ -33,8 +33,8 @@ def get_dummy_users_list(event: dict, context: object) -> dict:
         # ダミーユーザー一覧を取得
         dummy_users = []
 
-        for i in range(1, 11):
-            user_id = f"dummy_user_{i}"
+        for i in range(1, 21):
+            user_id = f"dummy_user_{i:02d}"
 
             try:
                 response = users_table.get_item(Key={"namespace": NAMESPACE, "user_id": user_id})

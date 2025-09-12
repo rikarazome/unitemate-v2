@@ -57,25 +57,30 @@ SLOTS = [(r, k) for r in ROLES for k in range(2)]  # 10スロット
 NAMESPACE = "default"  # Legacy互換のnamespace
 
 
-def matchmake_top_first(queue: list[dict]) -> dict[str, list[dict]]:
+def matchmake_top_first(queue: list[dict]) -> list[dict[str, list[dict]]]:
     """
-    新マッチメイクアルゴリズム
+    新マッチメイクアルゴリズム（複数試合対応）
     queue: [{'id': str, 'rating': int|float, 'roles': List[str]}, ...]
            - rating 降順で渡すのが前提
-    戻り値: {'teamA': [...], 'teamB': [...]}  /  マッチ不可なら {}
+    戻り値: [{'teamA': [...], 'teamB': [...]}, ...] / マッチ不可なら []
     """
     n = len(queue)
     if n < 10:
         logger.info(f"Insufficient players for matchmaking: {n} < 10")
-        return {}
+        return []
 
-    logger.info(f"Starting matchmaking with {n} players")
+    # 同時に作成可能な最大試合数を計算
+    max_matches = n // 10
+    logger.info(f"Starting matchmaking with {n} players, max possible matches: {max_matches}")
+    
+    matches = []
+    remaining_queue = queue.copy()
 
     # ---------- 二部グラフ完全マッチ (DFS) ----------
-    def find_matching(m: int):
+    def find_matching(m: int, current_queue: list):
         adj = [[] for _ in range(m)]  # localP -> slotIdx
         for idx in range(m):
-            pref = set(queue[idx]["roles"])
+            pref = set(current_queue[idx]["roles"])
             for sIdx, (role, _) in enumerate(SLOTS):
                 if role in pref:
                     adj[idx].append(sIdx)
@@ -101,60 +106,78 @@ def matchmake_top_first(queue: list[dict]) -> dict[str, list[dict]]:
             return False, []
         return True, slot_of
 
-    # ---------- 1) 先頭プレフィックスを最小化 ----------
-    prefix = 10
-    slot_map = []
-    while prefix <= n:
-        ok, slot_map = find_matching(prefix)
-        if ok:
-            logger.info(f"Found valid assignment with {prefix} players")
+    # 複数試合を順次作成
+    for match_num in range(max_matches):
+        current_n = len(remaining_queue)
+        if current_n < 10:
+            logger.info(f"Match {match_num + 1}: Insufficient remaining players: {current_n} < 10")
             break
-        prefix += 1
-    else:
-        logger.warning(f"No valid assignment found with {n} players")
-        return {}
+            
+        logger.info(f"Creating match {match_num + 1} with {current_n} remaining players")
 
-    # ---------- 2) ロール→プレイヤー2名ずつ ----------
-    role_to_idx = {r: [] for r in ROLES}
-    for sIdx, localP in enumerate(slot_map):
-        qIdx = localP  # prefix 部分なので同じ
-        role = SLOTS[sIdx][0]
-        role_to_idx[role].append(qIdx)
-
-    # ---------- 3) 2^5 通りで最小レート差 ----------
-    total = sum(queue[i]["rating"] for v in role_to_idx.values() for i in v)
-    target = total / 2
-    best = None  # (diff, A_idx, B_idx)
-    for mask in range(1 << 5):
-        A, B = [], []
-        for bit, role in enumerate(ROLES):
-            i1, i2 = role_to_idx[role]
-            if (mask >> bit) & 1:
-                A.append(i2)
-                B.append(i1)
-            else:
-                A.append(i1)
-                B.append(i2)
-        diff = abs(sum(queue[i]["rating"] for i in A) - target)
-        if best is None or diff < best[0]:
-            best = (diff, A, B)
-    _, A_idx, B_idx = best
-
-    logger.info(f"Team balance - Rating difference: {best[0]:.2f}")
-
-    # ---------- 4) 結果構築 ----------
-    teamA, teamB = [], []
-    for role in ROLES:
-        i1, i2 = role_to_idx[role]
-        if i1 in A_idx:
-            teamA.append({"player": queue[i1], "role": role})
-            teamB.append({"player": queue[i2], "role": role})
+        # ---------- 1) 先頭プレフィックスを最小化 ----------
+        prefix = 10
+        slot_map = []
+        while prefix <= current_n:
+            ok, slot_map = find_matching(prefix, remaining_queue)
+            if ok:
+                logger.info(f"Match {match_num + 1}: Found valid assignment with {prefix} players")
+                break
+            prefix += 1
         else:
-            teamA.append({"player": queue[i2], "role": role})
-            teamB.append({"player": queue[i1], "role": role})
+            logger.warning(f"Match {match_num + 1}: No valid assignment found with {current_n} players")
+            break
 
-    logger.info("Matchmaking successful")
-    return {"teamA": teamA, "teamB": teamB}
+        # ---------- 2) ロール→プレイヤー2名ずつ ----------
+        role_to_idx = {r: [] for r in ROLES}
+        for sIdx, localP in enumerate(slot_map):
+            qIdx = localP  # prefix 部分なので同じ
+            role = SLOTS[sIdx][0]
+            role_to_idx[role].append(qIdx)
+
+        # ---------- 3) 2^5 通りで最小レート差 ----------
+        total = sum(remaining_queue[i]["rating"] for v in role_to_idx.values() for i in v)
+        target = total / 2
+        best = None  # (diff, A_idx, B_idx)
+        for mask in range(1 << 5):
+            A, B = [], []
+            for bit, role in enumerate(ROLES):
+                i1, i2 = role_to_idx[role]
+                if (mask >> bit) & 1:
+                    A.append(i2)
+                    B.append(i1)
+                else:
+                    A.append(i1)
+                    B.append(i2)
+            diff = abs(sum(remaining_queue[i]["rating"] for i in A) - target)
+            if best is None or diff < best[0]:
+                best = (diff, A, B)
+        _, A_idx, B_idx = best
+
+        logger.info(f"Match {match_num + 1}: Team balance - Rating difference: {best[0]:.2f}")
+
+        # ---------- 4) 結果構築 ----------
+        teamA, teamB = [], []
+        matched_indices = set()
+        for role in ROLES:
+            i1, i2 = role_to_idx[role]
+            matched_indices.update([i1, i2])
+            if i1 in A_idx:
+                teamA.append({"player": remaining_queue[i1], "role": role})
+                teamB.append({"player": remaining_queue[i2], "role": role})
+            else:
+                teamA.append({"player": remaining_queue[i2], "role": role})
+                teamB.append({"player": remaining_queue[i1], "role": role})
+
+        matches.append({"teamA": teamA, "teamB": teamB})
+        logger.info(f"Match {match_num + 1}: Successfully created")
+
+        # マッチしたプレイヤーを残りキューから削除
+        remaining_queue = [player for i, player in enumerate(remaining_queue) if i not in matched_indices]
+        logger.info(f"Match {match_num + 1}: {len(matched_indices)} players matched, {len(remaining_queue)} players remaining")
+
+    logger.info(f"Matchmaking completed: {len(matches)} matches created")
+    return matches
 
 
 def acquire_lock() -> bool:
@@ -946,9 +969,9 @@ def match_make(event, context):
                 }
 
             # 3. マッチメイク実行（get_queue_playersで既に最新レート取得済み）
-            match_result = matchmake_top_first(players)
-            if not match_result:
-                logger.warning("Matchmaking algorithm failed to find valid match")
+            match_results = matchmake_top_first(players)
+            if not match_results:
+                logger.warning("Matchmaking algorithm failed to find valid matches")
                 # マッチが成立しなかった場合もキューメタ情報を更新
                 update_queue_meta()
 
@@ -960,55 +983,66 @@ def match_make(event, context):
                 logger.info(
                     f"Gather phase: {gather_result['processed_matches']} matches processed, {gather_result['completed_matches']} completed"
                 )
-                logger.info(f"Matchmaking phase: No valid match found")
+                logger.info(f"Matchmaking phase: No valid matches found")
 
                 return {
                     "statusCode": 200,
                     "body": json.dumps(
                         {
-                            "message": "Integrated processing completed: gather only (no valid match found)",
+                            "message": "Integrated processing completed: gather only (no valid matches found)",
                             "gather_results": gather_result,
                             "processing_time": processing_time,
                         }
                     ),
                 }
 
-            # 4. VC割り当て
-            vc_a, vc_b = assign_voice_channels()
+            # 4. 複数マッチの処理
+            created_matches = []
+            total_matched_players = 0
 
-            # 5. マッチID生成
-            match_id = get_next_match_id()
+            for i, match_result in enumerate(match_results):
+                logger.info(f"Processing match {i + 1}/{len(match_results)}")
 
-            # 6. マッチレコード作成
-            match_record = create_match_record(match_id, match_result["teamA"], match_result["teamB"], vc_a, vc_b)
+                # VC割り当て
+                vc_a, vc_b = assign_voice_channels()
 
-            # 7. マッチしたプレイヤーをキューから削除
-            all_matched_players = match_result["teamA"] + match_result["teamB"]
-            remove_matched_players(all_matched_players)
+                # マッチID生成
+                match_id = get_next_match_id()
 
-            # 8. マッチしたプレイヤーのassigned_match_idを設定（Legacy準拠）
-            update_assigned_match_ids(all_matched_players, match_id)
+                # マッチレコード作成
+                match_record = create_match_record(match_id, match_result["teamA"], match_result["teamB"], vc_a, vc_b)
 
-            # 8.5. 進行中試合プレイヤーリストを更新（自動試合画面切り替え用）
-            update_ongoing_match_players_add(match_result["teamA"], match_result["teamB"])
+                # マッチしたプレイヤーをキューから削除
+                all_matched_players = match_result["teamA"] + match_result["teamB"]
+                remove_matched_players(all_matched_players)
 
-            # 9. キューメタ情報を更新（Legacy準拠）
+                # マッチしたプレイヤーのassigned_match_idを設定（Legacy準拠）
+                update_assigned_match_ids(all_matched_players, match_id)
+
+                # 進行中試合プレイヤーリストを更新（自動試合画面切り替え用）
+                update_ongoing_match_players_add(match_result["teamA"], match_result["teamB"])
+
+                # Discord通知を送信
+                try:
+                    logger.info(f"Sending Discord notification for match {match_id}")
+                    discord_success = send_discord_match_notification(
+                        match_id, vc_a, vc_b, match_result["teamA"], match_result["teamB"]
+                    )
+                    if discord_success:
+                        logger.info(f"Discord notification sent successfully for match {match_id}")
+                    else:
+                        logger.warning(f"Discord notification failed for match {match_id}")
+                except Exception as discord_error:
+                    logger.error(f"Discord notification error for match {match_id}: {discord_error}")
+
+                created_matches.append(match_id)
+                total_matched_players += len(all_matched_players)
+                logger.info(f"Match {match_id} created successfully")
+
+            # キューメタ情報を更新（Legacy準拠）
             update_queue_meta()
 
-            # 10. Discord通知を送信
-            try:
-                logger.info(f"Sending Discord notification for match {match_id}")
-                discord_success = send_discord_match_notification(
-                    match_id, vc_a, vc_b, match_result["teamA"], match_result["teamB"]
-                )
-                if discord_success:
-                    logger.info(f"Discord notification sent successfully for match {match_id}")
-                else:
-                    logger.warning(f"Discord notification failed for match {match_id}")
-            except Exception as discord_error:
-                logger.error(f"Discord notification error for match {match_id}: {discord_error}")
-
-            # 11. 成功ログ
+            # 成功ログ
             end_time = time.time()
             processing_time = end_time - start_time
 
@@ -1016,9 +1050,9 @@ def match_make(event, context):
             logger.info(
                 f"Gather phase: {gather_result['processed_matches']} matches processed, {gather_result['completed_matches']} completed"
             )
-            logger.info(f"Matchmaking phase: Match ID {match_id} created")
+            logger.info(f"Matchmaking phase: {len(created_matches)} matches created: {created_matches}")
             logger.info(f"Total processing time: {processing_time:.2f}s")
-            logger.info(f"Matched players: {len(all_matched_players)}")
+            logger.info(f"Total matched players: {total_matched_players}")
 
             return {
                 "statusCode": 200,
@@ -1026,9 +1060,10 @@ def match_make(event, context):
                     {
                         "message": "Integrated match processing completed: gather + matchmaking",
                         "gather_results": gather_result,
-                        "match_id": match_id,
+                        "match_ids": created_matches,
+                        "matches_created": len(created_matches),
                         "processing_time": processing_time,
-                        "matched_players": len(all_matched_players),
+                        "matched_players": total_matched_players,
                     }
                 ),
             }

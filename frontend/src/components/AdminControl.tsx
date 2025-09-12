@@ -243,7 +243,7 @@ const AdminControl: React.FC = () => {
         throw new Error("ダミーユーザーが見つかりません");
       }
 
-      const users = usersResponse.data.users.slice(0, 10); // 最大10人
+      const users = usersResponse.data.users.slice(0, 20); // 最大20人
       setDebugMessage(`${users.length}人のユーザーをインキュー中...`);
 
       const allRoles = ["TOP_LANE", "MIDDLE", "BOTTOM_LANE", "SUPPORT", "TANK"];
