@@ -27,6 +27,7 @@ import { useUnitemateApi } from "../hooks/useUnitemateApi";
 import { useDummyAuth } from "../hooks/useDummyAuth";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { Header } from "./Header";
+import AdSense from "./AdSense";
 // import { useAdmin } from '../hooks/useAdmin'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import type { MatchData } from "./MatchScreen";
 import type { LfgRole } from "../types/lfg";
@@ -1587,6 +1588,17 @@ const UnitemateApp: React.FC = () => {
               {renderTabContent()}
             </div>
           </div>
+        </div>
+        
+        {/* 下部広告 */}
+        <div className="mt-8 max-w-7xl mx-auto px-4 sm:px-6">
+          <AdSense 
+            adSlot="2208354490" 
+            adFormat="auto"
+            fullWidthResponsive={true}
+            style={{ display: "block", minHeight: "90px" }}
+            className="bg-gray-50 rounded-lg p-2"
+          />
         </div>
       </div>
     </div>
