@@ -68,7 +68,7 @@ def get_result(reports: list[str]) -> str:
     報告から試合結果を判定（Legacy準拠の多数決）
 
     Args:
-        reports: 結果報告リスト ["A-win", "B-win", "Invalid", ...]
+        reports: 結果報告リスト ["A-win", "B-win", "invalid", ...]
 
     Returns:
         "A-win", "B-win", or "Invalid"
@@ -76,13 +76,13 @@ def get_result(reports: list[str]) -> str:
     """
     a_count = reports.count("A-win")
     b_count = reports.count("B-win")
-    i_count = reports.count("Invalid")
+    i_count = reports.count("invalid")  # 小文字のinvalidをカウント
 
-    # 1) "A-win" が "B-win"+"Invalid" を上回るか？
+    # 1) "A-win" が "B-win"+"invalid" を上回るか？
     if a_count > b_count + i_count:
         return "A-win"
 
-    # 2) "B-win" が "A-win"+"Invalid" を上回るか？
+    # 2) "B-win" が "A-win"+"invalid" を上回るか？
     if b_count > a_count + i_count:
         return "B-win"
 

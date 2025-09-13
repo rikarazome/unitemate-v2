@@ -834,5 +834,27 @@
     "_2a": "りゅうのはどう",
     "_2b": "りゅうせいぐん",
     "icon": "https://tiermaker.com/images/chart/chart/-1189789/zzzzz-1753336384img5265.png"
+  },
+  {
+    "display": "latias",
+    "jp_name": "ラティアス",
+    "index_number": "380",
+    "type": "サポート",
+    "_1a": "ミストボール",
+    "_1b": "ドラゴンエール",
+    "_2a": "りゅうのはどう",
+    "_2b": "りゅうのいぶき",
+    "icon": "https://tiermaker.com/images/chart/chart/-1189789/zzzzz-1754947666img5365.png"
+  },
+  {
+    "display": "pawmot",
+    "jp_name": "パーモット",
+    "index_number": "923",
+    "type": "バランス",
+    "_1a": "かみなりパンチ",
+    "_1b": "サンダーダイブ",
+    "_2a": "ボルトチェンジ",
+    "_2b": "マッハパンチ",
+    "icon": "https://tiermaker.com/images/chart/chart/-1189789/zzzzz-1757606877img5501.png"
   }
 ]

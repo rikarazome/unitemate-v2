@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkBreaks from "remark-breaks";
 import { Link } from "react-router-dom";
 import { getPokemonById } from "../data/pokemon";
 import { getBadgeSync } from "../hooks/useBadges";
@@ -114,7 +115,7 @@ const RulesTab: React.FC = () => {
             お知らせ
           </h3>
           <div className="text-yellow-700 prose prose-sm max-w-none">
-            <ReactMarkdown>{announcementContent}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkBreaks]}>{announcementContent}</ReactMarkdown>
           </div>
         </div>
       )}
@@ -123,6 +124,7 @@ const RulesTab: React.FC = () => {
       {rulesContent ? (
         <div className="prose prose-sm max-w-none text-gray-700">
           <ReactMarkdown
+            remarkPlugins={[remarkBreaks]}
             components={{
               h1: ({ children }) => (
                 <h1 className="text-2xl font-bold text-gray-800 mb-4 mt-6">
