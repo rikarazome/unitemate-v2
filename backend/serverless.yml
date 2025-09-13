@@ -483,11 +483,11 @@ functions:
           description: "Weekday afternoon match processing (JST 14:00-23:59)"
           rate: cron(0/2 5-14 ? * MON,TUE,WED,THU *)
           enabled: ${self:custom.cache.${sls:stage}.schedule_enabled, true}
-      # 金曜日（JST 14:00-23:59 = UTC 05:00-14:59）
+      # 金曜日午後〜土曜日早朝（JST 14:00-翌08:59 = UTC 05:00-23:59）
       - schedule:
           name: ${sls:stage}-${self:service}-friday
-          description: "Friday match processing (JST 14:00-23:59)"
-          rate: cron(0/2 5-14 ? * FRI *)
+          description: "Friday match processing (JST 14:00-08:59 next day)"
+          rate: cron(0/2 5-23 ? * FRI *)
           enabled: ${self:custom.cache.${sls:stage}.schedule_enabled, true}
       # 土曜日（終日 = UTC 00:00-23:59）
       - schedule:
@@ -1084,8 +1084,9 @@ resources:
             AttributeType: N
           - AttributeName: auth0_sub # GSI Partition Key
             AttributeType: S
-          - AttributeName: trainer_name # GSI Partition Key for search
-            AttributeType: S
+          # GSI用の属性定義（GSIと一緒に追加する）
+          # - AttributeName: trainer_name # GSI Partition Key for search
+          #   AttributeType: S
           - AttributeName: discord_username # GSI Partition Key for search
             AttributeType: S
         KeySchema:
@@ -1109,12 +1110,13 @@ resources:
                 KeyType: HASH
             Projection:
               ProjectionType: ALL
-          - IndexName: TrainerNameIndex
-            KeySchema:
-              - AttributeName: trainer_name
-                KeyType: HASH
-            Projection:
-              ProjectionType: ALL
+          # GSI追加は一度に一つずつ行う必要があるため、一時的にコメントアウト
+          # - IndexName: TrainerNameIndex
+          #   KeySchema:
+          #     - AttributeName: trainer_name
+          #       KeyType: HASH
+          #   Projection:
+          #     ProjectionType: ALL
           - IndexName: DiscordUsernameIndex
             KeySchema:
               - AttributeName: discord_username
