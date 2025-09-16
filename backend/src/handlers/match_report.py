@@ -165,7 +165,20 @@ def report_match_result(event: dict, _context: object) -> dict:
         return create_error_response(400, f"Invalid request: {e}")
 
     try:
-        # 試合結果の報告をMatchテーブルに格納（Legacyと同じ）
+        # まず現在の試合データを取得して、既に報告済みかチェック
+        match_data = matches_table.get_item(Key=model.keys_dict())
+        if "Item" in match_data:
+            existing_reports = match_data["Item"].get("user_reports", [])
+            # 既に同じユーザーから報告があるか確認
+            for report in existing_reports:
+                if report.get("user_id") == model.user_id:
+                    print(f"User {model.user_id} has already reported for match {model.match_id}")
+                    return create_error_response(
+                        409,
+                        "You have already reported this match result"
+                    )
+        
+        # 重複がなければ試合結果の報告をMatchテーブルに格納（Legacyと同じ）
         matches_table.update_item(
             Key=model.keys_dict(),
             AttributeUpdates={

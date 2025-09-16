@@ -782,9 +782,11 @@ const MatchTab: React.FC<MatchTabProps> = ({
         } : prev);
       }
     },
-    onMatchFound: async (matchData: any) => {
+    onMatchFound: async (matchData: unknown) => {
       console.log("[WebSocket] Match found, loading full match data via HTTP...", matchData);
-      if (matchData && matchData.match_id && matchData.match_id !== "0") {
+      if (matchData && typeof matchData === "object" && "match_id" in matchData && 
+          typeof (matchData as { match_id: unknown }).match_id === "string" && 
+          (matchData as { match_id: string }).match_id !== "0") {
         // match_foundの場合は、HTTPで完全な試合データを取得
         await refreshMatchData();
       }
@@ -1010,6 +1012,25 @@ const MatchTab: React.FC<MatchTabProps> = ({
       fetchMatchInfo();
     }
   }, [queueInfo, userInfo, currentMatch, unitemateApi]);
+
+  // 試合終了検知機能: 試合中にongoing_match_playersから削除されたら試合画面から離脱
+  React.useEffect(() => {
+    // 条件チェック: ログイン済み、ユーザー情報あり、試合中、キューデータあり
+    if (!userInfo || !currentMatch || !queueInfo?.ongoing_match_players) {
+      return;
+    }
+
+    // 試合中なのにongoing_match_playersから削除されていたら試合終了と判定
+    if (!queueInfo.ongoing_match_players.includes(userInfo.user_id)) {
+      console.log(
+        "Match exit detection: User removed from ongoing_match_players, leaving match screen...",
+      );
+      
+      // 試合画面から離脱
+      setCurrentMatch(null);
+      unsubscribeMatch(); // WebSocket購読も解除
+    }
+  }, [queueInfo, userInfo, currentMatch, unsubscribeMatch]);
 
   // ランダムで自分をチームに追加する関数（現在未使用）
   /*
@@ -1429,7 +1450,7 @@ const MatchTab: React.FC<MatchTabProps> = ({
           <div className="mt-3 text-center text-sm text-gray-600">
             <p>マッチングは2分おきに行われます</p>
             <p className="mt-1">
-              マッチング時間 平日：14時～翌4時　土日：終日
+              マッチング時間 平日：14時～翌4時 土日：終日
             </p>
           </div>
 

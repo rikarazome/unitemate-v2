@@ -81,6 +81,7 @@ const RoleSelector: React.FC<RoleSelectorProps> = ({
           {roles.map((role) => {
             const isSelected = selectedRoles.includes(role);
             const label = LFG_ROLE_LABELS[role];
+            const priority = selectedRoles.indexOf(role) + 1; // 配列のインデックス + 1 = 優先度
 
             return (
               <label
@@ -90,7 +91,7 @@ const RoleSelector: React.FC<RoleSelectorProps> = ({
                 hover:scale-105 active:scale-95 text-center aspect-square relative
                 ${getRoleColor(role, isSelected)}
               `}
-                aria-label={`${label}を${isSelected ? "選択解除" : "選択"}する`}
+                aria-label={`${label}を${isSelected ? "選択解除" : "選択"}する${isSelected ? ` (優先度${priority})` : ""}`}
               >
                 <input
                   type="checkbox"
@@ -99,6 +100,13 @@ const RoleSelector: React.FC<RoleSelectorProps> = ({
                   className="sr-only"
                   aria-describedby={`role-${role}-description`}
                 />
+
+                {/* 優先度番号（選択されている場合のみ表示） */}
+                {isSelected && (
+                  <div className="absolute top-1 right-1 bg-blue-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {priority}
+                  </div>
+                )}
 
                 {/* ロールアイコン */}
                 <img
@@ -114,7 +122,7 @@ const RoleSelector: React.FC<RoleSelectorProps> = ({
 
                 {/* アクセシビリティ用の説明（非表示） */}
                 <span id={`role-${role}-description`} className="sr-only">
-                  {label}ロールの選択チェックボックス
+                  {label}ロールの選択チェックボックス{isSelected ? ` (優先度${priority})` : ""}
                 </span>
               </label>
             );

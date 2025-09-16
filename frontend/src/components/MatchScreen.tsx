@@ -41,7 +41,7 @@ export interface MatchData {
   lobby_id?: string;
   host_user_id?: string;
   report_count?: number; // 結果報告済み数
-  user_reports?: any[]; // ユーザーの報告データ
+  user_reports?: unknown[]; // ユーザーの報告データ
 }
 
 interface MatchScreenProps {
@@ -200,9 +200,9 @@ const MatchScreen: React.FC<MatchScreenProps> = ({
   // ロール名の日本語変換
   const getRoleDisplayName = (role?: string) => {
     const roleNames: { [key: string]: string } = {
-      TOP: "上レーン",
-      MID: "中央",
-      BOTTOM: "下レーン",
+      TOP_LANE: "上レーン",
+      MIDDLE: "中央",
+      BOTTOM_LANE: "下レーン",
       SUPPORT: "サポート",
       TANK: "タンク",
     };
@@ -271,6 +271,9 @@ const MatchScreen: React.FC<MatchScreenProps> = ({
             // 味方チームかつ自分以外の場合はiアイコンを表示
             const isTeammate =
               currentUserTeam === team.team_id && !isCurrentUser;
+            
+            // 味方チームのみロールを表示（相手チームのロールは非表示）
+            const shouldShowRole = currentUserTeam === team.team_id;
 
             return (
               <div key={player.user_id} className="relative">
@@ -283,7 +286,7 @@ const MatchScreen: React.FC<MatchScreenProps> = ({
                   avatarUrl={player.discord_avatar_url}
                   primaryBadgeId={player.current_badge}
                   secondaryBadgeId={player.current_badge_2}
-                  role={player.role}
+                  role={shouldShowRole ? player.role : undefined}
                   showInfoButton={isTeammate}
                   onInfoClick={() => handlePlayerInfoClick(player)}
                   teamColor={color}

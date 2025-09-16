@@ -15,7 +15,7 @@ interface ApiResponse<T> {
 }
 
 export const useApi = () => {
-  const { getAccessTokenSilently, isAuthenticated } = useAuth0();
+  const { getAccessTokenSilently, isAuthenticated, loginWithRedirect } = useAuth0();
   const dummyAuth = useDummyAuth();
 
   const callApi = useCallback(
@@ -33,8 +33,32 @@ export const useApi = () => {
         if (dummyAuth.isAuthenticated && dummyAuth.accessToken) {
           headers.Authorization = `Bearer ${dummyAuth.accessToken}`;
         } else if (isAuthenticated) {
-          const token = await getAccessTokenSilently();
-          headers.Authorization = `Bearer ${token}`;
+          try {
+            const token = await getAccessTokenSilently({
+              cacheMode: "on", // Use cache when available, fallback to refresh
+            });
+            headers.Authorization = `Bearer ${token}`;
+          } catch (error: unknown) {
+            // Handle specific Auth0 errors
+            const authError = error as { error?: string };
+            if (authError.error === 'missing_refresh_token' ||
+                authError.error === 'invalid_grant' ||
+                authError.error === 'login_required' ||
+                authError.error === 'consent_required') {
+              console.warn('Token refresh failed, redirecting to login:', authError.error);
+              // Redirect to login for fresh authentication
+              loginWithRedirect({
+                authorizationParams: {
+                  prompt: 'login' // Force fresh login
+                }
+              });
+              return {
+                error: "Authentication expired, redirecting to login",
+                status: 401,
+              };
+            }
+            throw error; // Re-throw other errors
+          }
         }
 
         const API_BASE_URL =
@@ -63,6 +87,7 @@ export const useApi = () => {
     [
       getAccessTokenSilently,
       isAuthenticated,
+      loginWithRedirect,
       dummyAuth.isAuthenticated,
       dummyAuth.accessToken,
     ],

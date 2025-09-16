@@ -26,7 +26,9 @@ export const useUser = () => {
       if (!auth0User || !isAuthenticated) return;
 
       try {
-        const token = await getAccessTokenSilently();
+        const token = await getAccessTokenSilently({
+          cacheMode: "on",
+        });
 
         // Auth0のIDトークンから取得したDiscord情報を専用エンドポイントで更新
         const updateData = {
@@ -68,9 +70,9 @@ export const useUser = () => {
     if (!auth0User || !isAuthenticated) return false;
 
     try {
-      const token = await getAccessTokenSilently();
-
-
+      const token = await getAccessTokenSilently({
+        cacheMode: "on",
+      });
 
       // Create user with Auth0 profile data
       // 重要: useApiで自動的にJSON.stringify()されるため、ここでは生のオブジェクトを渡す

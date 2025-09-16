@@ -21,7 +21,7 @@ class TestMatchmakingSimple:
         """新マッチメイクアルゴリズムの基本動作テスト"""
         # テストデータ準備（各ロールに2人ずつ、計10人）
         queue = []
-        roles = ["TOP", "MID", "BOTTOM", "SUPPORT", "TANK"]
+        roles = ["TOP_LANE", "MIDDLE", "BOTTOM_LANE", "SUPPORT", "TANK"]
 
         for i in range(10):
             role = roles[i % 5]  # 各ロールに2人ずつ
@@ -54,7 +54,7 @@ class TestMatchmakingSimple:
         # 9人のプレイヤー（10人未満）
         queue = []
         for i in range(9):
-            queue.append({"id": f"player_{i + 1}", "rating": 1500 + i * 10, "roles": ["TOP"]})
+            queue.append({"id": f"player_{i + 1}", "rating": 1500 + i * 10, "roles": ["TOP_LANE"]})
 
         result = matchmake_top_first(queue)
 
@@ -132,7 +132,7 @@ class TestMatchmakingSimple:
                 "user_id": "player_1",
                 "rate": 1500,
                 "best": 1600,
-                "desired_role": "TOP",
+                "desired_role": "TOP_LANE",
                 "inqueued_at": int(time.time()),
             }
         )
@@ -142,7 +142,7 @@ class TestMatchmakingSimple:
             assert len(players) == 1
             assert players[0]["id"] == "player_1"
             assert players[0]["rating"] == 1500.0
-            assert players[0]["roles"] == ["TOP"]
+            assert players[0]["roles"] == ["TOP_LANE"]
 
     def test_role_format_conversion(self):
         """ロール形式変換の確認"""
@@ -150,12 +150,12 @@ class TestMatchmakingSimple:
         item = {
             "user_id": "test_player",
             "rate": 1500,
-            "desired_role": "TOP",  # 単一文字列
+            "desired_role": "TOP_LANE",  # 単一文字列
         }
 
         # 実際の変換ロジックをテスト（matchmaking.pyの関数を模擬）
-        desired_role = item.get("desired_role", "TOP")
+        desired_role = item.get("desired_role", "TOP_LANE")
         roles_array = [desired_role]  # 配列に変換
 
-        assert roles_array == ["TOP"]
+        assert roles_array == ["TOP_LANE"]
         assert isinstance(roles_array, list)

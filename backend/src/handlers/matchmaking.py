@@ -18,17 +18,17 @@ import os
 import random
 import time
 import traceback
+from decimal import Decimal
 from typing import Any
 
 import boto3
+from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 
 from src.repositories.queue_repository import QueueRepository
 from src.services.discord_service import send_discord_match_notification
 from src.services.season_service import SeasonService
 from src.utils.response import create_error_response, create_success_response
-from decimal import Decimal
-from boto3.dynamodb.conditions import Key
 
 # DynamoDBクライアント
 dynamodb = boto3.resource("dynamodb")
@@ -52,13 +52,249 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # 定数
-ROLES = ["TOP", "MID", "BOTTOM", "SUPPORT", "TANK"]
+ROLES = ["TOP_LANE", "MIDDLE", "BOTTOM_LANE", "SUPPORT", "TANK"]
 SLOTS = [(r, k) for r in ROLES for k in range(2)]  # 10スロット
 NAMESPACE = "default"  # Legacy互換のnamespace
 
 
+def get_selected_roles_list_from_original(original_selected_roles: Any) -> list[str]:
+    """DynamoDBのoriginal_selected_rolesをstring listに変換.
+
+    Args:
+        original_selected_roles: DynamoDB形式のroles data
+
+    Returns:
+        list[str]: ロール名のリスト
+
+    """
+    out = []
+    if isinstance(original_selected_roles, list):
+        for x in original_selected_roles:
+            if isinstance(x, dict) and "S" in x:
+                out.append(x["S"])
+            elif isinstance(x, str):
+                out.append(x)
+    return out
+
+
+def role_satisfaction(player: dict, unite_role: str) -> float:
+    """プレイヤーの特定ロールに対する満足度を計算.
+
+    Args:
+        player: プレイヤーデータ
+        unite_role: 割り当てロール
+
+    Returns:
+        float: 満足度スコア
+
+    """
+    sel = get_selected_roles_list_from_original(player["original_data"].get("selected_roles", []))
+    return calculate_role_satisfaction_score(sel, unite_role)
+
+
+def calculate_role_satisfaction_score(selected_roles: list, assigned_role: str) -> float:
+    """ロール満足度を計算(配列インデックス優先度版).
+
+    Args:
+        selected_roles: プレイヤーの希望ロール配列(インデックス=優先度)
+        assigned_role: 割り当てられたロール
+
+    Returns:
+        float: 0.0-1.0の満足度スコア
+
+    """
+    if assigned_role not in selected_roles:
+        return 0.0
+
+    # 配列内でのインデックスを優先度として使用
+    priority_index = selected_roles.index(assigned_role)
+
+    # インデックス0=1.0点、インデックス1=0.8点、インデックス2=0.6点...
+    score = max(0.0, 1.0 - priority_index * 0.2)
+    return score
+
+
+def matchmake_with_role_priority(queue: list[dict]) -> list[dict[str, list[dict]]]:
+    """
+    ロール優先度考慮版マッチメイクアルゴリズム(複数試合対応).
+
+    queue: [{'id': str, 'rating': int|float, 'roles': List[str]}, ...]
+           - rating 降順で渡すのが前提
+    戻り値: [{'teamA': [...], 'teamB': [...]}, ...] / マッチ不可なら []
+
+    アルゴリズム:
+    1. レート差を最小化してマッチ候補を生成
+    2. レート差が許容範囲内の候補から、ロール満足度が最大の組み合わせを選択
+    """
+    n = len(queue)
+    if n < 10:
+        logger.info(f"Insufficient players for matchmaking: {n} < 10")
+        return []
+
+    # 同時に作成可能な最大試合数を計算
+    max_matches = n // 10
+    logger.info(f"Starting role-priority matchmaking with {n} players, max possible matches: {max_matches}")
+
+    matches = []
+    remaining_queue = queue.copy()
+
+    # ---------- 二部グラフ完全マッチ (DFS) - 満足度降順探索版 ----------
+    def find_matching(m: int, current_queue: list) -> tuple[bool, list, float]:
+        # 各 (player u, slot slot_idx) の満足度を事前計算
+        sat = [[-1.0]*len(SLOTS) for _ in range(m)]
+        for u in range(m):
+            prefs = set(current_queue[u]["roles"])  # Unite表記で統一済み前提
+            for slot_idx, (role, _) in enumerate(SLOTS):
+                if role in prefs:
+                    sat[u][slot_idx] = role_satisfaction(current_queue[u], role)
+
+        # 各プレイヤーの到達可能スロットを「満足度降順」に並べる
+        adj = [[] for _ in range(m)]
+        for u in range(m):
+            cand = [(slot_idx, sat[u][slot_idx]) for slot_idx in range(len(SLOTS)) if sat[u][slot_idx] >= 0]
+            cand.sort(key=lambda x: x[1], reverse=True)
+            adj[u] = [slot_idx for slot_idx, _ in cand]
+
+        slot_of = [-1] * len(SLOTS)  # slotIdx -> localP
+
+        def dfs(u, seen) -> bool:
+            for slot_idx in adj[u]:
+                if seen[slot_idx]:
+                    continue
+                seen[slot_idx] = True
+                if slot_of[slot_idx] == -1 or dfs(slot_of[slot_idx], seen):
+                    slot_of[slot_idx] = u
+                    return True
+            return False
+
+        chosen_local = [False] * m
+        # 先頭（=rating降順のqueue順）を優先：①の要件維持
+        for u in range(m):
+            seen = [False] * len(SLOTS)
+            if dfs(u, seen):
+                chosen_local[u] = True
+
+        if sum(chosen_local) < len(SLOTS):
+            return False, [], 0.0
+
+        # 実際に割り当てられた満足度の合計を返す
+        total_sat = 0.0
+        for slot_idx, u in enumerate(slot_of):
+            total_sat += sat[u][slot_idx]
+        return True, slot_of, total_sat
+
+    # 複数試合を順次作成
+    for match_num in range(max_matches):
+        current_n = len(remaining_queue)
+        if current_n < 10:
+            logger.info(f"Match {match_num + 1}: Insufficient remaining players: {current_n} < 10")
+            break
+
+        logger.info(f"Creating match {match_num + 1} with {current_n} remaining players")
+
+        # ---------- 1) prefix評価で「レート差→満足度」の辞書順に ----------
+        best_candidate = None  # ((rating_diff, -total_sat), slot_map, role_to_idx, A_idx, B_idx, total_sat)
+
+        # 計算量を抑えたい場合は上限を設ける（例：min(current_n, 30)）
+        for prefix in range(10, current_n + 1):
+            ok, slot_map, total_sat = find_matching(prefix, remaining_queue)
+            if not ok:
+                continue
+
+            # 役→2名のインデックス
+            role_to_idx = {r: [] for r in ROLES}
+            for slot_idx, localP in enumerate(slot_map):
+                qIdx = localP  # prefix 範囲
+                role = SLOTS[slot_idx][0]
+                role_to_idx[role].append(qIdx)
+
+            # 念のため：各ロールにちょうど2名いるか
+            if any(len(v) != 2 for v in role_to_idx.values()):
+                continue
+
+            # 2^5 マスクで A/B を振り分け、レート差最小を得る（満足度はA/Bに依存しない）
+            total_rating = sum(remaining_queue[i]["rating"] for v in role_to_idx.values() for i in v)
+            target = total_rating / 2
+
+            best_mask = None
+            best_diff = None
+            for mask in range(1 << 5):
+                A = []
+                for bit, role in enumerate(ROLES):
+                    i1, i2 = role_to_idx[role]
+                    A.append(i2 if (mask >> bit) & 1 else i1)
+                diff = abs(sum(remaining_queue[i]["rating"] for i in A) - target)
+                if best_diff is None or diff < best_diff:
+                    best_diff = diff
+                    best_mask = mask
+
+            # 比較キー：レート差→満足度（降順なので -total_sat）
+            key = (best_diff, -total_sat)
+            if best_candidate is None or key < best_candidate[0]:
+                A_idx, B_idx = [], []
+                for bit, role in enumerate(ROLES):
+                    i1, i2 = role_to_idx[role]
+                    if (best_mask >> bit) & 1:
+                        A_idx.append(i2); B_idx.append(i1)
+                    else:
+                        A_idx.append(i1); B_idx.append(i2)
+                best_candidate = (key, slot_map, role_to_idx, A_idx, B_idx, total_sat)
+
+        if best_candidate is None:
+            logger.warning(f"Match {match_num + 1}: No valid assignment found with {current_n} players")
+            break
+
+        # 採用する候補を展開
+        (_, slot_map, role_to_idx, A_idx, B_idx, total_sat) = best_candidate
+        logger.info(f"Match {match_num + 1}: Team balance - Rating difference: {best_candidate[0][0]:.2f}")
+        logger.info(f"Match {match_num + 1}: Role satisfaction (assigned) - Total: {total_sat:.2f}")
+
+        # ---------- 2) 結果構築（A/B分けは既に完了済み） ----------
+        teamA, teamB = [], []
+        matched_indices = set(A_idx + B_idx)
+
+        # A_idx、B_idxが既にロール順に並んでいるため、直接構築
+        for i, role in enumerate(ROLES):
+            teamA.append({"player": remaining_queue[A_idx[i]], "role": role})
+            teamB.append({"player": remaining_queue[B_idx[i]], "role": role})
+
+        # ロール満足度の詳細ログ出力
+        satisfaction_details = []
+        for _team_name, team_data in [("TeamA", teamA), ("TeamB", teamB)]:
+            for player_role in team_data:
+                player = player_role["player"]
+                assigned_role = player_role["role"]
+
+                # selected_rolesを取得してhepler関数で変換
+                selected_roles_list = get_selected_roles_list_from_original(
+                    player["original_data"].get("selected_roles", [])
+                )
+
+                # 満足度計算
+                satisfaction = calculate_role_satisfaction_score(selected_roles_list, assigned_role)
+                priority_index = selected_roles_list.index(assigned_role) + 1 if assigned_role in selected_roles_list else "不希望"
+                satisfaction_details.append(f"{player['id']}({assigned_role}): 優先度{priority_index}, 満足度{satisfaction:.1f}")
+
+        average_satisfaction = total_sat / 10
+        logger.info(f"Match {match_num + 1}: Role satisfaction - Average: {average_satisfaction:.2f}")
+        logger.info(f"Match {match_num + 1}: Role details - {', '.join(satisfaction_details)}")
+
+        matches.append({"teamA": teamA, "teamB": teamB})
+        logger.info(f"Match {match_num + 1}: Successfully created")
+
+        # マッチしたプレイヤーを残りキューから削除
+        remaining_queue = [player for i, player in enumerate(remaining_queue) if i not in matched_indices]
+        logger.info(f"Match {match_num + 1}: {len(matched_indices)} players matched, {len(remaining_queue)} players remaining")
+
+    logger.info(f"Role-priority matchmaking completed: {len(matches)} matches created")
+    return matches
+
+
 def matchmake_top_first(queue: list[dict]) -> list[dict[str, list[dict]]]:
     """
+    【バックアップ】正常動作している旧マッチメイクアルゴリズム
+    ※ この関数は修正せずに保持（ロールバック用）
+
     新マッチメイクアルゴリズム（複数試合対応）
     queue: [{'id': str, 'rating': int|float, 'roles': List[str]}, ...]
            - rating 降順で渡すのが前提
@@ -72,7 +308,7 @@ def matchmake_top_first(queue: list[dict]) -> list[dict[str, list[dict]]]:
     # 同時に作成可能な最大試合数を計算
     max_matches = n // 10
     logger.info(f"Starting matchmaking with {n} players, max possible matches: {max_matches}")
-    
+
     matches = []
     remaining_queue = queue.copy()
 
@@ -81,19 +317,19 @@ def matchmake_top_first(queue: list[dict]) -> list[dict[str, list[dict]]]:
         adj = [[] for _ in range(m)]  # localP -> slotIdx
         for idx in range(m):
             pref = set(current_queue[idx]["roles"])
-            for sIdx, (role, _) in enumerate(SLOTS):
+            for slot_idx, (role, _) in enumerate(SLOTS):
                 if role in pref:
-                    adj[idx].append(sIdx)
+                    adj[idx].append(slot_idx)
 
         slot_of = [-1] * len(SLOTS)  # slotIdx -> localP
 
-        def dfs(u, seen):
-            for sIdx in adj[u]:
-                if seen[sIdx]:
+        def dfs(u, seen) -> bool:
+            for slot_idx in adj[u]:
+                if seen[slot_idx]:
                     continue
-                seen[sIdx] = True
-                if slot_of[sIdx] == -1 or dfs(slot_of[sIdx], seen):
-                    slot_of[sIdx] = u
+                seen[slot_idx] = True
+                if slot_of[slot_idx] == -1 or dfs(slot_of[slot_idx], seen):
+                    slot_of[slot_idx] = u
                     return True
             return False
 
@@ -112,7 +348,7 @@ def matchmake_top_first(queue: list[dict]) -> list[dict[str, list[dict]]]:
         if current_n < 10:
             logger.info(f"Match {match_num + 1}: Insufficient remaining players: {current_n} < 10")
             break
-            
+
         logger.info(f"Creating match {match_num + 1} with {current_n} remaining players")
 
         # ---------- 1) 先頭プレフィックスを最小化 ----------
@@ -130,9 +366,9 @@ def matchmake_top_first(queue: list[dict]) -> list[dict[str, list[dict]]]:
 
         # ---------- 2) ロール→プレイヤー2名ずつ ----------
         role_to_idx = {r: [] for r in ROLES}
-        for sIdx, localP in enumerate(slot_map):
+        for slot_idx, localP in enumerate(slot_map):
             qIdx = localP  # prefix 部分なので同じ
-            role = SLOTS[sIdx][0]
+            role = SLOTS[slot_idx][0]
             role_to_idx[role].append(qIdx)
 
         # ---------- 3) 2^5 通りで最小レート差 ----------
@@ -169,6 +405,38 @@ def matchmake_top_first(queue: list[dict]) -> list[dict[str, list[dict]]]:
                 teamA.append({"player": remaining_queue[i2], "role": role})
                 teamB.append({"player": remaining_queue[i1], "role": role})
 
+        # ロール満足度を計算・ログ出力
+        total_satisfaction = 0.0
+        satisfaction_details = []
+
+        for _team_name, team_data in [("TeamA", teamA), ("TeamB", teamB)]:
+            for player_role in team_data:
+                player = player_role["player"]
+                assigned_role = player_role["role"]
+
+                # selected_rolesを取得
+                original_selected_roles = player["original_data"].get("selected_roles", [])
+
+                # DynamoDBのList形式を文字列リストに変換
+                selected_roles_list = []
+                if isinstance(original_selected_roles, list):
+                    for role_item in original_selected_roles:
+                        if isinstance(role_item, dict) and "S" in role_item:
+                            selected_roles_list.append(role_item["S"])
+                        elif isinstance(role_item, str):
+                            selected_roles_list.append(role_item)
+
+                # 満足度計算
+                satisfaction = calculate_role_satisfaction_score(selected_roles_list, assigned_role)
+                total_satisfaction += satisfaction
+
+                priority_index = selected_roles_list.index(assigned_role) + 1 if assigned_role in selected_roles_list else "不希望"
+                satisfaction_details.append(f"{player['id']}({assigned_role}): 優先度{priority_index}, 満足度{satisfaction:.1f}")
+
+        average_satisfaction = total_satisfaction / 10
+        logger.info(f"Match {match_num + 1}: Role satisfaction - Average: {average_satisfaction:.2f}")
+        logger.info(f"Match {match_num + 1}: Role details - {', '.join(satisfaction_details)}")
+
         matches.append({"teamA": teamA, "teamB": teamB})
         logger.info(f"Match {match_num + 1}: Successfully created")
 
@@ -195,7 +463,7 @@ def acquire_lock() -> bool:
         logger.info("Queue lock acquired successfully")
         return True
     except ClientError as e:
-        logger.error(f"Failed to acquire lock: {e}")
+        logger.exception(f"Failed to acquire lock: {e}")
         return False
 
 
@@ -214,7 +482,7 @@ def release_lock() -> bool:
         logger.info("Queue lock released successfully")
         return True
     except ClientError as e:
-        logger.error(f"Failed to release lock: {e}")
+        logger.exception(f"Failed to release lock: {e}")
         return False
 
 
@@ -229,7 +497,7 @@ def is_locked() -> bool:
             return response["Item"].get("lock", 0) == 1
         return False
     except ClientError as e:
-        logger.error(f"Failed to check lock status: {e}")
+        logger.exception(f"Failed to check lock status: {e}")
         return False
 
 
@@ -258,7 +526,7 @@ def get_queue_players() -> list[dict[str, Any]]:
                 user_data = user_response["Item"]
                 current_rate = int(user_data.get("rate", 1500))
             except Exception as e:
-                logger.error(f"Failed to get user data for {user_id}: {e}")
+                logger.exception(f"Failed to get user data for {user_id}: {e}")
                 current_rate = 1500  # フォールバック
 
             # selected_rolesを取得
@@ -273,32 +541,17 @@ def get_queue_players() -> list[dict[str, Any]]:
                     elif isinstance(role_item, str):
                         roles_list.append(role_item)
 
-                # Legacy形式をUnite形式に変換
-                roles_array = []
-                for role in roles_list:
-                    # Legacy形式（TOP, MID等）をUnite形式（TOP_LANE, MIDDLE等）に変換
-                    if role == "TOP_LANE":
-                        roles_array.append("TOP")
-                    elif role == "MIDDLE":
-                        roles_array.append("MID")
-                    elif role == "BOTTOM_LANE":
-                        roles_array.append("BOTTOM")
-                    elif role == "SUPPORT":
-                        roles_array.append("SUPPORT")
-                    elif role == "TANK":
-                        roles_array.append("TANK")
-                    else:
-                        # 既にLegacy形式の場合はそのまま
-                        roles_array.append(role)
+                # ロール名はそのまま使用（統一形式）
+                roles_array = roles_list
             else:
                 # フォールバック
-                roles_array = ["TOP"]
+                roles_array = ["TOP_LANE"]
 
             player_data = {
                 "id": user_id,
                 "rating": float(current_rate),  # usersテーブルから取得した最新レート
                 "roles": roles_array,  # 新アルゴリズム用：配列形式
-                # Legacy互換のため元データも保持
+                # 元データも保持
                 "original_data": item,
             }
             players.append(player_data)
@@ -306,7 +559,7 @@ def get_queue_players() -> list[dict[str, Any]]:
         # ランダムに昇順または降順でソート（50%ずつ）
         is_descending = random.random() < 0.5  # 50%の確率でTrue
         players.sort(key=lambda x: x["rating"], reverse=is_descending)
-        
+
         sort_order = "descending" if is_descending else "ascending"
         logger.info(f"Sorting players by rate in {sort_order} order")
 
@@ -319,7 +572,7 @@ def get_queue_players() -> list[dict[str, Any]]:
         return players
 
     except ClientError as e:
-        logger.error(f"Failed to get queue players: {e}")
+        logger.exception(f"Failed to get queue players: {e}")
         return []
 
 
@@ -335,7 +588,8 @@ def assign_voice_channels() -> tuple[int, int]:
         used_vcs = queue_repo.use_vc_channels(1)
 
         if not used_vcs or len(used_vcs) < 1:
-            raise Exception("UnusedVCが不足しています。")
+            msg = "UnusedVCが不足しています。"
+            raise Exception(msg)
 
         # VC割り当て
         vc_a = used_vcs[0]  # チームA: 奇数
@@ -345,7 +599,7 @@ def assign_voice_channels() -> tuple[int, int]:
         return vc_a, vc_b
 
     except Exception as e:
-        logger.error(f"Failed to assign voice channels: {e}")
+        logger.exception(f"Failed to assign voice channels: {e}")
         raise
 
 
@@ -360,7 +614,8 @@ def get_next_match_id() -> int:
         # 現在のメタデータを取得
         meta = queue_repo.get_meta()
         if not meta:
-            raise Exception("Queue metadata not found")
+            msg = "Queue metadata not found"
+            raise Exception(msg)
 
         # 新しいマッチIDを生成
         new_match_id = meta.latest_match_id + 1
@@ -368,13 +623,14 @@ def get_next_match_id() -> int:
         # メタデータを更新
         success = queue_repo.update_latest_match_id(new_match_id)
         if not success:
-            raise Exception("Failed to update latest match ID")
+            msg = "Failed to update latest match ID"
+            raise Exception(msg)
 
         logger.info(f"Generated new match ID: {new_match_id}")
         return new_match_id
 
     except Exception as e:
-        logger.error(f"Failed to get next match ID: {e}")
+        logger.exception(f"Failed to get next match ID: {e}")
         raise
 
 
@@ -443,7 +699,7 @@ def create_match_record(
                         "bio": "",
                     }
             except Exception as e:
-                logger.error(f"Failed to get user data for {user_id}: {e}")
+                logger.exception(f"Failed to get user data for {user_id}: {e}")
                 formatted = {
                     "user_id": user_id,
                     "trainer_name": user_id,
@@ -500,7 +756,7 @@ def create_match_record(
                         "bio": "",
                     }
             except Exception as e:
-                logger.error(f"Failed to get user data for {user_id}: {e}")
+                logger.exception(f"Failed to get user data for {user_id}: {e}")
                 formatted = {
                     "user_id": user_id,
                     "trainer_name": user_id,
@@ -540,7 +796,7 @@ def create_match_record(
         return match_record
 
     except ClientError as e:
-        logger.error(f"Failed to create match record: {e}")
+        logger.exception(f"Failed to create match record: {e}")
         raise
 
 
@@ -580,7 +836,7 @@ def update_ongoing_match_players_add(team_a_data: list[dict], team_b_data: list[
         return True
 
     except ClientError as e:
-        logger.error(f"Failed to update ongoing_match_players: {e}")
+        logger.exception(f"Failed to update ongoing_match_players: {e}")
         return False
 
 
@@ -605,30 +861,31 @@ def remove_matched_players(players: list[dict]) -> bool:
 
         # バッチでキューから削除
         with queue_table.batch_writer() as batch:
-            for user_id in removed_players.keys():
+            for user_id in removed_players:
                 batch.delete_item(Key={"namespace": NAMESPACE, "user_id": user_id})
 
         logger.info(f"Removed {len(removed_players)} matched players from queue")
 
         # メタ情報を更新（total_waitingとrole_queues）
         update_meta_after_removal(removed_players)
-        
+
         return True
 
     except ClientError as e:
-        logger.error(f"Failed to remove matched players: {e}")
+        logger.exception(f"Failed to remove matched players: {e}")
         return False
 
 
 def update_meta_after_removal(removed_players: dict) -> bool:
     """
     プレイヤー削除後にメタ情報を更新
-    
+
     Args:
         removed_players: 削除されたプレイヤーのIDとロール情報の辞書
-    
+
     Returns:
         成功したかどうか
+
     """
     try:
         # 現在のメタ情報を取得
@@ -636,23 +893,23 @@ def update_meta_after_removal(removed_players: dict) -> bool:
         if "Item" not in resp:
             logger.warning("Meta data not found during update_meta_after_removal")
             return False
-            
+
         meta_item = resp["Item"]
         role_queues = meta_item.get("role_queues", {})
         total_waiting = meta_item.get("total_waiting", 0)
-        
+
         # 削除されたプレイヤーをロール別キューから削除
         for user_id, selected_roles in removed_players.items():
             for role in selected_roles:
                 if role in role_queues and user_id in role_queues[role]:
                     role_queues[role].remove(user_id)
-        
+
         # 総待機人数を再計算（ユニークなユーザーIDの数）
         all_users = set()
         for users in role_queues.values():
             all_users.update(users)
         total_waiting = len(all_users)
-        
+
         # メタデータを更新（role_queuesとtotal_waitingのみ）
         queue_table.update_item(
             Key={"namespace": NAMESPACE, "user_id": "#META#"},
@@ -662,12 +919,12 @@ def update_meta_after_removal(removed_players: dict) -> bool:
                 ":rq": role_queues,
             },
         )
-        
+
         logger.info(f"Updated meta after removal: total_waiting={total_waiting}")
         return True
-        
+
     except ClientError as e:
-        logger.error(f"Failed to update meta after removal: {e}")
+        logger.exception(f"Failed to update meta after removal: {e}")
         return False
 
 
@@ -696,7 +953,7 @@ def update_assigned_match_ids(players: list[dict], match_id: int) -> bool:
         return True
 
     except ClientError as e:
-        logger.error(f"Failed to update assigned_match_ids: {e}")
+        logger.exception(f"Failed to update assigned_match_ids: {e}")
         return False
 
 
@@ -711,7 +968,7 @@ def update_queue_meta() -> bool:
 
     """
     try:
-        from boto3.dynamodb.conditions import Attr, Key
+        from boto3.dynamodb.conditions import Attr
 
         # キューに残っているプレイヤー情報を取得
         response = queue_table.scan(
@@ -761,7 +1018,7 @@ def update_queue_meta() -> bool:
         return True
 
     except ClientError as e:
-        logger.error(f"Failed to update queue meta: {e}")
+        logger.exception(f"Failed to update queue meta: {e}")
         return False
 
 
@@ -793,7 +1050,7 @@ def count_ongoing_matches() -> int:
         return ongoing_count
 
     except ClientError as e:
-        logger.error(f"Failed to count ongoing matches: {e}")
+        logger.exception(f"Failed to count ongoing matches: {e}")
         return 0
 
 
@@ -803,6 +1060,7 @@ def execute_match_gathering() -> dict:
 
     Returns:
         集計結果の辞書
+
     """
     try:
         # match_judge.gather_match の処理をここに統合
@@ -841,7 +1099,7 @@ def execute_match_gathering() -> dict:
                             completed_match_ids.append(match_id)
                             logger.info(f"Match {match_id} completed and marked for removal from ongoing list")
                 except Exception as e:
-                    logger.error(f"Error checking match {match_id} status: {e}")
+                    logger.exception(f"Error checking match {match_id} status: {e}")
 
         # 完了した試合を進行中リストから削除
         if completed_match_ids:
@@ -865,8 +1123,8 @@ def execute_match_gathering() -> dict:
 
     except Exception as e:
         error_details = traceback.format_exc()
-        logger.error(f"Error in match gathering: {e}")
-        logger.error(f"Full traceback: {error_details}")
+        logger.exception(f"Error in match gathering: {e}")
+        logger.exception(f"Full traceback: {error_details}")
         return {
             "processed_matches": 0,
             "total_matches": 0,
@@ -919,7 +1177,7 @@ def match_make(event, context):
 
             # STEP 3: 新規マッチメイキングを実行
             logger.info("Step 3: Executing new matchmaking...")
-            
+
             # マッチメイキング実行前に現在のキュー人数を記録
             try:
                 resp = queue_table.get_item(Key={"namespace": NAMESPACE, "user_id": "#META#"})
@@ -937,8 +1195,8 @@ def match_make(event, context):
                     )
                     logger.info(f"Updated previous match info: time={current_time}, count={current_total}")
             except Exception as e:
-                logger.error(f"Failed to update previous match info: {e}")
-            
+                logger.exception(f"Failed to update previous match info: {e}")
+
             # 2. プレイヤー取得
             players = get_queue_players()
             if len(players) < 10:
@@ -950,7 +1208,7 @@ def match_make(event, context):
                 end_time = time.time()
                 processing_time = end_time - start_time
 
-                logger.info(f"=== Integrated Match Processing completed (gather only) ===")
+                logger.info("=== Integrated Match Processing completed (gather only) ===")
                 logger.info(
                     f"Gather phase: {gather_result['processed_matches']} matches processed, {gather_result['completed_matches']} completed"
                 )
@@ -969,7 +1227,8 @@ def match_make(event, context):
                 }
 
             # 3. マッチメイク実行（get_queue_playersで既に最新レート取得済み）
-            match_results = matchmake_top_first(players)
+            # 優先度考慮版マッチメイキングを使用
+            match_results = matchmake_with_role_priority(players)
             if not match_results:
                 logger.warning("Matchmaking algorithm failed to find valid matches")
                 # マッチが成立しなかった場合もキューメタ情報を更新
@@ -979,11 +1238,11 @@ def match_make(event, context):
                 end_time = time.time()
                 processing_time = end_time - start_time
 
-                logger.info(f"=== Integrated Match Processing completed (gather only) ===")
+                logger.info("=== Integrated Match Processing completed (gather only) ===")
                 logger.info(
                     f"Gather phase: {gather_result['processed_matches']} matches processed, {gather_result['completed_matches']} completed"
                 )
-                logger.info(f"Matchmaking phase: No valid matches found")
+                logger.info("Matchmaking phase: No valid matches found")
 
                 return {
                     "statusCode": 200,
@@ -1010,7 +1269,7 @@ def match_make(event, context):
                 match_id = get_next_match_id()
 
                 # マッチレコード作成
-                match_record = create_match_record(match_id, match_result["teamA"], match_result["teamB"], vc_a, vc_b)
+                create_match_record(match_id, match_result["teamA"], match_result["teamB"], vc_a, vc_b)
 
                 # マッチしたプレイヤーをキューから削除
                 all_matched_players = match_result["teamA"] + match_result["teamB"]
@@ -1033,7 +1292,7 @@ def match_make(event, context):
                     else:
                         logger.warning(f"Discord notification failed for match {match_id}")
                 except Exception as discord_error:
-                    logger.error(f"Discord notification error for match {match_id}: {discord_error}")
+                    logger.exception(f"Discord notification error for match {match_id}: {discord_error}")
 
                 created_matches.append(match_id)
                 total_matched_players += len(all_matched_players)
@@ -1073,14 +1332,14 @@ def match_make(event, context):
             release_lock()
 
     except Exception as e:
-        logger.error(f"Unexpected error in matchmaking: {e}")
-        logger.error(f"Error details: {e!s}")
+        logger.exception(f"Unexpected error in matchmaking: {e}")
+        logger.exception(f"Error details: {e!s}")
 
         # エラー時もロック解放を試行
         try:
             release_lock()
         except:
-            logger.error("Failed to release lock during error cleanup")
+            logger.exception("Failed to release lock during error cleanup")
 
         return {"statusCode": 500, "body": json.dumps({"error": "Internal server error"})}
 
@@ -1132,15 +1391,16 @@ def debug_update_queue_meta(event, context):
             return create_success_response({"message": "Queue meta updated successfully (debug mode)"})
         return create_error_response(500, "Failed to update queue meta")
     except Exception as e:
-        logger.error(f"Debug queue meta update failed: {e}")
+        logger.exception(f"Debug queue meta update failed: {e}")
         return create_error_response(500, f"Debug queue meta update failed: {e!s}")
 
 
 def execute_ranking_calculation() -> dict:
     """ランキング計算を実行.
-    
+
     Returns:
         dict: 計算結果
+
     """
     try:
         if not rankings_table:
@@ -1219,7 +1479,7 @@ def execute_ranking_calculation() -> dict:
         }
 
     except Exception as e:
-        logger.error(f"Failed to calculate rankings: {e}")
+        logger.exception(f"Failed to calculate rankings: {e}")
         return {
             "rankings_count": 0,
             "error": str(e),

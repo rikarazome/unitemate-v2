@@ -42,8 +42,8 @@ def get_dummy_users_list(event: dict, context: object) -> dict:
                 if "Item" in response:
                     user = response["Item"]
                     # preferred_rolesは配列なので最初の要素を取得
-                    roles = user.get("preferred_roles", ["TOP"])
-                    preferred_role = roles[0] if roles else "TOP"
+                    roles = user.get("preferred_roles", ["TOP_LANE"])
+                    preferred_role = roles[0] if roles else "TOP_LANE"
 
                     dummy_users.append(
                         {
@@ -156,7 +156,7 @@ def dummy_login(event: dict, context: object) -> dict:
                     "trainer_name": user.get("trainer_name", user.get("discord_username")),
                     "discord_username": user.get("discord_username"),
                     "rate": int(user.get("rate", 1500)),
-                    "preferred_role": user.get("preferred_roles", ["TOP"])[0] if user.get("preferred_roles") else "TOP",
+                    "preferred_role": user.get("preferred_roles", ["TOP_LANE"])[0] if user.get("preferred_roles") else "TOP_LANE",
                     "is_dummy": True,
                 },
             }

@@ -502,6 +502,20 @@ functions:
           rate: cron(0/2 0-18 ? * SUN *)
           enabled: ${self:custom.cache.${sls:stage}.schedule_enabled, true}
 
+      # 月曜が祝日の場合の追加カバレッジ（JST 04:00-14:00 を被りなく分割）
+      # 前日（日曜）UTC 19:00-23:59 = 月曜 JST 04:00-08:59
+      - schedule:
+          name: ${sls:stage}-${self:service}-monday-holiday-early
+          description: "Monday holiday coverage (JST 04:00-08:59 = UTC SUN 19:00-23:59)"
+          rate: cron(0/2 19-23 ? * SUN *)
+          enabled: false
+      # 当日（月曜）UTC 00:00-04:59 = 月曜 JST 09:00-13:59
+      - schedule:
+          name: ${sls:stage}-${self:service}-monday-holiday-late
+          description: "Monday holiday coverage (JST 09:00-13:59 = UTC MON 00:00-04:59)"
+          rate: cron(0/2 0-4 ? * MON *)
+          enabled: false
+
   # デバッグ用: 手動で試合結果集計を実行するエンドポイント
   # 本番環境では削除すること
   debugGatherMatch:
@@ -683,7 +697,6 @@ functions:
           authorizer:
             name: authHandler
 
-
   getUserRecentPerformance:
     handler: src/handlers/records.get_user_recent_performance
     environment:
@@ -751,10 +764,6 @@ functions:
           authorizer:
             name: authHandler
 
-
-
-
-
   # ランキング計算関数（手動実行のみ - 通常は統合スケジューラーで実行）
   calculateRankings:
     handler: src/handlers/ranking_calculator.calculate_rankings
@@ -767,7 +776,6 @@ functions:
           method: post
           authorizer:
             name: authHandler
-
 
   # WebSocket関連の関数
   wsConnect:
@@ -836,7 +844,7 @@ functions:
           path: /api/create-checkout-session
           method: post
           authorizer:
-            name: authHandler  # フロントエンドからのアクセスは認証必須
+            name: authHandler # フロントエンドからのアクセスは認証必須
 
   stripeWebhook:
     handler: src/handlers/stripe_payment.webhook_handler
@@ -931,7 +939,7 @@ functions:
   # BANPICKシミュレーターツール専用API（認証不要）
   # ※メインアプリとは完全に独立したツール機能※
   # ===========================================
-  
+
   # BANPICKシミュレーター用ルーム作成
   createPickSimulatorRoom:
     handler: src/handlers/pick_simulator_rooms.create_pick_simulator_room
@@ -1007,7 +1015,6 @@ functions:
           path: /api/tools/banpick/rooms/{room_id}/answer
           method: options
 
-
 plugins:
   - serverless-prune-plugin
   - serverless-python-requirements
@@ -1028,7 +1035,7 @@ custom:
     masterData: ${self:service}-master-data-${sls:stage}
     connections: ${self:service}-connections-${sls:stage}
     rankings: ${self:service}-rankings-${sls:stage}
-    pickSimulatorRooms: ${self:service}-pick-simulator-rooms-${sls:stage}  # BANPICKシミュレーター専用
+    pickSimulatorRooms: ${self:service}-pick-simulator-rooms-${sls:stage} # BANPICKシミュレーター専用
   cache:
     prd:
       schedule_enabled: true
@@ -1194,7 +1201,6 @@ resources:
             KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
 
-
     MasterDataTable:
       Type: AWS::DynamoDB::Table
       Properties:
@@ -1253,7 +1259,7 @@ resources:
         BillingMode: PAY_PER_REQUEST
         TimeToLiveSpecification:
           AttributeName: ttl
-          Enabled: true  # 1時間後に自動削除
+          Enabled: true # 1時間後に自動削除
 
     WebsocketsApi:
       Type: AWS::ApiGatewayV2::Api

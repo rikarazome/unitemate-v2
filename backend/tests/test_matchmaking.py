@@ -25,16 +25,16 @@ class TestMatchmakingAlgorithm:
     def test_matchmake_top_first_basic_success(self):
         """基本的なマッチング成功ケース"""
         queue = [
-            {"id": "user1", "rating": 1600, "roles": ["TOP", "MID"]},
-            {"id": "user2", "rating": 1580, "roles": ["MID", "BOTTOM"]},
-            {"id": "user3", "rating": 1570, "roles": ["BOTTOM", "SUPPORT"]},
+            {"id": "user1", "rating": 1600, "roles": ["TOP_LANE", "MIDDLE"]},
+            {"id": "user2", "rating": 1580, "roles": ["MIDDLE", "BOTTOM_LANE"]},
+            {"id": "user3", "rating": 1570, "roles": ["BOTTOM_LANE", "SUPPORT"]},
             {"id": "user4", "rating": 1560, "roles": ["SUPPORT", "TANK"]},
-            {"id": "user5", "rating": 1550, "roles": ["TANK", "TOP"]},
-            {"id": "user6", "rating": 1540, "roles": ["TOP", "MID"]},
-            {"id": "user7", "rating": 1530, "roles": ["MID", "BOTTOM"]},
-            {"id": "user8", "rating": 1520, "roles": ["BOTTOM", "SUPPORT"]},
+            {"id": "user5", "rating": 1550, "roles": ["TANK", "TOP_LANE"]},
+            {"id": "user6", "rating": 1540, "roles": ["TOP_LANE", "MIDDLE"]},
+            {"id": "user7", "rating": 1530, "roles": ["MIDDLE", "BOTTOM_LANE"]},
+            {"id": "user8", "rating": 1520, "roles": ["BOTTOM_LANE", "SUPPORT"]},
             {"id": "user9", "rating": 1510, "roles": ["SUPPORT", "TANK"]},
-            {"id": "user10", "rating": 1500, "roles": ["TANK", "TOP"]},
+            {"id": "user10", "rating": 1500, "roles": ["TANK", "TOP_LANE"]},
         ]
 
         result = matchmake_top_first(queue)
@@ -46,7 +46,7 @@ class TestMatchmakingAlgorithm:
         assert len(result["teamB"]) == 5
 
         # 各チームに各ロールが1人ずついることを確認
-        roles = ["TOP", "MID", "BOTTOM", "SUPPORT", "TANK"]
+        roles = ["TOP_LANE", "MIDDLE", "BOTTOM_LANE", "SUPPORT", "TANK"]
         team_a_roles = [player["role"] for player in result["teamA"]]
         team_b_roles = [player["role"] for player in result["teamB"]]
 
@@ -55,14 +55,14 @@ class TestMatchmakingAlgorithm:
 
     def test_matchmake_top_first_insufficient_players(self):
         """プレイヤー不足時のテスト"""
-        queue = [{"id": "user1", "rating": 1600, "roles": ["TOP"]}, {"id": "user2", "rating": 1580, "roles": ["MID"]}]
+        queue = [{"id": "user1", "rating": 1600, "roles": ["TOP_LANE"]}, {"id": "user2", "rating": 1580, "roles": ["MIDDLE"]}]
 
         result = matchmake_top_first(queue)
         assert result == {}
 
     def test_matchmake_top_first_impossible_assignment(self):
         """ロール割り当て不可能な場合のテスト"""
-        queue = [{"id": f"user{i}", "rating": 1500 + i, "roles": ["TOP"]} for i in range(10)]
+        queue = [{"id": f"user{i}", "rating": 1500 + i, "roles": ["TOP_LANE"]} for i in range(10)]
 
         result = matchmake_top_first(queue)
         assert result == {}
@@ -71,16 +71,16 @@ class TestMatchmakingAlgorithm:
         """レート差最小化のテスト"""
         # 極端にレートが異なるプレイヤーでテスト
         queue = [
-            {"id": "high1", "rating": 2000, "roles": ["TOP", "MID", "BOTTOM", "SUPPORT", "TANK"]},
-            {"id": "high2", "rating": 1900, "roles": ["TOP", "MID", "BOTTOM", "SUPPORT", "TANK"]},
-            {"id": "high3", "rating": 1800, "roles": ["TOP", "MID", "BOTTOM", "SUPPORT", "TANK"]},
-            {"id": "high4", "rating": 1700, "roles": ["TOP", "MID", "BOTTOM", "SUPPORT", "TANK"]},
-            {"id": "high5", "rating": 1600, "roles": ["TOP", "MID", "BOTTOM", "SUPPORT", "TANK"]},
-            {"id": "low1", "rating": 1200, "roles": ["TOP", "MID", "BOTTOM", "SUPPORT", "TANK"]},
-            {"id": "low2", "rating": 1100, "roles": ["TOP", "MID", "BOTTOM", "SUPPORT", "TANK"]},
-            {"id": "low3", "rating": 1000, "roles": ["TOP", "MID", "BOTTOM", "SUPPORT", "TANK"]},
-            {"id": "low4", "rating": 900, "roles": ["TOP", "MID", "BOTTOM", "SUPPORT", "TANK"]},
-            {"id": "low5", "rating": 800, "roles": ["TOP", "MID", "BOTTOM", "SUPPORT", "TANK"]},
+            {"id": "high1", "rating": 2000, "roles": ["TOP_LANE", "MIDDLE", "BOTTOM_LANE", "SUPPORT", "TANK"]},
+            {"id": "high2", "rating": 1900, "roles": ["TOP_LANE", "MIDDLE", "BOTTOM_LANE", "SUPPORT", "TANK"]},
+            {"id": "high3", "rating": 1800, "roles": ["TOP_LANE", "MIDDLE", "BOTTOM_LANE", "SUPPORT", "TANK"]},
+            {"id": "high4", "rating": 1700, "roles": ["TOP_LANE", "MIDDLE", "BOTTOM_LANE", "SUPPORT", "TANK"]},
+            {"id": "high5", "rating": 1600, "roles": ["TOP_LANE", "MIDDLE", "BOTTOM_LANE", "SUPPORT", "TANK"]},
+            {"id": "low1", "rating": 1200, "roles": ["TOP_LANE", "MIDDLE", "BOTTOM_LANE", "SUPPORT", "TANK"]},
+            {"id": "low2", "rating": 1100, "roles": ["TOP_LANE", "MIDDLE", "BOTTOM_LANE", "SUPPORT", "TANK"]},
+            {"id": "low3", "rating": 1000, "roles": ["TOP_LANE", "MIDDLE", "BOTTOM_LANE", "SUPPORT", "TANK"]},
+            {"id": "low4", "rating": 900, "roles": ["TOP_LANE", "MIDDLE", "BOTTOM_LANE", "SUPPORT", "TANK"]},
+            {"id": "low5", "rating": 800, "roles": ["TOP_LANE", "MIDDLE", "BOTTOM_LANE", "SUPPORT", "TANK"]},
         ]
 
         result = matchmake_top_first(queue)
@@ -135,16 +135,16 @@ class TestMatchRecordCreation:
     def test_create_match_record_structure(self):
         """マッチレコード構造テスト（新フォーマット）"""
         team_a_data = [
-            {"player": {"user_id": "user1", "rate": 1600, "best": 1650}, "role": "TOP"},
-            {"player": {"user_id": "user2", "rate": 1580, "best": 1620}, "role": "MID"},
-            {"player": {"user_id": "user3", "rate": 1570, "best": 1600}, "role": "BOTTOM"},
+            {"player": {"user_id": "user1", "rate": 1600, "best": 1650}, "role": "TOP_LANE"},
+            {"player": {"user_id": "user2", "rate": 1580, "best": 1620}, "role": "MIDDLE"},
+            {"player": {"user_id": "user3", "rate": 1570, "best": 1600}, "role": "BOTTOM_LANE"},
             {"player": {"user_id": "user4", "rate": 1560, "best": 1590}, "role": "SUPPORT"},
             {"player": {"user_id": "user5", "rate": 1550, "best": 1580}, "role": "TANK"},
         ]
         team_b_data = [
-            {"player": {"user_id": "user6", "rate": 1540, "best": 1570}, "role": "TOP"},
-            {"player": {"user_id": "user7", "rate": 1530, "best": 1560}, "role": "MID"},
-            {"player": {"user_id": "user8", "rate": 1520, "best": 1550}, "role": "BOTTOM"},
+            {"player": {"user_id": "user6", "rate": 1540, "best": 1570}, "role": "TOP_LANE"},
+            {"player": {"user_id": "user7", "rate": 1530, "best": 1560}, "role": "MIDDLE"},
+            {"player": {"user_id": "user8", "rate": 1520, "best": 1550}, "role": "BOTTOM_LANE"},
             {"player": {"user_id": "user9", "rate": 1510, "best": 1540}, "role": "SUPPORT"},
             {"player": {"user_id": "user10", "rate": 1500, "best": 1530}, "role": "TANK"},
         ]
@@ -172,12 +172,12 @@ class TestMatchRecordCreation:
         assert first_player[0] == "user1"  # user_id
         assert first_player[1] == 1600  # rate
         assert first_player[2] == 1650  # best_rate
-        assert first_player[3] == "TOP"  # role
+        assert first_player[3] == "TOP_LANE"  # role
 
     def test_match_record_legacy_compatibility(self):
         """Legacy互換性テスト"""
         # 既存のコードが新フォーマットを正しく読めることを確認
-        team_data = [["user1", 1600, 1650, "TOP"]]
+        team_data = [["user1", 1600, 1650, "TOP_LANE"]]
 
         # Legacy形式でのアクセスパターン
         user_id = team_data[0][0]
@@ -188,7 +188,7 @@ class TestMatchRecordCreation:
         assert user_id == "user1"
         assert rate == 1600
         assert best_rate == 1650
-        assert role == "TOP"
+        assert role == "TOP_LANE"
 
 
 class TestVoiceChannelAssignment:
@@ -269,7 +269,7 @@ class TestIntegrationScenarios:
 # テストデータ生成ヘルパー
 def create_test_queue(player_count: int = 10) -> List[Dict[str, Any]]:
     """テスト用キューデータ生成"""
-    roles = ["TOP", "MID", "BOTTOM", "SUPPORT", "TANK"]
+    roles = ["TOP_LANE", "MIDDLE", "BOTTOM_LANE", "SUPPORT", "TANK"]
     return [
         {
             "id": f"user{i}",

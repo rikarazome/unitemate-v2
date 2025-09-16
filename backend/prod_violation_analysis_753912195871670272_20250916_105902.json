@@ -1,0 +1,29 @@
+{
+  "user_info": {
+    "user_id": "753912195871670272",
+    "trainer_name": "たなかまいけ",
+    "discord_username": "nate009922",
+    "effective_penalty": 0,
+    "rate": 1637,
+    "best_rate": 1500,
+    "total_matches": 0,
+    "win_count": 35,
+    "lose_count": 0
+  },
+  "total_matches": 60,
+  "matches_with_reports": [],
+  "matches_with_penalties": [],
+  "summary": {
+    "total_reports_received": 0,
+    "matches_reported_in": 0,
+    "matches_penalized_in": 0,
+    "matches_should_have_penalty": 0
+  },
+  "display_summary": {
+    "user_name": "たなかまいけ",
+    "discord_username": "nate009922",
+    "current_rate": 1637,
+    "current_effective_penalty": 0,
+    "total_matches_played": 60
+  }
+}

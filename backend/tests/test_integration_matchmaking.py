@@ -112,7 +112,7 @@ class TestMatchmakingIntegration:
 
     def create_test_players(self, count=10):
         """テスト用プレイヤーデータ作成"""
-        roles = ["TOP", "MID", "BOTTOM", "SUPPORT", "TANK"]
+        roles = ["TOP_LANE", "MIDDLE", "BOTTOM_LANE", "SUPPORT", "TANK"]
         players = []
 
         for i in range(count):
@@ -211,12 +211,12 @@ class TestMatchmakingIntegration:
             assert isinstance(player_data[1], int)  # rate
             assert isinstance(player_data[2], int)  # best_rate
             assert isinstance(player_data[3], str)  # role
-            assert player_data[3] in ["TOP", "MID", "BOTTOM", "SUPPORT", "TANK"]
+            assert player_data[3] in ["TOP_LANE", "MIDDLE", "BOTTOM_LANE", "SUPPORT", "TANK"]
 
         # ロール分布確認（各ロールに1人ずつ）
         team_a_roles = [player[3] for player in team_a]
         team_b_roles = [player[3] for player in team_b]
-        roles = ["TOP", "MID", "BOTTOM", "SUPPORT", "TANK"]
+        roles = ["TOP_LANE", "MIDDLE", "BOTTOM_LANE", "SUPPORT", "TANK"]
 
         assert set(team_a_roles) == set(roles)
         assert set(team_b_roles) == set(roles)
@@ -397,7 +397,7 @@ class TestMatchmakingIntegration:
                 "user_id": "test_player",
                 "rate": Decimal("1500"),
                 "best": Decimal("1600"),
-                "desired_role": "TOP",  # 単一文字列形式
+                "desired_role": "TOP_LANE",  # 単一文字列形式
                 "inqueued_at": int(time.time()),
             }
         )
@@ -408,7 +408,7 @@ class TestMatchmakingIntegration:
 
         player = players[0]
         # 新アルゴリズム用に配列形式に変換されていることを確認
-        assert player["roles"] == ["TOP"]
+        assert player["roles"] == ["TOP_LANE"]
         assert isinstance(player["roles"], list)
 
     @patch.dict(

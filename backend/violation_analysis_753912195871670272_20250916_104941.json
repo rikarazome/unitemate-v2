@@ -1,0 +1,23 @@
+{
+  "target_user_id": "753912195871670272",
+  "total_matches_analyzed": 28,
+  "matches_with_reports": [],
+  "matches_with_penalties": [],
+  "report_summary": {
+    "total_reports_against_user": 0,
+    "total_matches_reported": 0,
+    "reports_by_match": {}
+  },
+  "penalty_summary": {
+    "total_penalties": 0,
+    "penalties_by_match": {}
+  },
+  "penalty_analysis": {
+    "matches_meeting_penalty_threshold": [],
+    "threshold_info": "Penalty triggers when: same_team >= 4 OR total >= 6"
+  },
+  "user_info": {
+    "user_id": "753912195871670272",
+    "error": "User not found"
+  }
+}

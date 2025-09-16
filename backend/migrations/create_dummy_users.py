@@ -20,7 +20,7 @@ def create_dummy_users():
 
     # ダミーユーザーデータ
     dummy_users = []
-    roles = ["TOP", "MID", "BOTTOM", "SUPPORT", "TANK"]
+    roles = ["TOP_LANE", "MIDDLE", "BOTTOM_LANE", "SUPPORT", "TANK"]
 
     for i in range(11, 21):  # 追加で11〜20番を作成
         user_id = f"dummy_user_{i:02d}"

@@ -78,9 +78,9 @@ const DummyLogin: React.FC<DummyLoginProps> = ({ onLogin }) => {
 
   const getRoleIcon = (role: string) => {
     const roleIcons: Record<string, string> = {
-      TOP: "⚔️",
-      MID: "🔮",
-      BOTTOM: "🏹",
+      TOP_LANE: "⚔️",
+      MIDDLE: "🔮",
+      BOTTOM_LANE: "🏹",
       SUPPORT: "🛡️",
       TANK: "🛡️",
     };

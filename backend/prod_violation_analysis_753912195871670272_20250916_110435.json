@@ -1,0 +1,290 @@
+{
+  "user_info": {
+    "user_id": "753912195871670272",
+    "trainer_name": "たなかまいけ",
+    "discord_username": "nate009922",
+    "penalty_count": 5,
+    "penalty_correction": 1,
+    "effective_penalty": 4,
+    "rate": 1637,
+    "best_rate": 1500,
+    "total_matches": 0,
+    "win_count": 35,
+    "lose_count": 0
+  },
+  "total_matches": 60,
+  "matches_with_reports": [
+    {
+      "match_id": 981,
+      "date": "2025-09-15 03:08:28",
+      "status": "done",
+      "result": "unknown",
+      "violation_reports_against_user": [
+        {
+          "reporter_id": "1012691206662279290",
+          "violation_report": "753912195871670272",
+          "report_reason": "",
+          "full_report": {
+            "result": "invalid",
+            "banned_pokemon": "",
+            "user_id": "1012691206662279290",
+            "pokemon_move2": "",
+            "report_unixtime": 1757916187,
+            "pokemon_move1": "",
+            "violation_report": "753912195871670272",
+            "picked_pokemon": ""
+          }
+        }
+      ],
+      "all_user_reports": [
+        {
+          "result": "B-win",
+          "banned_pokemon": "",
+          "user_id": "403342653627826189",
+          "pokemon_move2": "ボーンラッシュ",
+          "report_unixtime": 1757874471,
+          "pokemon_move1": "しんそく",
+          "violation_report": "",
+          "picked_pokemon": "lucario"
+        },
+        {
+          "result": "B-win",
+          "banned_pokemon": "blissey",
+          "user_id": "1016138261405646938",
+          "pokemon_move2": "コットンガード",
+          "report_unixtime": 1757874484,
+          "pokemon_move1": "かふんだんご",
+          "violation_report": "",
+          "picked_pokemon": "eldegoss"
+        },
+        {
+          "result": "B-win",
+          "banned_pokemon": "",
+          "user_id": "1018459515533922385",
+          "pokemon_move2": "アクアブレイク",
+          "report_unixtime": 1757874490,
+          "pokemon_move1": "すいりゅうれんだ",
+          "violation_report": "",
+          "picked_pokemon": "urshifu"
+        },
+        {
+          "result": "B-win",
+          "banned_pokemon": "mr_mime",
+          "user_id": "753912195871670272",
+          "pokemon_move2": "あくび",
+          "report_unixtime": 1757874501,
+          "pokemon_move1": "ヘビーボンバー",
+          "violation_report": "",
+          "picked_pokemon": "snorlax"
+        },
+        {
+          "result": "B-win",
+          "banned_pokemon": "",
+          "user_id": "1311701578704617482",
+          "pokemon_move2": "れいとうビーム",
+          "report_unixtime": 1757874503,
+          "pokemon_move1": "うずしお",
+          "violation_report": "",
+          "picked_pokemon": "suicune"
+        },
+        {
+          "result": "B-win",
+          "banned_pokemon": "",
+          "user_id": "895429350751621222",
+          "pokemon_move2": "ソーラービーム",
+          "report_unixtime": 1757874506,
+          "pokemon_move1": "ギガドレイン",
+          "violation_report": "",
+          "picked_pokemon": "venusaur"
+        },
+        {
+          "result": "B-win",
+          "banned_pokemon": "dodrio",
+          "user_id": "429626803485671424",
+          "pokemon_move2": "そらをとぶ",
+          "report_unixtime": 1757874509,
+          "pokemon_move1": "ニトロチャージ",
+          "violation_report": "",
+          "picked_pokemon": "talonflame"
+        },
+        {
+          "result": "B-win",
+          "banned_pokemon": "",
+          "user_id": "986414313214451763",
+          "pokemon_move2": "10まんボルト",
+          "report_unixtime": 1757874509,
+          "pokemon_move1": "エレキボール",
+          "violation_report": "",
+          "picked_pokemon": "alolan_raichu"
+        },
+        {
+          "result": "B-win",
+          "banned_pokemon": "comfey",
+          "user_id": "1277445837982793728",
+          "pokemon_move2": "コットンガード",
+          "report_unixtime": 1757874532,
+          "pokemon_move1": "かふんだんご",
+          "violation_report": "",
+          "picked_pokemon": "eldegoss"
+        },
+        {
+          "result": "invalid",
+          "banned_pokemon": "",
+          "user_id": "1012691206662279290",
+          "pokemon_move2": "",
+          "report_unixtime": 1757916187,
+          "pokemon_move1": "",
+          "violation_report": "753912195871670272",
+          "picked_pokemon": ""
+        }
+      ],
+      "penalty_players": [],
+      "user_was_penalized": false,
+      "user_team": null,
+      "user_role": null
+    },
+    {
+      "match_id": 714,
+      "date": "2025-09-14 05:26:22",
+      "status": "done",
+      "result": "unknown",
+      "violation_reports_against_user": [
+        {
+          "reporter_id": "1012691206662279290",
+          "violation_report": "753912195871670272",
+          "report_reason": "",
+          "full_report": {
+            "result": "invalid",
+            "banned_pokemon": "",
+            "user_id": "1012691206662279290",
+            "pokemon_move2": "",
+            "report_unixtime": 1757796490,
+            "pokemon_move1": "",
+            "violation_report": "753912195871670272",
+            "picked_pokemon": ""
+          }
+        }
+      ],
+      "all_user_reports": [
+        {
+          "result": "A-win",
+          "banned_pokemon": "",
+          "user_id": "403342653627826189",
+          "pokemon_move2": "じゃれつく",
+          "report_unixtime": 1757796380,
+          "pokemon_move1": "メタルクロー",
+          "violation_report": "",
+          "picked_pokemon": "zacian"
+        },
+        {
+          "result": "A-win",
+          "banned_pokemon": "",
+          "user_id": "753912195871670272",
+          "pokemon_move2": "タマゴうみ",
+          "report_unixtime": 1757796383,
+          "pokemon_move1": "タマゴばくだん",
+          "violation_report": "",
+          "picked_pokemon": "blissey"
+        },
+        {
+          "result": "A-win",
+          "banned_pokemon": "delphox",
+          "user_id": "1003289656718274630",
+          "pokemon_move2": "10まんボルト",
+          "report_unixtime": 1757796411,
+          "pokemon_move1": "エレキボール",
+          "violation_report": "",
+          "picked_pokemon": "alolan_raichu"
+        },
+        {
+          "result": "A-win",
+          "banned_pokemon": "",
+          "user_id": "824274165091270676",
+          "pokemon_move2": "つるぎのまい",
+          "report_unixtime": 1757796413,
+          "pokemon_move1": "バレットパンチ",
+          "violation_report": "",
+          "picked_pokemon": "scizor"
+        },
+        {
+          "result": "A-win",
+          "banned_pokemon": "tsareena",
+          "user_id": "1147105966781890652",
+          "pokemon_move2": "こうそくスピン",
+          "report_unixtime": 1757796416,
+          "pokemon_move1": "ハイドロポンプ",
+          "violation_report": "",
+          "picked_pokemon": "blastoise"
+        },
+        {
+          "result": "A-win",
+          "banned_pokemon": "",
+          "user_id": "1238552039244566598",
+          "pokemon_move2": "ドレインキッス",
+          "report_unixtime": 1757796419,
+          "pokemon_move1": "マジカルフレイム",
+          "violation_report": "",
+          "picked_pokemon": "sylveon"
+        },
+        {
+          "result": "A-win",
+          "banned_pokemon": "",
+          "user_id": "1018459515533922385",
+          "pokemon_move2": "アクアブレイク",
+          "report_unixtime": 1757796424,
+          "pokemon_move1": "すいりゅうれんだ",
+          "violation_report": "",
+          "picked_pokemon": "urshifu"
+        },
+        {
+          "result": "A-win",
+          "banned_pokemon": "delphox",
+          "user_id": "949996589831827578",
+          "pokemon_move2": "テレキネシス",
+          "report_unixtime": 1757796451,
+          "pokemon_move1": "ねっとう",
+          "violation_report": "",
+          "picked_pokemon": "slowbro"
+        },
+        {
+          "result": "A-win",
+          "banned_pokemon": "tsareena",
+          "user_id": "988066482481152010",
+          "pokemon_move2": "くさむすび",
+          "report_unixtime": 1757796480,
+          "pokemon_move1": "フラワーヒール",
+          "violation_report": "",
+          "picked_pokemon": "comfey"
+        },
+        {
+          "result": "invalid",
+          "banned_pokemon": "",
+          "user_id": "1012691206662279290",
+          "pokemon_move2": "",
+          "report_unixtime": 1757796490,
+          "pokemon_move1": "",
+          "violation_report": "753912195871670272",
+          "picked_pokemon": ""
+        }
+      ],
+      "penalty_players": [],
+      "user_was_penalized": false,
+      "user_team": null,
+      "user_role": null
+    }
+  ],
+  "matches_with_penalties": [],
+  "summary": {
+    "total_reports_received": 2,
+    "matches_reported_in": 2,
+    "matches_penalized_in": 0,
+    "matches_should_have_penalty": 0
+  },
+  "display_summary": {
+    "user_name": "たなかまいけ",
+    "discord_username": "nate009922",
+    "current_rate": 1637,
+    "current_effective_penalty": 4,
+    "total_matches_played": 60
+  }
+}

@@ -79,9 +79,9 @@ const PlayerInfoModal: React.FC<PlayerInfoModalProps> = ({
     if (!currentMatchRole) return null;
 
     const roleMapping: { [key: string]: LfgRole } = {
-      TOP: LFG_ROLES.TOP_LANE,
-      MID: LFG_ROLES.MIDDLE,
-      BOTTOM: LFG_ROLES.BOTTOM_LANE,
+      TOP_LANE: LFG_ROLES.TOP_LANE,
+      MIDDLE: LFG_ROLES.MIDDLE,
+      BOTTOM_LANE: LFG_ROLES.BOTTOM_LANE,
       SUPPORT: LFG_ROLES.SUPPORT,
       TANK: LFG_ROLES.TANK,
     };

@@ -22,7 +22,7 @@ interface NamePlateProps {
   secondaryBadgeId?: string | null;
 
   // ロール情報
-  role?: string; // プレイヤーのロール（TOP, MID, BOTTOM, SUPPORT, TANK）
+  role?: string; // プレイヤーのロール（TOP_LANE, MIDDLE, BOTTOM_LANE, SUPPORT, TANK）
 
   // レイアウト設定
   width?: number; // 120px～300px（指定されない場合は自動調整）
@@ -87,9 +87,9 @@ const NamePlate: React.FC<NamePlateProps> = ({
     if (!role) return null;
 
     const roleMap: { [key: string]: string } = {
-      TOP: "/role_icons/role_top.png",
-      MID: "/role_icons/role_mid.png",
-      BOTTOM: "/role_icons/role_bottom.png",
+      TOP_LANE: "/role_icons/role_top.png",
+      MIDDLE: "/role_icons/role_mid.png",
+      BOTTOM_LANE: "/role_icons/role_bottom.png",
       SUPPORT: "/role_icons/role_support.png",
       TANK: "/role_icons/role_tank.png",
     };
