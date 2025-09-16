@@ -119,7 +119,7 @@ const AdminMatchManagement: React.FC = () => {
                 role: p.role || "UNKNOWN",
               })) || [],
           },
-          reports: (response.user_reports || []).map((r) => ({
+          reports: (response.user_reports as Array<{ user_id: string; result: string; reported_at: number }> || []).map((r) => ({
             user_id: r.user_id,
             trainer_name: r.user_id, // TODO: Map to actual trainer name
             result: (r.result as "win" | "lose") || "lose",
