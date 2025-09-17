@@ -1,0 +1,1 @@
+const ws = new WebSocket('wss://t2ursu4hij.execute-api.ap-northeast-1.amazonaws.com/dev?user_id=test_user'); ws.onopen = () => console.log('Connected'); ws.onerror = (e) => console.error('Error:', e); ws.onclose = (e) => console.log('Closed:', e.code, e.reason);

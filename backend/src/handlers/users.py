@@ -3,16 +3,15 @@
 import json
 import os
 import traceback
+
 import boto3
 from boto3.dynamodb.conditions import Key
-
 from pydantic import BaseModel, Field, field_validator
 
 from src.models.user import CreateUserRequest as UserCreateRequest
 from src.models.user import UpdateProfileRequest as UserUpdateRequest
 from src.services.user_service import UserService
 from src.utils.response import create_error_response, create_success_response
-from src.utils.auth0_management import get_management_client, extract_discord_info_from_management_api
 
 # DynamoDB設定
 dynamodb = boto3.resource("dynamodb")
@@ -157,13 +156,12 @@ def get_me(event: dict, _context: object) -> dict:
                 response_data = auto_created_user.model_dump()
                 response_data["win_rate"] = auto_created_user.win_rate
                 return create_success_response(response_data)
-            else:
-                print(f"getMe - Failed to auto-create user for: {auth0_user_id}")
-                return create_error_response(500, "Failed to create user automatically")
+            print(f"getMe - Failed to auto-create user for: {auth0_user_id}")
+            return create_error_response(500, "Failed to create user automatically")
 
         except Exception as e:
             print(f"getMe - Error during auto-creation: {e}")
-            return create_error_response(500, f"Failed to create user: {str(e)}")
+            return create_error_response(500, f"Failed to create user: {e!s}")
 
     # Discord情報の更新が必要な場合（プレースホルダーユーザー名の場合）
     # フロントエンドからIDトークンの情報を受け取る必要があるため、
@@ -187,14 +185,16 @@ def get_me(event: dict, _context: object) -> dict:
         latest_matches = records_response.get("Items", [])
         print(f"getMe - Retrieved {len(latest_matches)} records for user {user.user_id}")
     except Exception as e:
-        print(f"getMe - Error fetching records: {str(e)}")
+        print(f"getMe - Error fetching records: {e!s}")
         # レコード取得失敗時もユーザーデータは返す
         latest_matches = []
 
     # レスポンスに試合データを追加
     user_data["latest_matches"] = latest_matches
 
-    return create_success_response(user_data)
+    # 2分間のキャッシュを設定（ユーザー情報は比較的安定）
+    cache_control = "private, max-age=120, s-maxage=120"
+    return create_success_response(user_data, cache_control=cache_control)
 
 
 def create_user(event: dict, _context: object) -> dict:
@@ -292,7 +292,7 @@ def create_user(event: dict, _context: object) -> dict:
         print(f"createUser - Unexpected error during user creation: {e}")
         print(f"createUser - Error type: {type(e).__name__}")
         print(f"createUser - Traceback: {traceback.format_exc()}")
-        return create_error_response(500, f"Internal server error: {str(e)}")
+        return create_error_response(500, f"Internal server error: {e!s}")
 
     # Discord IDを既存ユーザーでチェック
     existing_discord_user = user_service.get_user_by_user_id(discord_id)
@@ -317,7 +317,7 @@ def create_user(event: dict, _context: object) -> dict:
         print(f"createUser - Error in UserService.create_user: {e}")
         print(f"createUser - Error type: {type(e).__name__}")
         print(f"createUser - Traceback: {traceback.format_exc()}")
-        return create_error_response(500, f"ユーザー作成エラー: {str(e)}")
+        return create_error_response(500, f"ユーザー作成エラー: {e!s}")
 
 
 def _extract_discord_id_from_user_id(user_id: str) -> str | None:
@@ -577,22 +577,20 @@ def update_discord_info(event: dict, _context: object) -> dict:
             print(f"updateDiscordInfo - Updating Discord info for: {user.user_id}")
             user.updated_at = int(__import__("time").time())
             if user_service.user_repository.update(user):
-                print(f"updateDiscordInfo - Successfully updated Discord info")
+                print("updateDiscordInfo - Successfully updated Discord info")
                 response_data = user.model_dump()
                 response_data["win_rate"] = user.win_rate
                 return create_success_response(response_data)
-            else:
-                print(f"updateDiscordInfo - Failed to update Discord info")
-                return create_error_response(500, "Failed to update Discord info")
-        else:
-            print(f"updateDiscordInfo - No Discord info to update")
-            response_data = user.model_dump()
-            response_data["win_rate"] = user.win_rate
-            return create_success_response(response_data)
+            print("updateDiscordInfo - Failed to update Discord info")
+            return create_error_response(500, "Failed to update Discord info")
+        print("updateDiscordInfo - No Discord info to update")
+        response_data = user.model_dump()
+        response_data["win_rate"] = user.win_rate
+        return create_success_response(response_data)
 
     except Exception as e:
         print(f"updateDiscordInfo - Error: {e}")
-        return create_error_response(500, f"Failed to update Discord info: {str(e)}")
+        return create_error_response(500, f"Failed to update Discord info: {e!s}")
 
 
 def debug_auth_info(event: dict, _context: object) -> dict:
@@ -678,7 +676,7 @@ def get_user(event: dict, _context: object) -> dict:
 
     except Exception as e:
         print(f"get_user error: {e}")
-        return create_error_response(500, f"Failed to retrieve user information: {str(e)}")
+        return create_error_response(500, f"Failed to retrieve user information: {e!s}")
 
 
 def get_user_ranking(event: dict, _context: object) -> dict:
@@ -730,7 +728,9 @@ def get_user_ranking(event: dict, _context: object) -> dict:
         # 最終更新時刻を取得（最初のアイテムから）
         updated_at = items[0].get("updated_at") if items else None
 
-        return create_success_response({"rankings": rankings, "total_count": len(rankings), "updated_at": updated_at})
+        # 5分間のキャッシュを設定（ランキングは頻繁に更新される）
+        cache_control = "public, max-age=300, s-maxage=300"
+        return create_success_response({"rankings": rankings, "total_count": len(rankings), "updated_at": updated_at}, cache_control=cache_control)
 
     except Exception as e:
         print(f"get_user_ranking error: {e}")

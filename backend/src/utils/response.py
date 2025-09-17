@@ -3,7 +3,7 @@
 import json
 import os
 from decimal import Decimal
-from typing import Any, Optional
+from typing import Any
 
 
 class CustomJSONEncoder(json.JSONEncoder):
@@ -20,7 +20,7 @@ class CustomJSONEncoder(json.JSONEncoder):
         return super().default(o)
 
 
-def get_cors_origin(origin: Optional[str] = None) -> str:
+def get_cors_origin(origin: str | None = None) -> str:
     """Get appropriate CORS origin based on environment and request origin.
     
     Args:
@@ -28,49 +28,57 @@ def get_cors_origin(origin: Optional[str] = None) -> str:
         
     Returns:
         The appropriate Access-Control-Allow-Origin value
+
     """
     frontend_urls = os.getenv("FRONTEND_URL", "*")
-    
+
     if frontend_urls == "*":
         return "*"
-    
+
     # Parse comma-separated URLs
     allowed_urls = [url.strip() for url in frontend_urls.split(",")]
-    
+
     # Check if the requesting origin is in the allowed list
     if origin and origin in allowed_urls:
         return origin
-    
+
     # Default to first allowed URL if origin doesn't match
     return allowed_urls[0] if allowed_urls else "*"
 
 
-def create_success_response(data: Any, status_code: int = 200, origin: Optional[str] = None) -> dict[str, Any]:
+def create_success_response(data: Any, status_code: int = 200, origin: str | None = None, cache_control: str | None = None) -> dict[str, Any]:
     """成功レスポンスの生成.
 
     Args:
         data (Any): レスポンスデータ.
         status_code (int): HTTPステータスコード. デフォルトは200.
         origin (Optional[str]): リクエスト元のOriginヘッダー.
+        cache_control (Optional[str]): Cache-Controlヘッダー値.
 
     Returns:
         dict[str, Any]: AWS Lambdaプロキシ結果オブジェクト.
 
     """
+    headers = {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": get_cors_origin(origin),
+        "Access-Control-Allow-Headers": "Content-Type,Authorization",
+        "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+        "Access-Control-Allow-Credentials": "true",
+    }
+
+    # キャッシュ制御ヘッダーを追加
+    if cache_control:
+        headers["Cache-Control"] = cache_control
+
     return {
         "statusCode": status_code,
-        "headers": {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": get_cors_origin(origin),
-            "Access-Control-Allow-Headers": "Content-Type,Authorization",
-            "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
-            "Access-Control-Allow-Credentials": "true",
-        },
+        "headers": headers,
         "body": json.dumps(data, cls=CustomJSONEncoder),
     }
 
 
-def create_error_response(status_code: int, message: str, data: Any = None, origin: Optional[str] = None) -> dict[str, Any]:
+def create_error_response(status_code: int, message: str, data: Any = None, origin: str | None = None) -> dict[str, Any]:
     """エラーレスポンスの生成.
 
     Args:

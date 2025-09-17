@@ -1,13 +1,15 @@
 """勲章付与用のAPI（管理者/システム用）"""
 
 import json
-import os
-import boto3
 import logging
+import os
 from datetime import datetime
 from decimal import Decimal
-from boto3.dynamodb.conditions import Key
-from src.utils.response import create_success_response, create_error_response
+
+import boto3
+
+from src.utils.response import create_error_response, create_success_response
+
 # from src.utils.auth import get_user_id_from_event  # この関数は存在しないため削除
 
 # ロガー設定
@@ -158,7 +160,7 @@ def get_user_badges(event, context):
 
         if not auth0_user_id:
             return create_error_response(401, "Unauthorized: user_id not found in authorizer context")
-            
+
         # Auth0 user_idからDiscord IDを抽出してuser_idとして使用
         if "|" in auth0_user_id:
             user_id = auth0_user_id.split("|")[-1]  # oauth2|discord|123456789 → 123456789
@@ -173,11 +175,13 @@ def get_user_badges(event, context):
 
         user = user_response["Item"]
 
+        # 5分間のキャッシュを設定（勲章は頻繁に変わらない）
+        cache_control = "private, max-age=300, s-maxage=300"
         return create_success_response({
             "owned_badges": user.get("owned_badges", []),
             "current_badge": user.get("current_badge"),
             "current_badge_2": user.get("current_badge_2")
-        })
+        }, cache_control=cache_control)
 
     except Exception as e:
         logger.error(f"Failed to get user badges: {e}")
@@ -194,7 +198,7 @@ def equip_badges(event, context):
 
         if not auth0_user_id:
             return create_error_response(401, "Unauthorized: user_id not found in authorizer context")
-            
+
         # Auth0 user_idからDiscord IDを抽出してuser_idとして使用
         if "|" in auth0_user_id:
             user_id = auth0_user_id.split("|")[-1]  # oauth2|discord|123456789 → 123456789
@@ -237,11 +241,13 @@ def equip_badges(event, context):
 
         logger.info(f"User {user_id} equipped badges: primary={primary_badge}, secondary={secondary_badge}")
 
+        # 勲章装着後は即座に反映されるようにキャッシュを短く設定
+        cache_control = "private, max-age=60, s-maxage=60"
         return create_success_response({
             "message": "Badges equipped successfully",
             "current_badge": primary_badge,
             "current_badge_2": secondary_badge,
-        })
+        }, cache_control=cache_control)
 
     except Exception as e:
         logger.error(f"Failed to equip badges: {e}")
