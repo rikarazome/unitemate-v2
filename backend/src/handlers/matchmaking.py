@@ -26,12 +26,17 @@ from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 
 from src.repositories.queue_repository import QueueRepository
-from src.services.discord_service import send_discord_match_notification
+from src.services.discord_service import DISCORD_GUILD_ID, VC_CHANNEL_IDS, send_discord_match_notification
 from src.services.season_service import SeasonService
 from src.utils.response import create_error_response, create_success_response
 
 # DynamoDBクライアント
 dynamodb = boto3.resource("dynamodb")
+
+# Constants
+MINIMUM_PLAYERS_FOR_MATCH = 10  # 1試合に必要な最小プレイヤー数
+PLAYERS_PER_ROLE = 2  # 各ロールに必要なプレイヤー数
+ROLE_SATISFACTION_THRESHOLD = 0.5  # ロール満足度の閾値
 
 # 環境変数からテーブル名を取得
 QUEUE_TABLE_NAME = os.environ["QUEUE_TABLE_NAME"]
@@ -127,13 +132,13 @@ def matchmake_with_role_priority(queue: list[dict]) -> list[dict[str, list[dict]
     2. レート差が許容範囲内の候補から、ロール満足度が最大の組み合わせを選択
     """
     n = len(queue)
-    if n < 10:
-        logger.info(f"Insufficient players for matchmaking: {n} < 10")
+    if n < MINIMUM_PLAYERS_FOR_MATCH:
+        logger.info("Insufficient players for matchmaking: %d < %d", n, MINIMUM_PLAYERS_FOR_MATCH)
         return []
 
     # 同時に作成可能な最大試合数を計算
-    max_matches = n // 10
-    logger.info(f"Starting role-priority matchmaking with {n} players, max possible matches: {max_matches}")
+    max_matches = n // MINIMUM_PLAYERS_FOR_MATCH
+    logger.info("Starting role-priority matchmaking with %d players, max possible matches: %d", n, max_matches)
 
     matches = []
     remaining_queue = queue.copy()
@@ -157,7 +162,7 @@ def matchmake_with_role_priority(queue: list[dict]) -> list[dict[str, list[dict]
 
         slot_of = [-1] * len(SLOTS)  # slotIdx -> localP
 
-        def dfs(u, seen) -> bool:
+        def dfs(u: int, seen: list[bool]) -> bool:
             for slot_idx in adj[u]:
                 if seen[slot_idx]:
                     continue
@@ -168,7 +173,7 @@ def matchmake_with_role_priority(queue: list[dict]) -> list[dict[str, list[dict]
             return False
 
         chosen_local = [False] * m
-        # 先頭（=rating降順のqueue順）を優先：①の要件維持
+        # 先頭(=rating降順のqueue順)を優先: 要件維持
         for u in range(m):
             seen = [False] * len(SLOTS)
             if dfs(u, seen):
@@ -186,14 +191,17 @@ def matchmake_with_role_priority(queue: list[dict]) -> list[dict[str, list[dict]
     # 複数試合を順次作成
     for match_num in range(max_matches):
         current_n = len(remaining_queue)
-        if current_n < 10:
-            logger.info(f"Match {match_num + 1}: Insufficient remaining players: {current_n} < 10")
+        if current_n < MINIMUM_PLAYERS_FOR_MATCH:
+            logger.info(
+                "Match %d: Insufficient remaining players: %d < %d",
+                match_num + 1, current_n, MINIMUM_PLAYERS_FOR_MATCH
+            )
             break
 
-        logger.info(f"Creating match {match_num + 1} with {current_n} remaining players")
+        logger.info("Creating match %d with %d remaining players", match_num + 1, current_n)
 
         # ---------- 1) prefix評価で「レート差→満足度」の辞書順に ----------
-        best_candidate = None  # ((rating_diff, -total_sat), slot_map, role_to_idx, A_idx, B_idx, total_sat)
+        best_candidate = None  # ((rating_diff, -total_sat), slot_map, role_to_idx, team_a_idx, team_b_idx, total_sat)
 
         # 計算量を抑えたい場合は上限を設ける（例：min(current_n, 30)）
         for prefix in range(10, current_n + 1):
@@ -203,13 +211,13 @@ def matchmake_with_role_priority(queue: list[dict]) -> list[dict[str, list[dict]
 
             # 役→2名のインデックス
             role_to_idx = {r: [] for r in ROLES}
-            for slot_idx, localP in enumerate(slot_map):
-                qIdx = localP  # prefix 範囲
+            for slot_idx, local_p in enumerate(slot_map):
+                q_idx = local_p  # prefix 範囲
                 role = SLOTS[slot_idx][0]
-                role_to_idx[role].append(qIdx)
+                role_to_idx[role].append(q_idx)
 
             # 念のため：各ロールにちょうど2名いるか
-            if any(len(v) != 2 for v in role_to_idx.values()):
+            if any(len(v) != PLAYERS_PER_ROLE for v in role_to_idx.values()):
                 continue
 
             # 2^5 マスクで A/B を振り分け、レート差最小を得る（満足度はA/Bに依存しない）
@@ -219,11 +227,11 @@ def matchmake_with_role_priority(queue: list[dict]) -> list[dict[str, list[dict]
             best_mask = None
             best_diff = None
             for mask in range(1 << 5):
-                A = []
+                team_a_indices = []
                 for bit, role in enumerate(ROLES):
                     i1, i2 = role_to_idx[role]
-                    A.append(i2 if (mask >> bit) & 1 else i1)
-                diff = abs(sum(remaining_queue[i]["rating"] for i in A) - target)
+                    team_a_indices.append(i2 if (mask >> bit) & 1 else i1)
+                diff = abs(sum(remaining_queue[i]["rating"] for i in team_a_indices) - target)
                 if best_diff is None or diff < best_diff:
                     best_diff = diff
                     best_mask = mask
@@ -231,32 +239,32 @@ def matchmake_with_role_priority(queue: list[dict]) -> list[dict[str, list[dict]
             # 比較キー：レート差→満足度（降順なので -total_sat）
             key = (best_diff, -total_sat)
             if best_candidate is None or key < best_candidate[0]:
-                A_idx, B_idx = [], []
+                team_a_idx, team_b_idx = [], []
                 for bit, role in enumerate(ROLES):
                     i1, i2 = role_to_idx[role]
                     if (best_mask >> bit) & 1:
-                        A_idx.append(i2); B_idx.append(i1)
+                        team_a_idx.append(i2); team_b_idx.append(i1)
                     else:
-                        A_idx.append(i1); B_idx.append(i2)
-                best_candidate = (key, slot_map, role_to_idx, A_idx, B_idx, total_sat)
+                        team_a_idx.append(i1); team_b_idx.append(i2)
+                best_candidate = (key, slot_map, role_to_idx, team_a_idx, team_b_idx, total_sat)
 
         if best_candidate is None:
-            logger.warning(f"Match {match_num + 1}: No valid assignment found with {current_n} players")
+            logger.warning("Match %d: No valid assignment found with %d players", match_num + 1, current_n)
             break
 
         # 採用する候補を展開
-        (_, slot_map, role_to_idx, A_idx, B_idx, total_sat) = best_candidate
-        logger.info(f"Match {match_num + 1}: Team balance - Rating difference: {best_candidate[0][0]:.2f}")
-        logger.info(f"Match {match_num + 1}: Role satisfaction (assigned) - Total: {total_sat:.2f}")
+        (_, slot_map, role_to_idx, team_a_idx, team_b_idx, total_sat) = best_candidate
+        logger.info("Match %d: Team balance - Rating difference: %.2f", match_num + 1, best_candidate[0][0])
+        logger.info("Match %d: Role satisfaction (assigned) - Total: %.2f", match_num + 1, total_sat)
 
         # ---------- 2) 結果構築（A/B分けは既に完了済み） ----------
         teamA, teamB = [], []
-        matched_indices = set(A_idx + B_idx)
+        matched_indices = set(team_a_idx + team_b_idx)
 
-        # A_idx、B_idxが既にロール順に並んでいるため、直接構築
+        # team_a_idx、team_b_idxが既にロール順に並んでいるため、直接構築
         for i, role in enumerate(ROLES):
-            teamA.append({"player": remaining_queue[A_idx[i]], "role": role})
-            teamB.append({"player": remaining_queue[B_idx[i]], "role": role})
+            teamA.append({"player": remaining_queue[team_a_idx[i]], "role": role})
+            teamB.append({"player": remaining_queue[team_b_idx[i]], "role": role})
 
         # ロール満足度の詳細ログ出力
         satisfaction_details = []
@@ -276,17 +284,17 @@ def matchmake_with_role_priority(queue: list[dict]) -> list[dict[str, list[dict]
                 satisfaction_details.append(f"{player['id']}({assigned_role}): 優先度{priority_index}, 満足度{satisfaction:.1f}")
 
         average_satisfaction = total_sat / 10
-        logger.info(f"Match {match_num + 1}: Role satisfaction - Average: {average_satisfaction:.2f}")
-        logger.info(f"Match {match_num + 1}: Role details - {', '.join(satisfaction_details)}")
+        logger.info("Match %d: Role satisfaction - Average: %.2f", match_num + 1, average_satisfaction)
+        logger.info("Match %d: Role details - %s", match_num + 1, ", ".join(satisfaction_details))
 
         matches.append({"teamA": teamA, "teamB": teamB})
-        logger.info(f"Match {match_num + 1}: Successfully created")
+        logger.info("Match %d: Successfully created", match_num + 1)
 
         # マッチしたプレイヤーを残りキューから削除
         remaining_queue = [player for i, player in enumerate(remaining_queue) if i not in matched_indices]
-        logger.info(f"Match {match_num + 1}: {len(matched_indices)} players matched, {len(remaining_queue)} players remaining")
+        logger.info("Match %d: %d players matched, %d players remaining", match_num + 1, len(matched_indices), len(remaining_queue))
 
-    logger.info(f"Role-priority matchmaking completed: {len(matches)} matches created")
+    logger.info("Role-priority matchmaking completed: %d matches created", len(matches))
     return matches
 
 
@@ -301,13 +309,13 @@ def matchmake_top_first(queue: list[dict]) -> list[dict[str, list[dict]]]:
     戻り値: [{'teamA': [...], 'teamB': [...]}, ...] / マッチ不可なら []
     """
     n = len(queue)
-    if n < 10:
-        logger.info(f"Insufficient players for matchmaking: {n} < 10")
+    if n < MINIMUM_PLAYERS_FOR_MATCH:
+        logger.info("Insufficient players for matchmaking: %d < %d", n, MINIMUM_PLAYERS_FOR_MATCH)
         return []
 
     # 同時に作成可能な最大試合数を計算
     max_matches = n // 10
-    logger.info(f"Starting matchmaking with {n} players, max possible matches: {max_matches}")
+    logger.info("Starting matchmaking with %d players, max possible matches: %d", n, max_matches)
 
     matches = []
     remaining_queue = queue.copy()
@@ -323,7 +331,7 @@ def matchmake_top_first(queue: list[dict]) -> list[dict[str, list[dict]]]:
 
         slot_of = [-1] * len(SLOTS)  # slotIdx -> localP
 
-        def dfs(u, seen) -> bool:
+        def dfs(u: int, seen: list[bool]) -> bool:
             for slot_idx in adj[u]:
                 if seen[slot_idx]:
                     continue
@@ -345,11 +353,14 @@ def matchmake_top_first(queue: list[dict]) -> list[dict[str, list[dict]]]:
     # 複数試合を順次作成
     for match_num in range(max_matches):
         current_n = len(remaining_queue)
-        if current_n < 10:
-            logger.info(f"Match {match_num + 1}: Insufficient remaining players: {current_n} < 10")
+        if current_n < MINIMUM_PLAYERS_FOR_MATCH:
+            logger.info(
+                "Match %d: Insufficient remaining players: %d < %d",
+                match_num + 1, current_n, MINIMUM_PLAYERS_FOR_MATCH
+            )
             break
 
-        logger.info(f"Creating match {match_num + 1} with {current_n} remaining players")
+        logger.info("Creating match %d with %d remaining players", match_num + 1, current_n)
 
         # ---------- 1) 先頭プレフィックスを最小化 ----------
         prefix = 10
@@ -357,11 +368,11 @@ def matchmake_top_first(queue: list[dict]) -> list[dict[str, list[dict]]]:
         while prefix <= current_n:
             ok, slot_map = find_matching(prefix, remaining_queue)
             if ok:
-                logger.info(f"Match {match_num + 1}: Found valid assignment with {prefix} players")
+                logger.info("Match %d: Found valid assignment with %d players", match_num + 1, prefix)
                 break
             prefix += 1
         else:
-            logger.warning(f"Match {match_num + 1}: No valid assignment found with {current_n} players")
+            logger.warning("Match %d: No valid assignment found with %d players", match_num + 1, current_n)
             break
 
         # ---------- 2) ロール→プレイヤー2名ずつ ----------
@@ -374,23 +385,23 @@ def matchmake_top_first(queue: list[dict]) -> list[dict[str, list[dict]]]:
         # ---------- 3) 2^5 通りで最小レート差 ----------
         total = sum(remaining_queue[i]["rating"] for v in role_to_idx.values() for i in v)
         target = total / 2
-        best = None  # (diff, A_idx, B_idx)
+        best = None  # (diff, team_a_idx, team_b_idx)
         for mask in range(1 << 5):
-            A, B = [], []
+            team_a_indices, team_b_indices = [], []
             for bit, role in enumerate(ROLES):
                 i1, i2 = role_to_idx[role]
                 if (mask >> bit) & 1:
-                    A.append(i2)
-                    B.append(i1)
+                    team_a_indices.append(i2)
+                    team_b_indices.append(i1)
                 else:
-                    A.append(i1)
-                    B.append(i2)
-            diff = abs(sum(remaining_queue[i]["rating"] for i in A) - target)
+                    team_a_indices.append(i1)
+                    team_b_indices.append(i2)
+            diff = abs(sum(remaining_queue[i]["rating"] for i in team_a_indices) - target)
             if best is None or diff < best[0]:
-                best = (diff, A, B)
-        _, A_idx, B_idx = best
+                best = (diff, team_a_indices, team_b_indices)
+        _, team_a_idx, team_b_idx = best
 
-        logger.info(f"Match {match_num + 1}: Team balance - Rating difference: {best[0]:.2f}")
+        logger.info("Match %d: Team balance - Rating difference: %.2f", match_num + 1, best[0])
 
         # ---------- 4) 結果構築 ----------
         teamA, teamB = [], []
@@ -398,7 +409,7 @@ def matchmake_top_first(queue: list[dict]) -> list[dict[str, list[dict]]]:
         for role in ROLES:
             i1, i2 = role_to_idx[role]
             matched_indices.update([i1, i2])
-            if i1 in A_idx:
+            if i1 in team_a_idx:
                 teamA.append({"player": remaining_queue[i1], "role": role})
                 teamB.append({"player": remaining_queue[i2], "role": role})
             else:
@@ -434,17 +445,17 @@ def matchmake_top_first(queue: list[dict]) -> list[dict[str, list[dict]]]:
                 satisfaction_details.append(f"{player['id']}({assigned_role}): 優先度{priority_index}, 満足度{satisfaction:.1f}")
 
         average_satisfaction = total_satisfaction / 10
-        logger.info(f"Match {match_num + 1}: Role satisfaction - Average: {average_satisfaction:.2f}")
-        logger.info(f"Match {match_num + 1}: Role details - {', '.join(satisfaction_details)}")
+        logger.info("Match %d: Role satisfaction - Average: %.2f", match_num + 1, average_satisfaction)
+        logger.info("Match %d: Role details - %s", match_num + 1, ", ".join(satisfaction_details))
 
         matches.append({"teamA": teamA, "teamB": teamB})
-        logger.info(f"Match {match_num + 1}: Successfully created")
+        logger.info("Match %d: Successfully created", match_num + 1)
 
         # マッチしたプレイヤーを残りキューから削除
         remaining_queue = [player for i, player in enumerate(remaining_queue) if i not in matched_indices]
-        logger.info(f"Match {match_num + 1}: {len(matched_indices)} players matched, {len(remaining_queue)} players remaining")
+        logger.info("Match %d: %d players matched, %d players remaining", match_num + 1, len(matched_indices), len(remaining_queue))
 
-    logger.info(f"Matchmaking completed: {len(matches)} matches created")
+    logger.info("Matchmaking completed: %d matches created", len(matches))
     return matches
 
 
@@ -463,7 +474,7 @@ def acquire_lock() -> bool:
         logger.info("Queue lock acquired successfully")
         return True
     except ClientError as e:
-        logger.exception(f"Failed to acquire lock: {e}")
+        logger.exception("Failed to acquire lock: %s", e)
         return False
 
 
@@ -482,7 +493,7 @@ def release_lock() -> bool:
         logger.info("Queue lock released successfully")
         return True
     except ClientError as e:
-        logger.exception(f"Failed to release lock: {e}")
+        logger.exception("Failed to release lock: %s", e)
         return False
 
 
@@ -557,7 +568,7 @@ def get_queue_players() -> list[dict[str, Any]]:
             players.append(player_data)
 
         # ランダムに昇順または降順でソート（50%ずつ）
-        is_descending = random.random() < 0.5  # 50%の確率でTrue
+        is_descending = random.random() < ROLE_SATISFACTION_THRESHOLD  # 50%の確率でTrue
         players.sort(key=lambda x: x["rating"], reverse=is_descending)
 
         sort_order = "descending" if is_descending else "ascending"
@@ -770,6 +781,17 @@ def create_match_record(
 
             team_b_formatted.append(formatted)
 
+        # Discord VC リンクを生成
+        vc_link_a = None
+        vc_link_b = None
+        vc_channel_id_a = VC_CHANNEL_IDS.get(vc_a)
+        vc_channel_id_b = VC_CHANNEL_IDS.get(vc_b)
+
+        if vc_channel_id_a:
+            vc_link_a = f"https://discord.com/channels/{DISCORD_GUILD_ID}/{vc_channel_id_a}"
+        if vc_channel_id_b:
+            vc_link_b = f"https://discord.com/channels/{DISCORD_GUILD_ID}/{vc_channel_id_b}"
+
         # マッチレコード作成（DynamoDB用にDecimal変換）
         match_record = {
             "namespace": NAMESPACE,
@@ -783,6 +805,8 @@ def create_match_record(
             "judge_timeout_count": Decimal(0),
             "vc_a": vc_a,
             "vc_b": vc_b,
+            "vc_link_a": vc_link_a,
+            "vc_link_b": vc_link_b,
         }
 
         # DynamoDBに保存
@@ -1135,7 +1159,7 @@ def execute_match_gathering() -> dict:
         }
 
 
-def match_make(event, context):
+def match_make(event: dict, context) -> dict:
     """
     統合マッチ処理：結果集計 → 新規マッチメイキングの順で実行
     本番環境で2分間隔で実行され、DEV環境では手動実行される
@@ -1199,8 +1223,8 @@ def match_make(event, context):
 
             # 2. プレイヤー取得
             players = get_queue_players()
-            if len(players) < 10:
-                logger.info(f"Insufficient players for matchmaking: {len(players)} < 10")
+            if len(players) < MINIMUM_PLAYERS_FOR_MATCH:
+                logger.info("Insufficient players for matchmaking: %d < %d", len(players), MINIMUM_PLAYERS_FOR_MATCH)
                 # プレイヤーが不足の場合もキューメタ情報を更新
                 update_queue_meta()
 
@@ -1347,7 +1371,7 @@ def match_make(event, context):
 # gather_match function is now implemented in src/handlers/match_judge.py
 
 
-def debug_trigger_matchmaking(event, context):
+def debug_trigger_matchmaking(event: dict, context) -> dict:
     """
     デバッグ用: 手動でマッチメイキングを実行するハンドラー
 
@@ -1376,7 +1400,7 @@ def debug_trigger_matchmaking(event, context):
     )
 
 
-def debug_update_queue_meta(event, context):
+def debug_update_queue_meta(event: dict, context) -> dict:
     """
     デバッグ用: 手動でキューメタ情報を更新するハンドラー
 

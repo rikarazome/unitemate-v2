@@ -15,6 +15,12 @@ WEBHOOK_URL = os.environ.get(
     "https://discord.com/api/webhooks/1185019044391305226/NbOT6mnrZNHS61T5ro7iu2smxyhhSPH_tecLnWmZ91kup96-mtpdcGwvvo3kjmyzR96_",
 )
 
+# Discord Guild (Server) ID
+DISCORD_GUILD_ID = os.environ.get("DISCORD_GUILD_ID", "1146296887801024603")
+
+# HTTP Status Codes
+DISCORD_SUCCESS_STATUS = 204
+
 # VC番号からDiscordチャンネルIDへのマッピング
 VC_CHANNEL_IDS = {
     1: "1146297345106002001",
@@ -96,8 +102,8 @@ async def notify_discord_match_found(
 
     """
     try:
-        logger.info(f"Discord notification - Team A players: {team_a_players}")
-        logger.info(f"Discord notification - Team B players: {team_b_players}")
+        logger.info("Discord notification - Team A players: %s", team_a_players)
+        logger.info("Discord notification - Team B players: %s", team_b_players)
 
         # プレイヤー情報からDiscord IDを取得
         team_a_discord_ids = []
@@ -117,9 +123,9 @@ async def notify_discord_match_found(
         team_b_mentions = " ".join([f"<@{discord_id}>" for discord_id in team_b_discord_ids])
 
         # VCチャンネルリンクを取得
-        vc_a_channel_id = VC_CHANNEL_IDS.get(vc_a, None)
-        vc_b_channel_id = VC_CHANNEL_IDS.get(vc_b, None)
-        
+        vc_a_channel_id = VC_CHANNEL_IDS.get(vc_a)
+        vc_b_channel_id = VC_CHANNEL_IDS.get(vc_b)
+
         # チャンネルリンクまたはVC番号を表示
         vc_a_link = f"<#{vc_a_channel_id}>" if vc_a_channel_id else f"VC{vc_a}"
         vc_b_link = f"<#{vc_b_channel_id}>" if vc_b_channel_id else f"VC{vc_b}"
@@ -141,7 +147,7 @@ async def notify_discord_match_found(
             aiohttp.ClientSession() as session,
             session.post(WEBHOOK_URL, json=payload, headers=headers) as response,
         ):
-            if response.status == 204:
+            if response.status == DISCORD_SUCCESS_STATUS:
                 logger.info("Discord通知送信成功: Match ID %s", match_id)
                 return True
             text = await response.text()

@@ -3,6 +3,7 @@ import NamePlate from "./NamePlate";
 import PlayerInfoModal from "./PlayerInfoModal";
 import { MatchReportModal } from "./MatchReportModal";
 import MatchCountdownTimer from "./MatchCountdownTimer";
+import DiscordVCButton from "./DiscordVCButton";
 import type { UserInfo } from "../hooks/useUnitemateApi";
 import { useUnitemateApi } from "../hooks/useUnitemateApi";
 
@@ -35,6 +36,8 @@ export interface MatchData {
   match_id: string;
   team_a: MatchTeam;
   team_b: MatchTeam;
+  vc_link_a?: string; // チームAのDiscord VCリンク
+  vc_link_b?: string; // チームBのDiscord VCリンク
   status: "matched" | "done";
   started_at?: string;
   matched_unixtime?: number; // マッチ成立時刻（unixtime）
@@ -68,6 +71,8 @@ const MatchScreen: React.FC<MatchScreenProps> = ({
   console.log("MatchScreen: currentUser:", currentUser);
   console.log("MatchScreen: team_a players:", matchData.team_a?.players);
   console.log("MatchScreen: team_b players:", matchData.team_b?.players);
+  console.log("MatchScreen: vc_link_a:", matchData.vc_link_a);
+  console.log("MatchScreen: vc_link_b:", matchData.vc_link_b);
 
   // チームをレート順にソート
   const sortPlayersByRate = (players: MatchPlayer[]) => {
@@ -212,7 +217,8 @@ const MatchScreen: React.FC<MatchScreenProps> = ({
   const TeamDisplay: React.FC<{
     team: MatchTeam;
     color: "purple" | "orange";
-  }> = ({ team, color }) => {
+    vcLink?: string;
+  }> = ({ team, color, vcLink }) => {
     const sortedPlayers = sortPlayersByRate(team.players);
 
     const teamColorClasses = {
@@ -241,7 +247,7 @@ const MatchScreen: React.FC<MatchScreenProps> = ({
       >
         {/* チームヘッダー */}
         <div
-          className={`${colors.header} px-2 sm:px-4 py-2 sm:py-3 flex items-center ${team.team_id === "B" ? "justify-end" : "justify-start"}`}
+          className={`${colors.header} px-2 sm:px-4 py-2 sm:py-3 flex items-center ${team.team_id === "B" ? "justify-between flex-row-reverse" : "justify-between"}`}
         >
           <div
             className={`flex items-center ${team.team_id === "B" ? "flex-row-reverse" : ""}`}
@@ -257,6 +263,15 @@ const MatchScreen: React.FC<MatchScreenProps> = ({
               </span>
             )}
           </div>
+          {/* 自分のチームのVCボタンのみ表示 */}
+          {currentUserTeam === team.team_id && vcLink && (
+            <DiscordVCButton
+              vcLink={vcLink}
+              vcNumber={team.voice_channel}
+              teamName={team.team_name}
+              className="ml-2"
+            />
+          )}
         </div>
 
         {/* プレイヤーリスト */}
@@ -390,8 +405,8 @@ const MatchScreen: React.FC<MatchScreenProps> = ({
 
       {/* チーム表示 */}
       <div className="flex flex-row gap-1 sm:gap-6 justify-center items-start mt-4">
-        <TeamDisplay team={matchData.team_a} color="purple" />
-        <TeamDisplay team={matchData.team_b} color="orange" />
+        <TeamDisplay team={matchData.team_a} color="purple" vcLink={matchData.vc_link_a} />
+        <TeamDisplay team={matchData.team_b} color="orange" vcLink={matchData.vc_link_b} />
       </div>
 
       {/* マッチ情報 */}

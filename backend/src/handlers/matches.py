@@ -618,6 +618,8 @@ def format_match_for_frontend(match_item: dict) -> dict:
             "lobby_id": match_item.get("lobby_id"),
             "host_user_id": match_item.get("host_user_id"),
             "report_count": len(match_item.get("user_reports", [])),
+            "vc_link_a": match_item.get("vc_link_a"),  # Discord VCリンク
+            "vc_link_b": match_item.get("vc_link_b"),  # Discord VCリンク
         }
 
         return formatted_match
