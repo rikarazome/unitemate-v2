@@ -103,7 +103,7 @@ export const initializeBadges = async (): Promise<void> => {
  * 勲章関連のフック
  */
 export const useBadges = (authToken?: string) => {
-  const { callApi } = useApi();
+  const { callApi: _callApi } = useApi();
   const [userBadges, setUserBadges] = useState<UserBadge[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
