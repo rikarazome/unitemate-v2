@@ -4,7 +4,7 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { useDummyAuth } from "../hooks/useDummyAuth";
 import { useUserInfo } from "../hooks/useUnitemateApi";
 import { useUnitemateApi } from "../hooks/useUnitemateApi";
-import { useBadges } from "../hooks/useBadges";
+import { usePublicMasterData } from "../hooks/useUnitemateApi";
 import Layout from "./Layout";
 import NamePlate from "./NamePlate";
 
@@ -33,7 +33,8 @@ const Shop: React.FC = () => {
   const dummyAuth = useDummyAuth();
   const { userInfo } = useUserInfo();
   const { unitemateApi } = useUnitemateApi();
-  const { allBadges: masterBadges, loading: badgesLoading } = useBadges();
+  // ショップページではAPIから直接バッジデータを取得（セキュリティ対策）
+  const { masterData, loading: badgesLoading, error: badgesError } = usePublicMasterData();
   const [badges, setBadges] = useState<ShopBadge[]>([]);
   const [selectedType, setSelectedType] = useState<
     "all" | "gradient" | "image"
@@ -43,12 +44,28 @@ const Shop: React.FC = () => {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   useEffect(() => {
-    if (!badgesLoading && masterBadges.length > 0) {
-      // バッジデータを読み込む（マスターデータから取得）
+    // APIから取得したマスターデータを使用
+    if (!badgesLoading && masterData?.badges) {
       const loadBadges = () => {
         try {
+          // APIから取得したバッジデータを型変換
+          const apieBadges: Badge[] = (masterData.badges || []).map((item: any) => ({
+            id: item.id,
+            condition: item.condition || "",
+            display: item.display || "",
+            start_color: item.start_color || null,
+            end_color: item.end_color || null,
+            char_color: item.char_color || null,
+            image_card: item.image_card || null,
+            banner_image: item.banner_image || null,
+            type: item.type || "basic",
+            price: item.price || 0,
+            max_sales: item.max_sales || 0,
+            current_sales: item.current_sales || 0,
+          }));
+
           // 購入可能な勲章のみをフィルタリング
-          const shopBadges: ShopBadge[] = masterBadges
+          const shopBadges: ShopBadge[] = apieBadges
             .filter((badge) => badge.condition === "支援ページから購入可能")
             .map((badge) => ({
               ...badge,
@@ -58,14 +75,14 @@ const Shop: React.FC = () => {
 
           setBadges(shopBadges);
         } catch (error) {
-          console.error("Failed to load badges:", error);
+          console.error("Failed to load badges from API:", error);
           setBadges([]);
         }
       };
 
       loadBadges();
     }
-  }, [masterBadges, badgesLoading]);
+  }, [masterData, badgesLoading]);
 
 
   const filteredBadges = badges.filter(
@@ -269,9 +286,26 @@ const Shop: React.FC = () => {
           </div>
         </div>
 
+        {/* ローディング表示 */}
+        {badgesLoading && (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">勲章データを読み込み中...</p>
+          </div>
+        )}
+
+        {/* エラー表示 */}
+        {badgesError && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
+            <p className="font-semibold">エラー</p>
+            <p>勲章データの取得に失敗しました。ページを再読み込みしてください。</p>
+          </div>
+        )}
+
         {/* 勲章グリッド */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-          {filteredBadges.map((badge) => (
+        {!badgesLoading && !badgesError && (
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+            {filteredBadges.map((badge) => (
             <div
               key={badge.id}
               className={`bg-white rounded-lg shadow-lg overflow-hidden transition-transform hover:scale-105 ${
@@ -343,7 +377,8 @@ const Shop: React.FC = () => {
               </div>
             </div>
           ))}
-        </div>
+          </div>
+        )}
 
         {/* 購入確認モーダル */}
         {showPurchaseModal && selectedBadge && (

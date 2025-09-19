@@ -49,7 +49,7 @@ export interface Setting {
 // マスターデータのレスポンス型
 export interface MasterDataResponse {
   pokemon: Pokemon[];
-  // badges は useBadges.ts で別途管理
+  badges?: any[]; // パブリックマスターAPI用（ショップページで使用）
   roles: Role[];
   seasons: Season[];
   settings: Setting[];
