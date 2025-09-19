@@ -86,6 +86,9 @@ def on_message(event: dict[str, Any], _context: Any) -> dict[str, Any]:
         # アクションに応じた処理
         if action == "ping":
             return _send_message_to_connection(connection_id, {"action": "pong"})
+        elif action == "askQueueInfo":
+            # キューの初期状態を返す
+            return handle_ask_queue_info(connection_id)
         elif action == "subscribe":
             # サブスクリプション処理（将来の拡張用）
             return {"statusCode": 200}
@@ -177,38 +180,47 @@ def _send_message_to_connection(connection_id: str, message_data: dict) -> dict:
         
         return {"statusCode": 200}
         
-    except client.exceptions.GoneException:
-        print(f"[WebSocket] Connection {connection_id} is no longer valid")
-        # 無効な接続をDynamoDBから削除
-        try:
-            connections_table.delete_item(Key={"connection_id": connection_id})
-        except Exception:
-            pass
-        return {"statusCode": 410, "body": "Connection gone"}
     except Exception as e:
-        print(f"[WebSocket] Failed to send message to {connection_id}: {e}")
-        return {"statusCode": 500, "body": f"Failed to send message: {str(e)}"}
+        # GoneExceptionかどうかチェック
+        if "GoneException" in str(type(e)) or "410" in str(e):
+            print(f"[WebSocket] Connection {connection_id} is no longer valid")
+            # 無効な接続をDynamoDBから削除
+            try:
+                connections_table.delete_item(Key={"connection_id": connection_id})
+            except Exception:
+                pass
+            return {"statusCode": 410, "body": "Connection gone"}
+        else:
+            print(f"[WebSocket] Failed to send message to {connection_id}: {e}")
+            return {"statusCode": 500, "body": f"Failed to send message: {str(e)}"}
 
 
 def broadcast_queue_update(queue_data: dict[str, Any] = None):
     """キュー状況変更をすべての接続者にブロードキャスト（Legacyと同じ仕様）"""
     try:
+        print(f"[WebSocket] Queue broadcast start")
+
         # 全ての接続を取得
         response = connections_table.scan()
         connections = response.get("Items", [])
+        print(f"[WebSocket] Found {len(connections)} connections")
 
         # Legacy形式のメッセージ：{"action": "updateQueue"}
-        # データは含めず、フロントエンドに再取得を促す
         message = {"action": "updateQueue"}
 
-        print(f"[WebSocket] Broadcasting queue update to {len(connections)} connections")
-        
+        sent_count = 0
         for connection in connections:
             connection_id = connection["connection_id"]
-            _send_message_to_connection(connection_id, message)
+            result = _send_message_to_connection(connection_id, message)
+            if result.get("statusCode") == 200:
+                sent_count += 1
+
+        print(f"[WebSocket] Queue broadcast complete: {sent_count}/{len(connections)} sent")
 
     except Exception as e:
-        print(f"[WebSocket] Error broadcasting queue update: {e}")
+        print(f"[WebSocket] Queue broadcast error: {e}")
+        import traceback
+        print(f"[WebSocket] Traceback: {traceback.format_exc()}")
 
 
 def notify_match_found(user_ids: list, match_data: dict[str, Any]):
@@ -368,6 +380,94 @@ def broadcast_match_update(match_id: str, update_type: str):
     except Exception as e:
         print(f"[WebSocket] Error broadcasting match update: {e}")
         print(f"[WebSocket] Broadcast traceback: {traceback.format_exc()}")
+
+
+def handle_ask_queue_info(connection_id: str) -> dict[str, Any]:
+    """
+    クライアントからのキュー情報リクエストに応答する。
+    初期キュー状態を取得してWebSocket経由で返す。
+    """
+    try:
+        print(f"[WebSocket] Processing askQueueInfo for connection {connection_id}")
+
+        # 現在のキュー情報を取得
+        NAMESPACE = "default"
+        QUEUE_TABLE = os.environ.get("QUEUE_TABLE_NAME", "unitemate-v2-queue-dev")
+
+        queue_table = dynamodb.Table(QUEUE_TABLE)
+
+        # #META#アイテムから統計情報を取得
+        response = queue_table.get_item(Key={"namespace": NAMESPACE, "user_id": "#META#"})
+
+        if "Item" in response:
+            meta_item = response["Item"]
+            # DynamoDB Decimal型をJSON serializable型に変換
+            role_queues_raw = meta_item.get("role_queues", {})
+            role_queues = {}
+            for role, users in role_queues_raw.items():
+                # ユーザーIDリストの各要素をstrに変換
+                role_queues[role] = [str(user_id) for user_id in users]
+
+            total_waiting = int(meta_item.get("total_waiting", 0))
+            ongoing_matches = int(meta_item.get("ongoing_matches", 0))
+            # DynamoDB Decimal型をstrに変換してからlistに
+            ongoing_match_players = [str(player) for player in meta_item.get("ongoing_match_players", [])]
+            previous_matched_unixtime = int(meta_item.get("previous_matched_unixtime", 0))
+            previous_user_count = int(meta_item.get("previous_user_count", 0))
+        else:
+            # #META#が存在しない場合は空のキュー
+            role_queues = {"TOP_LANE": [], "SUPPORT": [], "MIDDLE": [], "BOTTOM_LANE": [], "TANK": []}
+            total_waiting = 0
+            ongoing_matches = 0
+            ongoing_match_players = []
+            previous_matched_unixtime = 0
+            previous_user_count = 0
+
+        # ロール別の待機人数を計算
+        role_counts = {role: len(users) for role, users in role_queues.items()}
+
+        queue_info = {
+            "total_waiting": total_waiting,
+            "ongoing_matches": ongoing_matches,
+            "role_counts": role_counts,
+            "previous_matched_unixtime": previous_matched_unixtime,
+            "previous_user_count": previous_user_count,
+            "ongoing_match_players": ongoing_match_players,
+        }
+
+        # クライアントに初期キュー情報を送信
+        message = {
+            "action": "queueInfo",
+            "data": queue_info,
+            "timestamp": int(datetime.now().timestamp())
+        }
+
+        result = _send_message_to_connection(connection_id, message)
+        print(f"[WebSocket] Sent queue info to {connection_id}: {queue_info}")
+
+        return result
+
+    except Exception as e:
+        print(f"[WebSocket] Error handling askQueueInfo: {e}")
+        import traceback
+        print(f"[WebSocket] Traceback: {traceback.format_exc()}")
+
+        # エラー時も空のデータを送信
+        error_message = {
+            "action": "queueInfo",
+            "data": {
+                "total_waiting": 0,
+                "ongoing_matches": 0,
+                "role_counts": {"TOP_LANE": 0, "SUPPORT": 0, "MIDDLE": 0, "BOTTOM_LANE": 0, "TANK": 0},
+                "previous_matched_unixtime": 0,
+                "previous_user_count": 0,
+                "ongoing_match_players": [],
+            },
+            "error": str(e),
+            "timestamp": int(datetime.now().timestamp())
+        }
+
+        return _send_message_to_connection(connection_id, error_message)
 
 
 def get_match_data(match_id: str) -> dict[str, Any] | None:

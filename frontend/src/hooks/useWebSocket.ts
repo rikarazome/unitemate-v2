@@ -19,13 +19,14 @@ interface MatchDynamicData {
 }
 
 interface WebSocketMessage {
-  action: 'updateQueue' | 'updateQueueInfo' | 'updateStatus' | 'match_found' | 'match_cancelled' | 'user_update' | 'pong';
+  action: 'updateQueue' | 'updateQueueInfo' | 'updateStatus' | 'match_found' | 'match_cancelled' | 'user_update' | 'pong' | 'queueDiff' | 'queueInfo';
   type?: 'subscribeMatchSuccess' | 'subscribeMatchError' | 'unsubscribeMatchSuccess' | 'matchUpdate';
   matchId?: string;
   dynamicData?: MatchDynamicData;
   updateType?: 'lobby_id_updated' | 'host_changed' | 'match_reported' | 'match_completed';
   error?: string;
   data?: unknown;
+  changes?: unknown; // queueDiff用の差分データ
   body?: string;
   timestamp?: number;
 }
@@ -33,12 +34,15 @@ interface WebSocketMessage {
 interface UseWebSocketOptions {
   onMessage?: (message: WebSocketMessage) => void;
   onQueueUpdate?: (queueData: unknown) => void;
+  onQueueDiff?: (changes: unknown) => void; // 差分更新用ハンドラー
+  onQueueInfo?: (queueInfo: unknown) => void; // askQueueInfoレスポンス用ハンドラー
   onQueueInfoUpdate?: (queueInfoData: unknown) => void;
   onStatusUpdate?: (statusData: unknown) => void;
   onMatchFound?: (matchData: unknown) => void;
   onMatchUpdate?: (dynamicData: MatchDynamicData, updateType?: string) => void;
   onMatchSubscribed?: (dynamicData: MatchDynamicData) => void;
   onMatchError?: (error: string) => void;
+  onConnected?: () => void; // WebSocket接続成功時のコールバック
   reconnectAttempts?: number;
   reconnectInterval?: number;
 }
@@ -47,12 +51,15 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
   const {
     onMessage,
     onQueueUpdate,
+    onQueueDiff,
+    onQueueInfo,
     onQueueInfoUpdate,
     onStatusUpdate,
     onMatchFound,
     onMatchUpdate,
     onMatchSubscribed,
     onMatchError,
+    onConnected,
     reconnectAttempts = 5,
     reconnectInterval = 3000,
   } = options;
@@ -115,14 +122,19 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
 
       // Legacyと同じ方式：user_idをクエリパラメータで送信
       const websocketUrl = `${wsUrl}?user_id=${userId}`;
+      console.log("[WebSocket] Attempting to connect to:", websocketUrl);
       const websocket = new WebSocket(websocketUrl);
       ws.current = websocket;
 
       websocket.onopen = () => {
+        console.log("[WebSocket] Connection established successfully");
         setReadyState(WebSocketReadyState.OPEN);
         reconnectCount.current = 0;
         shouldReconnect.current = true;
         isConnecting.current = false;
+
+        // 接続成功時のコールバックを呼び出し（初期キュー情報取得のため）
+        onConnected?.();
 
         // 接続直後に即座に askQueueInfo を送信（Legacyと同様）
         if (websocket.readyState === WebSocket.OPEN) {
@@ -144,12 +156,12 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
           }
         }, 60000) as unknown as number;
 
-        // 5秒ごとにキュー情報問い合わせを送信（Legacyと同様）
-        askQueueInterval.current = setInterval(() => {
-          if (websocket.readyState === WebSocket.OPEN) {
-            websocket.send(JSON.stringify({ action: "askQueueInfo" }));
-          }
-        }, 5000) as unknown as number;
+        // ✅ コメントアウト: キュー情報ポーリングを無効化（イベントドリブンに変更）
+        // askQueueInterval.current = setInterval(() => {
+        //   if (websocket.readyState === WebSocket.OPEN) {
+        //     websocket.send(JSON.stringify({ action: "askQueueInfo" }));
+        //   }
+        // }, 5000) as unknown as number;
       };
 
       websocket.onmessage = (event) => {
@@ -190,7 +202,16 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
           // Legacyと同じアクション処理
           switch (message.action) {
             case "updateQueue":
+              console.log("[WebSocket] Queue update event received - event-driven mode active");
               onQueueUpdate?.(message.data);
+              break;
+            case "queueDiff":
+              console.log("[WebSocket] Queue diff received:", message.changes);
+              onQueueDiff?.(message.changes);
+              break;
+            case "queueInfo":
+              console.log("[WebSocket] Queue info received from askQueueInfo:", message.data);
+              onQueueInfo?.(message.data);
               break;
             case "updateQueueInfo":
               try {
@@ -248,7 +269,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
           }, reconnectInterval) as unknown as number;
         } else if (reconnectCount.current >= reconnectAttempts) {
           shouldReconnect.current = false; // 再接続を停止
-          setError("WebSocket connection failed after maximum attempts");
+          setError("接続が切れました。画面をリロードしてください。");
         }
       };
 

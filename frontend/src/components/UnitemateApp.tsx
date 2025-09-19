@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
 import { Link } from "react-router-dom";
@@ -723,12 +723,88 @@ const MatchTab: React.FC<MatchTabProps> = ({
   const { isAuthenticated, user } = useAuth0();
   const dummyAuth = useDummyAuth();
   const { userInfo, refetch: _refetchUserInfo } = useUserInfo();
-  const { queueInfo, error: queueError, refetch: refetchQueueInfo } = useQueueInfo();
+  const { queueInfo, error: queueError, refetch: refetchQueueInfo, updateQueueInfo } = useQueueInfo();
   const { unitemateApi } = useUnitemateApi();
   const { seasonInfo } = useSeasonInfo();
   
   // シーズン期間外チェック
   const isSeasonInactive = !seasonInfo?.is_season_active;
+
+  // キュー差分更新関数
+  const updateQueueInfoFromDiff = useCallback((changes: any) => {
+    try {
+      console.log("[QueueDiff] Starting diff update");
+
+      if (!changes) {
+        console.log("[QueueDiff] No changes provided, skipping update");
+        return;
+      }
+
+      // setterの関数型を使用して最新のqueueInfoを取得
+      updateQueueInfo((currentQueueInfo) => {
+        console.log("[QueueDiff] Current queueInfo from setter:", currentQueueInfo);
+
+        if (!currentQueueInfo) {
+          console.log("[QueueDiff] No current queueInfo, skipping update");
+          return currentQueueInfo; // 変更なしで現在の状態を返す
+        }
+
+        console.log("[QueueDiff] Applying changes:", changes);
+        console.log("[QueueDiff] Current queueInfo from parameter:", currentQueueInfo);
+
+        const updatedQueueInfo = { ...currentQueueInfo };
+
+        // 総待機人数の更新
+        if (changes.total_waiting && typeof changes.total_waiting.new === 'number') {
+          updatedQueueInfo.total_waiting = changes.total_waiting.new;
+          console.log(`[QueueDiff] Updated total_waiting: ${changes.total_waiting.old} → ${changes.total_waiting.new}`);
+        }
+
+        // ロール別キューの更新
+        if (changes.role_queues && updatedQueueInfo.role_counts) {
+          for (const [role, roleChange] of Object.entries(changes.role_queues)) {
+            const change = roleChange as any;
+            if (change && typeof change.new_count === 'number') {
+              updatedQueueInfo.role_counts[role] = change.new_count;
+
+              if (change.joined && change.joined.length > 0) {
+                console.log(`[QueueDiff] ${role}: ${change.joined.join(', ')} joined (${change.old_count} → ${change.new_count})`);
+              }
+              if (change.left && change.left.length > 0) {
+                console.log(`[QueueDiff] ${role}: ${change.left.join(', ')} left (${change.old_count} → ${change.new_count})`);
+              }
+            }
+          }
+        }
+
+        // 進行中マッチ数の更新
+        if (changes.ongoing_matches && typeof changes.ongoing_matches.new === 'number') {
+          updatedQueueInfo.ongoing_matches = changes.ongoing_matches.new;
+          console.log(`[QueueDiff] Updated ongoing_matches: ${changes.ongoing_matches.old} → ${changes.ongoing_matches.new}`);
+        }
+
+        // 進行中マッチプレイヤーの更新
+        if (changes.ongoing_match_players) {
+          updatedQueueInfo.ongoing_match_players = changes.ongoing_match_players.new;
+          console.log(`[QueueDiff] Updated ongoing_match_players:`);
+          if (changes.ongoing_match_players.joined?.length > 0) {
+            console.log(`  Joined match: ${changes.ongoing_match_players.joined.join(', ')}`);
+          }
+          if (changes.ongoing_match_players.left?.length > 0) {
+            console.log(`  Left match: ${changes.ongoing_match_players.left.join(', ')}`);
+          }
+        }
+
+        // total_waitingはバックエンドから正確な値が送信されるため、クライアント側での計算は不要
+        // role_countsは重複カウント（同じユーザーが複数ロール選択可能）のため、合計しても正確な待機人数にならない
+
+        console.log("[QueueDiff] Final updated queueInfo:", updatedQueueInfo);
+        return updatedQueueInfo;
+      });
+    } catch (error) {
+      console.error("[QueueDiff] Error updating queue info from diff:", error);
+    }
+  }, [updateQueueInfo]);
 
   // WebSocket接続とリアルタイム更新
   const { 
@@ -737,9 +813,31 @@ const MatchTab: React.FC<MatchTabProps> = ({
     unsubscribeMatch,
     matchDynamicData: _matchDynamicData
   } = useWebSocket({
+    onConnected: () => {
+      console.log("[WebSocket] Connected - askQueueInfo message will be sent automatically");
+      // ✅ HTTP呼び出しをコメントアウト: WebSocket経由でaskQueueInfoメッセージで取得
+      // refetchQueueInfo?.();
+    },
+    onQueueInfo: (queueData: any) => {
+      console.log("[WebSocket] Initial queue info received via WebSocket:", queueData);
+      console.log("[WebSocket] Current queueInfo before update:", queueInfo);
+      console.log("[WebSocket] updateQueueInfo function:", updateQueueInfo);
+      // WebSocket経由で受信した初期キュー情報を設定
+      if (queueData && updateQueueInfo) {
+        updateQueueInfo(queueData);
+        console.log("[WebSocket] Queue info initialized from WebSocket");
+        console.log("[WebSocket] Queue info should now be:", queueData);
+      }
+    },
     onQueueUpdate: () => {
-      console.log("[WebSocket] Queue update received, refetching queue info...");
-      refetchQueueInfo?.();
+      console.log("[WebSocket] Queue update received - event-driven mode active");
+      // ✅ HTTPリクエストによる再取得をコメントアウト: WebSocketイベントドリブンに移行
+      // refetchQueueInfo?.();
+    },
+    onQueueDiff: (changes) => {
+      console.log("[WebSocket] Queue diff received:", changes);
+      // 差分データを使ってキュー情報を効率的に更新
+      updateQueueInfoFromDiff(changes);
     },
     onMatchUpdate: (dynamicData) => {
       console.log("[WebSocket] Match dynamic update received:", dynamicData);
@@ -1507,6 +1605,7 @@ const MatchTab: React.FC<MatchTabProps> = ({
       <QueueStatus
         selectedRoles={selectedRoles}
         onRoleChange={setSelectedRoles}
+        externalQueueInfo={queueInfo}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-1 gap-4 lg:gap-6"></div>

@@ -24,6 +24,7 @@ from boto3.dynamodb.conditions import Key
 
 from src.utils.response import create_error_response, create_success_response
 from src.services.penalty_service import PenaltyService
+from src.handlers.websocket import broadcast_queue_update
 
 
 # DynamoDB設定 - Legacy準拠の複合キー構造
@@ -231,6 +232,13 @@ def join_queue(event: dict, _context: object) -> dict:
         print("joinQueue: Updating queue meta")
         update_queue_meta_on_join(user_id, selected_roles)
 
+        # ✅ DynamoDB Streamsが自動でブロードキャスト処理を行うためコメントアウト
+        # try:
+        #     broadcast_queue_update()
+        #     print(f"[Queue] Broadcasted queue update after {user_id} joined")
+        # except Exception as e:
+        #     print(f"[Queue] Failed to broadcast queue update: {e}")
+
         print("joinQueue: Successfully joined queue")
         return create_success_response({"message": "Successfully joined queue"})
 
@@ -273,6 +281,13 @@ def leave_queue(event: dict, _context: object) -> dict:
 
         # メタ情報を更新（ユーザーIDとロール情報のみ）
         update_queue_meta_on_leave(user_id, selected_roles)
+
+        # ✅ DynamoDB Streamsが自動でブロードキャスト処理を行うためコメントアウト
+        # try:
+        #     broadcast_queue_update()
+        #     print(f"[Queue] Broadcasted queue update after {user_id} left")
+        # except Exception as e:
+        #     print(f"[Queue] Failed to broadcast queue update: {e}")
 
         return create_success_response({"message": "Successfully left queue"})
 

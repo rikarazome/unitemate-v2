@@ -427,6 +427,9 @@ functions:
     environment:
       QUEUE_TABLE_NAME: ${self:custom.tableName.queue}
       USERS_TABLE_NAME: ${self:custom.tableName.users}
+      CONNECTIONS_TABLE_NAME: ${self:custom.tableName.connections}
+      WEBSOCKET_API_ID: !Ref WebsocketsApi
+      AWS_STAGE: ${sls:stage}
     events:
       - httpApi:
           path: /api/queue/join
@@ -439,6 +442,9 @@ functions:
     environment:
       QUEUE_TABLE_NAME: ${self:custom.tableName.queue}
       USERS_TABLE_NAME: ${self:custom.tableName.users}
+      CONNECTIONS_TABLE_NAME: ${self:custom.tableName.connections}
+      WEBSOCKET_API_ID: !Ref WebsocketsApi
+      AWS_STAGE: ${sls:stage}
     events:
       - httpApi:
           path: /api/queue/leave
@@ -802,10 +808,25 @@ functions:
     environment:
       CONNECTIONS_TABLE_NAME: ${self:custom.tableName.connections}
       USERS_TABLE_NAME: ${self:custom.tableName.users}
+      QUEUE_TABLE_NAME: ${self:custom.tableName.queue}
       WEBSOCKET_API_ID: !Ref WebsocketsApi
       AWS_STAGE: ${sls:stage}
     events:
       - websocket: $default
+
+  # DynamoDB Streams処理 - キュー状態変更の差分検知
+  queueStreamProcessor:
+    handler: src/handlers/queue_stream.process_queue_changes
+    environment:
+      CONNECTIONS_TABLE_NAME: ${self:custom.tableName.connections}
+      WEBSOCKET_API_ID: !Ref WebsocketsApi
+      AWS_STAGE: ${sls:stage}
+    events:
+      - stream:
+          type: dynamodb
+          arn: !GetAtt QueueTable.StreamArn
+          batchSize: 10
+          startingPosition: TRIM_HORIZON
 
   # 管理者用試合管理エンドポイント
   getAdminMatches:
@@ -1200,6 +1221,8 @@ resources:
           - AttributeName: user_id
             KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
 
     MasterDataTable:
       Type: AWS::DynamoDB::Table

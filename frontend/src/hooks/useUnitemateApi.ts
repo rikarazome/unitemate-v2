@@ -650,8 +650,8 @@ export const useQueueInfo = () => {
   useEffect(() => {
     if (!isAuthenticated && !dummyAuth.isAuthenticated) return;
 
-    // 初回のみローディング表示
-    fetchQueueInfo(true);
+    // ✅ 初回HTTP取得をコメントアウト: WebSocket接続成功時に取得する方式に変更
+    // fetchQueueInfo(true);
 
     // エラーが連続する場合は定期更新を停止
     if (retryCount >= 3) {
@@ -674,10 +674,9 @@ export const useQueueInfo = () => {
       return;
     }
 
-    // WebSocketが無効の場合のみポーリング（10秒間隔）
-    // WebSocket有効時はこのポーリングは不要
-    const interval = setInterval(() => fetchQueueInfo(false), 10000);
-    return () => clearInterval(interval);
+    // ✅ ポーリング処理をコメントアウト: WebSocketイベントドリブンに移行
+    // const interval = setInterval(() => fetchQueueInfo(false), 10000);
+    // return () => clearInterval(interval);
   }, [
     isAuthenticated,
     getAccessTokenSilently,
@@ -687,7 +686,13 @@ export const useQueueInfo = () => {
     error,
   ]);
 
-  return { queueInfo, loading, error, refetch: () => fetchQueueInfo(true) };
+  return {
+    queueInfo,
+    loading,
+    error,
+    refetch: () => fetchQueueInfo(true),
+    updateQueueInfo: setQueueInfo  // 差分更新用に公開
+  };
 };
 
 export const useRanking = () => {
@@ -814,24 +819,24 @@ export const useMatchQueue = () => {
     checkStatus();
   }, [checkStatus]);
 
-  // 10秒ごとに状態をチェック（エラーが多い場合は停止）
-  useEffect(() => {
-    if (!userStatus.in_queue) return;
-    if (
-      error &&
-      (error.includes("404") ||
-        error.includes("500") ||
-        error.includes("CORS") ||
-        error.includes("ERR_INSUFFICIENT_RESOURCES") ||
-        error.includes("Failed to fetch"))
-    ) {
-      console.warn("Queue status check disabled due to backend errors:", error);
-      return;
-    }
+  // ✅ ポーリング処理をコメントアウト: WebSocketイベントドリブンに移行
+  // useEffect(() => {
+  //   if (!userStatus.in_queue) return;
+  //   if (
+  //     error &&
+  //     (error.includes("404") ||
+  //       error.includes("500") ||
+  //       error.includes("CORS") ||
+  //       error.includes("ERR_INSUFFICIENT_RESOURCES") ||
+  //       error.includes("Failed to fetch"))
+  //   ) {
+  //     console.warn("Queue status check disabled due to backend errors:", error);
+  //     return;
+  //   }
 
-    const interval = setInterval(checkStatus, 5000);
-    return () => clearInterval(interval);
-  }, [userStatus.in_queue, checkStatus, error]);
+  //   const interval = setInterval(checkStatus, 5000);
+  //   return () => clearInterval(interval);
+  // }, [userStatus.in_queue, checkStatus, error]);
 
   return {
     joinQueue,
