@@ -1172,7 +1172,7 @@
   {
     "id": "badge_079",
     "display": "グラフィック青1",
-    "condition": "支援ページから購入可能",
+    "condition": "現在購入不可",
     "price": 1500,
     "type": "image",
     "start_color": "",
@@ -1187,7 +1187,7 @@
   {
     "id": "badge_080",
     "display": "グラフィック青2",
-    "condition": "支援ページから購入可能",
+    "condition": "現在購入不可",
     "price": 1500,
     "type": "image",
     "start_color": "",
@@ -1202,7 +1202,7 @@
   {
     "id": "badge_081",
     "display": "グラフィック青3",
-    "condition": "支援ページから購入可能",
+    "condition": "現在購入不可",
     "price": 1500,
     "type": "image",
     "start_color": "",
@@ -1982,7 +1982,7 @@
   {
     "id": "badge_133",
     "display": "グラフィック赤1",
-    "condition": "支援ページから購入可能",
+    "condition": "現在購入不可",
     "price": 1500,
     "type": "image",
     "start_color": "",
@@ -1997,7 +1997,7 @@
   {
     "id": "badge_134",
     "display": "グラフィック赤2",
-    "condition": "支援ページから購入可能",
+    "condition": "現在購入不可",
     "price": 1500,
     "type": "image",
     "start_color": "",
@@ -2012,7 +2012,7 @@
   {
     "id": "badge_135",
     "display": "グラフィック赤3",
-    "condition": "支援ページから購入可能",
+    "condition": "現在購入不可",
     "price": 1500,
     "type": "image",
     "start_color": "",
@@ -2156,6 +2156,51 @@
     "is_active": true,
     "image_card": "",
     "banner_image": "",
+    "current_sales": 0,
+    "max_sales": 0
+  },
+  {
+    "id": "badge_145",
+    "display": "ユナメイト支援バッジ[S6]",
+    "condition": "支援ページから購入可能",
+    "price": 1500,
+    "type": "image",
+    "start_color": "",
+    "end_color": "",
+    "char_color": "#FFFFFF",
+    "is_active": true,
+    "image_card": "/images/badges/badge_145_card.png",
+    "banner_image": "/images/badges/badge_145_banner.png",
+    "current_sales": 0,
+    "max_sales": 0
+  },
+  {
+    "id": "badge_146",
+    "display": "ユナメイト支援バッジ[S6]",
+    "condition": "支援ページから購入可能",
+    "price": 1500,
+    "type": "image",
+    "start_color": "",
+    "end_color": "",
+    "char_color": "#FFFFFF",
+    "is_active": true,
+    "image_card": "/images/badges/badge_146_card.png",
+    "banner_image": "/images/badges/badge_146_banner.png",
+    "current_sales": 0,
+    "max_sales": 0
+  },
+  {
+    "id": "badge_147",
+    "display": "ユナメイト支援バッジ[S6]",
+    "condition": "支援ページから購入可能",
+    "price": 1500,
+    "type": "image",
+    "start_color": "",
+    "end_color": "",
+    "char_color": "#FFFFFF",
+    "is_active": true,
+    "image_card": "/images/badges/badge_147_card.png",
+    "banner_image": "/images/badges/badge_147_banner.png",
     "current_sales": 0,
     "max_sales": 0
   }
