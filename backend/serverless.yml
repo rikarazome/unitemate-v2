@@ -324,6 +324,15 @@ functions:
           path: /api/public/master
           method: get
 
+  getPublicSystemData:
+    handler: src/handlers/master.get_public_system_data
+    environment:
+      MASTER_DATA_TABLE_NAME: ${self:custom.tableName.masterData}
+    events:
+      - httpApi:
+          path: /api/public/system
+          method: get
+
   updateSetting:
     handler: src/handlers/master.update_setting
     environment:

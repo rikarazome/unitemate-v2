@@ -192,8 +192,8 @@ def get_me(event: dict, _context: object) -> dict:
     # レスポンスに試合データを追加
     user_data["latest_matches"] = latest_matches
 
-    # 2分間のキャッシュを設定（ユーザー情報は比較的安定）
-    cache_control = "private, max-age=120, s-maxage=120"
+    # 5分間のキャッシュを設定（ユーザー情報は比較的安定）
+    cache_control = "private, max-age=300, s-maxage=300"
     return create_success_response(user_data, cache_control=cache_control)
 
 
@@ -508,7 +508,9 @@ def update_profile(event: dict, _context: object) -> dict:
     if not updated_user:
         return create_error_response(500, "Failed to update profile")
 
-    return create_success_response(updated_user.model_dump())
+    # プロフィール更新後はキャッシュを無効化する必要があるため、no-cacheを設定
+    cache_control = "no-cache, no-store, must-revalidate"
+    return create_success_response(updated_user.model_dump(), cache_control=cache_control)
 
 
 def update_discord_info(event: dict, _context: object) -> dict:

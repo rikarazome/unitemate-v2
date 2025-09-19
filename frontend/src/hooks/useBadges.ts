@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useApi } from "./useApi";
+import { getAllBadges as getLocalBadges, getBadgeById as getLocalBadgeById } from "../data/badges";
 
 // 勲章データの型定義
 export interface Badge {
@@ -28,11 +29,8 @@ export interface BadgeEquipment {
   secondary_badge: string | null;
 }
 
-// APIから取得した勲章データをキャッシュ
+// ローカルデータから取得した勲章データをキャッシュ
 let cachedBadgesData: Badge[] | null = null;
-
-// 基本的な勲章データ（API取得失敗時のフォールバック）
-const fallbackBadgesData: Badge[] = [];
 
 // API設定
 const API_BASE_URL =
@@ -40,51 +38,22 @@ const API_BASE_URL =
 
 
 /**
- * パブリックAPIから勲章データを取得する非同期関数（認証なし）
+ * ローカルデータから勲章データを取得する関数
  */
-const fetchPublicBadges = async (): Promise<Badge[]> => {
+const fetchLocalBadges = (): Badge[] => {
   try {
-    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
-    
-    const response = await fetch(`${API_BASE_URL}/api/public/master`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const badges = data.badges || [];
-    
-    return badges.map((item: any) => ({
-      id: item.id,
-      condition: item.condition || "",
-      display: item.display || "",
-      start_color: item.start_color || null,
-      end_color: item.end_color || null,
-      char_color: item.char_color || null,
-      image_card: item.image_card || null,
-      banner_image: item.banner_image || null,
-      type: item.type || "basic",
-      price: item.price || 0,
-      max_sales: item.max_sales || 0,
-      current_sales: item.current_sales || 0,
-    }));
+    return getLocalBadges();
   } catch (error) {
-    console.warn("Failed to fetch public badges from API, using fallback data:", error);
-    return fallbackBadgesData;
+    console.warn("Failed to fetch local badges data:", error);
+    return [];
   }
 };
 
 /**
  * グローバルな勲章データアクセス用のヘルパー関数（認証が必要な場合は useBadges フックを使用してください）
  */
-export const getBadge = async (badgeId: string, callApi?: ReturnType<typeof useApi>["callApi"]): Promise<Badge | undefined> => {
-  const badges = await getAllBadges(callApi);
+export const getBadge = async (badgeId: string, _callApi?: ReturnType<typeof useApi>["callApi"]): Promise<Badge | undefined> => {
+  const badges = await getAllBadges(_callApi);
   return badges.find((badge) => badge.id === badgeId);
 };
 
@@ -93,9 +62,9 @@ export const getAllBadges = async (_callApi?: ReturnType<typeof useApi>["callApi
     return cachedBadgesData;
   }
 
-  // 常にパブリックAPIから取得
-  cachedBadgesData = await fetchPublicBadges();
-  
+  // ローカルデータから取得
+  cachedBadgesData = fetchLocalBadges();
+
   return cachedBadgesData || [];
 };
 
@@ -104,24 +73,26 @@ export const getBadgeSync = (badgeId: string): Badge | undefined => {
   if (cachedBadgesData) {
     return cachedBadgesData.find((badge) => badge.id === badgeId);
   }
-  return fallbackBadgesData.find((badge) => badge.id === badgeId);
+  // ローカルデータから直接取得
+  return getLocalBadgeById(badgeId);
 };
 
 export const getAllBadgesSync = (): Badge[] => {
   if (cachedBadgesData) {
     return cachedBadgesData;
   }
-  return fallbackBadgesData;
+  // ローカルデータから直接取得
+  return getLocalBadges();
 };
 
 /**
- * 勲章データを初期化（パブリックAPIから取得してキャッシュ）
+ * 勲章データを初期化（ローカルデータから取得してキャッシュ）
  * アプリ開始時に呼び出すことで、認証なしでも勲章データを使用可能にする
  */
 export const initializeBadges = async (): Promise<void> => {
   if (!cachedBadgesData) {
     try {
-      cachedBadgesData = await fetchPublicBadges();
+      cachedBadgesData = fetchLocalBadges();
     } catch (error) {
       console.warn("Failed to initialize badge data:", error);
     }
@@ -132,30 +103,30 @@ export const initializeBadges = async (): Promise<void> => {
  * 勲章関連のフック
  */
 export const useBadges = (authToken?: string) => {
-  const { callApi: _callApi } = useApi();
+  const { callApi } = useApi();
   const [userBadges, setUserBadges] = useState<UserBadge[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [masterBadges, setMasterBadges] = useState<Badge[]>([]);
 
-  // マスターデータを取得（常にPublic APIを使用）
+  // マスターデータを取得（ローカルデータを使用）
   const fetchMasterBadges = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // バッジのマスターデータは公開情報なので、常にPublic APIから取得
-      const badges = await fetchPublicBadges();
-      
+      // ローカルのバッジデータを取得
+      const badges = fetchLocalBadges();
+
       setMasterBadges(badges);
       cachedBadgesData = badges;
-      
+
       return badges;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
       setError(errorMessage);
       console.error("Failed to fetch master badges:", err);
-      return fallbackBadgesData;
+      return [];
     } finally {
       setLoading(false);
     }
@@ -163,7 +134,7 @@ export const useBadges = (authToken?: string) => {
 
   // 全勲章マスターデータを取得（フック内の関数名を変更）
   const getAllBadgesInternal = (): Badge[] => {
-    return masterBadges.length > 0 ? masterBadges : cachedBadgesData || fallbackBadgesData;
+    return masterBadges.length > 0 ? masterBadges : cachedBadgesData || getLocalBadges();
   };
 
   // 特定の勲章データを取得（フック内の関数名を変更）

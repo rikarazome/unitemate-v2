@@ -176,9 +176,13 @@ class UnitemateApiClient {
     return response.json();
   }
 
-  // ユーザー情報取得
-  async getUserInfo(token?: string): Promise<UserInfo> {
-    return this.request<UserInfo>(`/users/me`, {}, token);
+  // ユーザー情報取得（bustCacheオプション付き）
+  async getUserInfo(token?: string, bustCache = false): Promise<UserInfo> {
+    // キャッシュバスティング用のタイムスタンプを追加（必要な場合）
+    const endpoint = bustCache
+      ? `/users/me?_t=${Date.now()}`
+      : `/users/me`;
+    return this.request<UserInfo>(endpoint, {}, token);
   }
 
   async getUserDetails(userId: string, token?: string): Promise<UserInfo> {
@@ -228,9 +232,14 @@ class UnitemateApiClient {
     return this.request<MasterDataResponse>("/master", {}, token);
   }
 
-  // 公開マスターデータ取得（認証不要）
+  // 公開マスターデータ取得（認証不要） - 勲章データのみ（ショップページ用）
   async getPublicMasterData(): Promise<MasterDataResponse> {
     return this.request<MasterDataResponse>("/public/master");
+  }
+
+  // 公開システムデータ取得（認証不要） - 設定・お知らせ（メインページ用）
+  async getPublicSystemData(): Promise<MasterDataResponse> {
+    return this.request<MasterDataResponse>("/public/system");
   }
 
   // 設定更新
@@ -478,7 +487,7 @@ export const useUserInfo = () => {
   const { getAccessTokenSilently, isAuthenticated } = useAuth0();
   const dummyAuth = useDummyAuth();
 
-  const fetchUserInfo = useCallback(async () => {
+  const fetchUserInfo = useCallback(async (bustCache = false) => {
     // ダミー認証またはAuth0認証のどちらかが有効でない場合はスキップ
     if (!isAuthenticated && !dummyAuth.isAuthenticated) return;
 
@@ -492,7 +501,7 @@ export const useUserInfo = () => {
       } else {
         token = await getAccessTokenSilently();
       }
-      const data = await apiClient.getUserInfo(token);
+      const data = await apiClient.getUserInfo(token, bustCache);
       setUserInfo(data);
     } catch (err) {
       if (err instanceof Error) {
@@ -512,7 +521,7 @@ export const useUserInfo = () => {
             err.message.includes("User not found")
           ) {
             setTimeout(() => {
-              fetchUserInfo();
+              fetchUserInfo(bustCache);
             }, 1000); // 1秒後にリトライ
           } else {
             setError(err.message);
@@ -532,15 +541,21 @@ export const useUserInfo = () => {
   ]);
 
   useEffect(() => {
-    fetchUserInfo();
-  }, [fetchUserInfo]);
+    fetchUserInfo(false); // 初回ロードは通常のキャッシュを使用
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    isAuthenticated,
+    getAccessTokenSilently,
+    dummyAuth.isAuthenticated,
+    dummyAuth.accessToken,
+  ]);
 
   return {
     userInfo,
     loading,
     error,
     needsRegistration,
-    refetch: fetchUserInfo,
+    refetch: () => fetchUserInfo(true), // refetch時は常にキャッシュバスティングを有効化
   };
 };
 
@@ -885,7 +900,7 @@ export const useMasterData = () => {
   return { masterData, loading, error };
 };
 
-// 公開マスターデータ取得フック（認証不要）
+// 公開マスターデータ取得フック（認証不要） - 勲章データのみ（ショップページ用）
 export const usePublicMasterData = () => {
   const [masterData, setMasterData] = useState<MasterDataResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -906,6 +921,32 @@ export const usePublicMasterData = () => {
     };
 
     fetchPublicMasterData();
+  }, []);
+
+  return { masterData, loading, error };
+};
+
+// 公開システムデータ取得フック（認証不要） - 設定・お知らせ（メインページ用）
+export const usePublicSystemData = () => {
+  const [masterData, setMasterData] = useState<MasterDataResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchSystemData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await apiClient.getPublicSystemData();
+        setMasterData(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unknown error");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSystemData();
   }, []);
 
   return { masterData, loading, error };

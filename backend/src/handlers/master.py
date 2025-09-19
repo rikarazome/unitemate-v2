@@ -91,7 +91,7 @@ def get_master_data(event: dict, _context: object) -> dict:
 
 
 def get_public_master_data(event: dict, _context: object) -> dict:
-    """パブリック向けマスターデータ取得（勲章、ポケモン、設定データ）.
+    """パブリック向けマスターデータ取得（勲章データのみ - ショップページ用）.
 
     Args:
         event (dict): Lambdaイベントオブジェクト.
@@ -107,30 +107,53 @@ def get_public_master_data(event: dict, _context: object) -> dict:
     table = get_master_data_table()
 
     try:
-        # 勲章データのみを取得（認証なしでアクセス可能）
+        # 勲章データのみを取得（ショップページ用）
         badges_response = table.query(KeyConditionExpression=Key("data_type").eq("BADGE"))
         badges = badges_response.get("Items", [])
 
-        # ポケモンデータも取得（ランキング表示で使用）
-        pokemon_response = table.query(KeyConditionExpression=Key("data_type").eq("POKEMON"))
-        pokemon = pokemon_response.get("Items", [])
-
-        # 設定データも取得（ルール表示で使用）
-        settings_response = table.query(KeyConditionExpression=Key("data_type").eq("SETTING"))
-        settings = settings_response.get("Items", [])
-
         master_data = {
-            "badges": badges,
-            "pokemon": pokemon,
-            "settings": settings
+            "badges": badges
         }
 
-        # 30分間のキャッシュを設定 (緊急コスト削減対応)
-        cache_control = "public, max-age=1800, s-maxage=1800"
+        # 1時間のキャッシュを設定 (コスト削減強化)
+        cache_control = "public, max-age=3600, s-maxage=3600"
         return create_success_response(master_data, origin=origin, cache_control=cache_control)
 
     except Exception as e:
         return create_error_response(500, f"パブリックマスターデータの取得に失敗しました: {e!s}", origin=origin)
+
+
+def get_public_system_data(event: dict, _context: object) -> dict:
+    """パブリック向けシステムデータ取得（設定・お知らせ用 - メインページ用）.
+
+    Args:
+        event (dict): Lambdaイベントオブジェクト.
+        _context (object): Lambda実行コンテキスト.
+
+    Returns:
+        dict: パブリックシステムデータまたはエラーレスポンス.
+
+    """
+    # Originヘッダーを取得（CORS対応）
+    origin = event.get("headers", {}).get("origin") or event.get("headers", {}).get("Origin")
+
+    table = get_master_data_table()
+
+    try:
+        # 設定データを取得（ルール・お知らせ・制限時間用）
+        settings_response = table.query(KeyConditionExpression=Key("data_type").eq("SETTING"))
+        settings = settings_response.get("Items", [])
+
+        system_data = {
+            "settings": settings
+        }
+
+        # 1時間のキャッシュを設定 (コスト削減強化)
+        cache_control = "public, max-age=3600, s-maxage=3600"
+        return create_success_response(system_data, origin=origin, cache_control=cache_control)
+
+    except Exception as e:
+        return create_error_response(500, f"パブリックシステムデータの取得に失敗しました: {e!s}", origin=origin)
 
 
 def update_setting(event: dict, _context: object) -> dict:

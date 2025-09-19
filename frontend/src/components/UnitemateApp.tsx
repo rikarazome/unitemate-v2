@@ -11,7 +11,7 @@ import {
   useQueueInfo,
   useMatchQueue,
   useMasterData,
-  usePublicMasterData,
+  usePublicSystemData,
   type UserInfo,
 } from "../hooks/useUnitemateApi";
 import { useSeasonInfo } from "../hooks/useSeasonInfo";
@@ -60,7 +60,7 @@ const RulesTab: React.FC = () => {
   
   // 認証状態に応じて適切なフックのみを使用
   const authenticatedData = useMasterData();
-  const publicData = usePublicMasterData();
+  const publicData = usePublicSystemData();
   
   // データとローディング状態を取得（非認証の場合は常にpublicDataを使用）
   const { masterData, loading: masterDataLoading } = isUserAuthenticated && authenticatedData.masterData 
