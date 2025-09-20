@@ -127,7 +127,7 @@ export const QueueVisualization: React.FC<QueueVisualizationProps> = ({
     });
 
     return { pieSlices, totalEntries, uniquePlayerCount };
-  }, [role_counts, getRoleColor, ROLE_ORDER]);
+  }, [role_counts, total_waiting, getRoleColor, ROLE_ORDER]);
 
   // グリッドパターンの描画
   const drawGrid = (

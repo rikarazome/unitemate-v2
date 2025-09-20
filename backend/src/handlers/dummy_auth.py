@@ -58,7 +58,6 @@ def get_dummy_users_list(event: dict, context: object) -> dict:
                     )
 
             except Exception as e:
-                print(f"Error getting dummy user {user_id}: {e}")
                 continue
 
         return create_success_response(
@@ -70,7 +69,7 @@ def get_dummy_users_list(event: dict, context: object) -> dict:
         )
 
     except Exception as e:
-        print(f"get_dummy_users_list error: {e}")
+        print(f"[ERROR] get_dummy_users_list error: {e}")
         return create_error_response(500, f"Failed to get dummy users list: {str(e)}")
 
 
@@ -114,7 +113,7 @@ def dummy_login(event: dict, context: object) -> dict:
             user = response["Item"]
 
         except Exception as e:
-            print(f"Database error: {e}")
+            print(f"[ERROR] Database error: {e}")
             return create_error_response(500, "Database error")
 
         # ダミーアカウントかどうか確認
@@ -165,7 +164,7 @@ def dummy_login(event: dict, context: object) -> dict:
     except json.JSONDecodeError:
         return create_error_response(400, "Invalid JSON body")
     except Exception as e:
-        print(f"dummy_login error: {e}")
+        print(f"[ERROR] dummy_login error: {e}")
         return create_error_response(500, f"Login failed: {str(e)}")
 
 
@@ -180,7 +179,6 @@ def validate_dummy_token(token: str) -> dict[str, any]:
 
     """
     try:
-        print(f"AUTH: validate_dummy_token called with token: {token[:50]}...")
         
         try:
             # First try to decode without verification to check if it's a dummy token
@@ -190,17 +188,13 @@ def validate_dummy_token(token: str) -> dict[str, any]:
                 "verify_exp": False,
                 "verify_iat": False
             })
-            print(f"AUTH: Unverified payload: {unverified_payload}")
         except Exception as decode_error:
-            print(f"AUTH: Failed to decode token without verification: {decode_error}")
             return {}
 
         # Check if it's a dummy token before attempting validation
         if not unverified_payload.get("is_dummy"):
-            print("AUTH: Not a dummy token, skipping")
             return {}
 
-        print("AUTH: Detected dummy token, proceeding with validation")
         
         # It's a dummy token, so decode it with proper validation
         try:
@@ -210,24 +204,17 @@ def validate_dummy_token(token: str) -> dict[str, any]:
                 algorithms=["HS256"],
                 options={"verify_aud": False},  # Skip audience validation for dummy tokens
             )
-            print(f"AUTH: Dummy token decoded successfully: {payload}")
         except Exception as validation_error:
-            print(f"AUTH: Dummy token validation failed: {validation_error}")
             return {}
 
         # Double-check after verification
         if payload.get("is_dummy"):
-            print(f"AUTH: Dummy token validated successfully for user: {payload.get('user_id')}")
             return payload
 
-        print("AUTH: Token validation failed - not a dummy token after verification")
         return {}
     except jwt.ExpiredSignatureError:
-        print("AUTH: Dummy token expired")
         return {}
     except jwt.JWTError as e:
-        print(f"AUTH: Invalid dummy token: {e}")
         return {}
     except Exception as e:  # noqa: BLE001
-        print(f"AUTH: Token validation error: {e}")
         return {}

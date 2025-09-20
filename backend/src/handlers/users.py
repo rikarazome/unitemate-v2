@@ -86,13 +86,6 @@ def get_me(event: dict, _context: object) -> dict:
         dict: ユーザー情報またはエラーレスポンス.
 
     """
-    # オーソライザーから渡されたユーザー情報 (HTTP API形式)
-    print(f"getMe - Full event keys: {list(event.keys())}")
-    print(f"getMe - requestContext: {json.dumps(event.get('requestContext', {}), default=str)}")
-    print(
-        f"getMe - requestContext.authorizer: {json.dumps(event.get('requestContext', {}).get('authorizer', {}), default=str)}"
-    )
-
     try:
         # HTTP API形式のオーソライザーコンテキストから取得
         # 重要: enableSimpleResponses: true の場合、コンテキストは以下の構造になる:
@@ -106,18 +99,12 @@ def get_me(event: dict, _context: object) -> dict:
         lambda_context = authorizer.get("lambda", {})
         auth0_user_id = lambda_context.get("user_id")
 
-        print(f"getMe - Full lambda_context: {json.dumps(lambda_context, default=str)}")
-
         if not auth0_user_id:
-            # デバッグのため、実際の構造を出力
-            print(f"getMe - requestContext structure: {json.dumps(request_context, default=str)}")
-            print(f"getMe - user_id not found. authorizer: {authorizer}, lambda: {lambda_context}")
+            print(f"[ERROR] getMe - user_id not found in authorizer context")
             return create_error_response(401, "Unauthorized: user_id not found in authorizer context")
 
-        print(f"getMe - Using user_id: {auth0_user_id}")
     except Exception as e:
-        print(f"getMe - Error extracting user_id: {e}")
-        print(f"getMe - Full event: {json.dumps(event, default=str)}")
+        print(f"[ERROR] getMe - Error extracting user_id: {e}")
         return create_error_response(401, "Unauthorized: failed to extract user_id")
 
     # UserServiceを使用して現在のユーザーを取得
@@ -127,18 +114,14 @@ def get_me(event: dict, _context: object) -> dict:
     if auth0_user_id.startswith("dummy|discord|"):
         # ダミーユーザーの場合
         actual_user_id = auth0_user_id.split("|")[-1]  # "dummy_user_X" を抽出
-        print(f"getMe - Detected dummy user, looking up by user_id: {actual_user_id}")
     else:
         # 通常のAuth0ユーザーの場合：常にDiscord IDで検索
         actual_user_id = auth0_user_id.split("|")[-1] if "|" in auth0_user_id else auth0_user_id
-        print(f"getMe - Extracted Discord ID from user_id: {actual_user_id}")
 
     # Discord IDで直接検索
     user = user_service.get_user_by_user_id(actual_user_id)
-    print(f"getMe - User lookup result: {user}")
 
     if not user:
-        print(f"getMe - User not found for user_id: {auth0_user_id}, attempting auto-creation")
 
         # 自動ユーザー作成を試行
         try:
@@ -152,22 +135,20 @@ def get_me(event: dict, _context: object) -> dict:
             )
 
             if auto_created_user:
-                print(f"getMe - Auto-created user: {auto_created_user}")
                 response_data = auto_created_user.model_dump()
                 response_data["win_rate"] = auto_created_user.win_rate
                 return create_success_response(response_data)
-            print(f"getMe - Failed to auto-create user for: {auth0_user_id}")
+            print(f"[ERROR] getMe - Failed to auto-create user for: {auth0_user_id}")
             return create_error_response(500, "Failed to create user automatically")
 
         except Exception as e:
-            print(f"getMe - Error during auto-creation: {e}")
+            print(f"[ERROR] getMe - Error during auto-creation: {e}")
             return create_error_response(500, f"Failed to create user: {e!s}")
 
     # Discord情報の更新が必要な場合（プレースホルダーユーザー名の場合）
     # フロントエンドからIDトークンの情報を受け取る必要があるため、
     # ここでは更新は行わず、フロントエンド側でプロファイル更新を促す
 
-    print(f"getMe - Found user: {user}")
 
     # ユーザー情報の辞書を作成
     user_data = user.model_dump()
@@ -183,9 +164,8 @@ def get_me(event: dict, _context: object) -> dict:
             ProjectionExpression="pokemon, match_id, rate_delta, started_date, winlose",
         )
         latest_matches = records_response.get("Items", [])
-        print(f"getMe - Retrieved {len(latest_matches)} records for user {user.user_id}")
     except Exception as e:
-        print(f"getMe - Error fetching records: {e!s}")
+        print(f"[ERROR] getMe - Error fetching records: {e!s}")
         # レコード取得失敗時もユーザーデータは返す
         latest_matches = []
 
@@ -209,9 +189,6 @@ def create_user(event: dict, _context: object) -> dict:
 
     """
     # オーソライザーから渡されたユーザー情報 (HTTP API形式)
-    print(f"createUser - Full event keys: {list(event.keys())}")
-    print(f"createUser - requestContext keys: {list(event.get('requestContext', {}).keys())}")
-    print(f"createUser - authorizer: {json.dumps(event.get('requestContext', {}).get('authorizer', {}), default=str)}")
 
     # 重要: AWS HTTP API + enableSimpleResponses:true の場合のコンテキスト構造
     # 正しいパス: event.requestContext.authorizer.lambda.{context_property}
@@ -225,12 +202,11 @@ def create_user(event: dict, _context: object) -> dict:
         auth0_user_id = lambda_context.get("user_id")
 
         if not auth0_user_id:
-            print(f"createUser - user_id not found in authorizer context: {authorizer_context}")
+            print(f"[ERROR] createUser - user_id not found in authorizer context")
             return create_error_response(401, "Unauthorized: user_id not found in authorizer context")
 
-        print(f"createUser - Using user_id: {auth0_user_id}")
     except Exception as e:
-        print(f"createUser - Error extracting user_id: {e}")
+        print(f"[ERROR] createUser - Error extracting user_id: {e}")
         return create_error_response(401, "Unauthorized: failed to extract user_id")
 
     # まず既存ユーザーをチェック
@@ -244,37 +220,27 @@ def create_user(event: dict, _context: object) -> dict:
         # 確定情報: フロントエンドでの二重JSON.stringify()を防ぐため
         # event["body"]の型をチェックし、適切にパースする
         raw_body = event.get("body", "{}")
-        print(f"createUser - raw_body type: {type(raw_body)}")
-        print(f"createUser - raw_body: {raw_body}")
 
         # 最初のJSONパース
         parsed_body = json.loads(raw_body)
-        print(f"createUser - parsed_body type: {type(parsed_body)}")
 
         # 二重エンコーディングの場合、再度パースが必要
         if isinstance(parsed_body, str):
-            print("createUser - Detected double JSON encoding, parsing again")
             body_data = json.loads(parsed_body)
         else:
             body_data = parsed_body
 
-        print(f"createUser - final body_data type: {type(body_data)}")
-        print(f"createUser - Request body: {body_data}")
 
         # Auth0情報からDiscord情報を抽出
         auth0_profile_data = body_data.get("auth0_profile", {})
-        print(f"createUser - auth0_profile type: {type(auth0_profile_data)}")
-        print(f"createUser - auth0_profile value: {auth0_profile_data}")
 
         discord_info = _extract_discord_info_from_auth0(auth0_profile_data)
-        print(f"createUser - Extracted discord_info: {discord_info}")
 
         # Discord IDを抽出（Auth0のsubからDiscord IDを取得）
         discord_id = _extract_discord_id_from_user_id(auth0_user_id)
-        print(f"createUser - Extracted discord_id: {discord_id} from auth0_user_id: {auth0_user_id}")
 
         if not discord_id:
-            print(f"createUser - Discord ID extraction failed. Auth0 sub: {auth0_user_id}")
+            print(f"[ERROR] createUser - Discord ID extraction failed. Auth0 sub: {auth0_user_id}")
             return create_error_response(400, f"Discord IDを取得できませんでした。Auth0 sub: {auth0_user_id}")
 
         # UserCreateRequestに変換
@@ -284,14 +250,11 @@ def create_user(event: dict, _context: object) -> dict:
             discord_avatar_url=discord_info.get("discord_avatar_url"),
             trainer_name=body_data.get("trainer_name") or discord_info["discord_username"],
         )
-        print(f"createUser - UserCreateRequest: {create_request}")
     except ValueError as e:
-        print(f"createUser - ValueError: {e}")
+        print(f"[ERROR] createUser - ValueError: {e}")
         return create_error_response(400, str(e))
     except Exception as e:
-        print(f"createUser - Unexpected error during user creation: {e}")
-        print(f"createUser - Error type: {type(e).__name__}")
-        print(f"createUser - Traceback: {traceback.format_exc()}")
+        print(f"[ERROR] createUser - Unexpected error during user creation: {e}")
         return create_error_response(500, f"Internal server error: {e!s}")
 
     # Discord IDを既存ユーザーでチェック
@@ -301,22 +264,16 @@ def create_user(event: dict, _context: object) -> dict:
 
     try:
         # UserServiceを使用してユーザーを作成
-        print(
-            f"createUser - Calling UserService.create_user with discord_id: {discord_id}, auth0_user_id: {auth0_user_id}"
-        )
         user = user_service.create_user(discord_id, create_request)
 
         if not user:
             return create_error_response(500, "ユーザー作成に失敗しました。")
 
-        print(f"createUser - User created successfully: {user}")
         response_data = user.model_dump()
         response_data["win_rate"] = user.win_rate
         return create_success_response(response_data, 201)
     except Exception as e:
-        print(f"createUser - Error in UserService.create_user: {e}")
-        print(f"createUser - Error type: {type(e).__name__}")
-        print(f"createUser - Traceback: {traceback.format_exc()}")
+        print(f"[ERROR] createUser - Error in UserService.create_user: {e}")
         return create_error_response(500, f"ユーザー作成エラー: {e!s}")
 
 
@@ -336,27 +293,22 @@ def _extract_discord_id_from_user_id(user_id: str) -> str | None:
     if not user_id:
         return None
 
-    print(f"_extract_discord_id_from_user_id - Input user_id: {user_id}")
 
     # 'oauth2|discord|' プレフィックスを確認して除去
     if user_id.startswith("oauth2|discord|"):
         discord_id = user_id[15:]  # 'oauth2|discord|' の15文字を除去
-        print(f"_extract_discord_id_from_user_id - Extracted from oauth2|discord|: {discord_id}")
         return discord_id
 
     # 'discord|' プレフィックスを確認して除去
     if user_id.startswith("discord|"):
         discord_id = user_id[8:]  # 'discord|' の8文字を除去
-        print(f"_extract_discord_id_from_user_id - Extracted from discord|: {discord_id}")
         return discord_id
 
     # プレフィックスがない場合でも、数値のIDであれば受け入れる（Discord IDの可能性）
     if user_id.isdigit():
-        print(f"_extract_discord_id_from_user_id - Using raw numeric ID: {user_id}")
         return user_id
 
     # その他の認証プロバイダー（Google, GitHub等）の場合はNoneを返す
-    print(f"_extract_discord_id_from_user_id - Non-Discord authentication detected: {user_id}")
     return None
 
 
@@ -375,21 +327,15 @@ def _extract_discord_info_from_auth0(auth0_profile_info: dict | str | None) -> d
         dict: 抽出されたDiscord情報.
 
     """
-    print(f"_extract_discord_info_from_auth0 - Input type: {type(auth0_profile_info)}")
-    print(f"_extract_discord_info_from_auth0 - Input data: {json.dumps(auth0_profile_info, default=str)}")
 
     # 防御的プログラミング: 型チェックと変換
     if auth0_profile_info is None:
         auth0_profile_info = {}
     elif isinstance(auth0_profile_info, str):
-        # 文字列の場合は空の辞書として扱う（ログ用の情報として残す）
-        print(f"_extract_discord_info_from_auth0 - Received string instead of dict: {auth0_profile_info}")
+        # 文字列の場合は空の辞書として扱う
         auth0_profile_info = {}
     elif not isinstance(auth0_profile_info, dict):
         # その他の型の場合も空の辞書として扱う
-        print(
-            f"_extract_discord_info_from_auth0 - Received unexpected type {type(auth0_profile_info)}: {auth0_profile_info}"
-        )
         auth0_profile_info = {}
 
     # Try to get username, discriminator, and avatar from common Auth0 fields.
@@ -398,9 +344,6 @@ def _extract_discord_info_from_auth0(auth0_profile_info: dict | str | None) -> d
     name = auth0_profile_info.get("name", "")  # Can be a fallback
     picture = auth0_profile_info.get("picture", "")  # Usually the avatar
 
-    print(
-        f"_extract_discord_info_from_auth0 - Extracted values: nickname='{nickname}', name='{name}', picture='{picture}'"
-    )
 
     # Example of accessing nested data if Discord info is in identities array:
     # identities = auth0_profile_info.get("identities", [])
@@ -442,10 +385,6 @@ def update_profile(event: dict, _context: object) -> dict:
 
     """
     # オーソライザーから渡されたユーザー情報 (HTTP API形式)
-    print(f"updateProfile - Full event: {json.dumps(event, default=str)}")
-    print(
-        f"updateProfile - Authorizer context: {json.dumps(event.get('requestContext', {}).get('authorizer', {}), default=str)}"
-    )
 
     try:
         # HTTP API形式のオーソライザーコンテキストから取得
@@ -457,15 +396,12 @@ def update_profile(event: dict, _context: object) -> dict:
         lambda_context = authorizer.get("lambda", {})
         auth0_user_id = lambda_context.get("user_id")
 
-        print(f"getMe - Full lambda_context: {json.dumps(lambda_context, default=str)}")
-
         if not auth0_user_id:
-            print(f"updateProfile - user_id not found in authorizer context: {authorizer}")
+            print(f"[ERROR] updateProfile - user_id not found")
             return create_error_response(401, "Unauthorized: user_id not found in authorizer context")
 
-        print(f"updateProfile - Using user_id: {auth0_user_id}")
     except Exception as e:
-        print(f"updateProfile - Error extracting user_id: {e}")
+        print(f"[ERROR] updateProfile - Error extracting user_id: {e}")
         return create_error_response(401, "Unauthorized: failed to extract user_id")
 
     # UserServiceを使用して現在のユーザーを取得
@@ -475,35 +411,27 @@ def update_profile(event: dict, _context: object) -> dict:
     if auth0_user_id.startswith("dummy|discord|"):
         # ダミーユーザーの場合
         actual_user_id = auth0_user_id.split("|")[-1]  # "dummy_user_X" を抽出
-        print(f"updateProfile - Detected dummy user, looking up by user_id: {actual_user_id}")
     else:
         # 通常のAuth0ユーザーの場合：常にDiscord IDで検索
         actual_user_id = auth0_user_id.split("|")[-1] if "|" in auth0_user_id else auth0_user_id
-        print(f"updateProfile - Extracted Discord ID from user_id: {actual_user_id}")
 
     # Discord IDで直接検索
     user = user_service.get_user_by_user_id(actual_user_id)
 
-    print(f"updateProfile - Found user: {user}")
-
     if not user:
-        print(f"updateProfile - User not found in database for user_id: {auth0_user_id}")
+        print(f"[ERROR] updateProfile - User not found: {auth0_user_id}")
         return create_error_response(404, "User not found")
 
     # Pydanticモデルでリクエストボディをバリデーション
     try:
         body_data = json.loads(event["body"])
-        print(f"updateProfile - Request body: {body_data}")
         update_request = UserUpdateRequest(**body_data)
-        print(f"updateProfile - Parsed request: {update_request}")
     except ValueError as e:
-        print(f"updateProfile - Request validation error: {e}")
+        print(f"[ERROR] updateProfile - Request validation error: {e}")
         return create_error_response(400, str(e))
 
     # UserServiceを使用してプロフィールを更新
-    print(f"updateProfile - Calling update_profile with user_id: {user.user_id}")
     updated_user = user_service.update_profile(user.user_id, update_request)
-    print(f"updateProfile - Update result: {updated_user}")
 
     if not updated_user:
         return create_error_response(500, "Failed to update profile")
@@ -515,7 +443,6 @@ def update_profile(event: dict, _context: object) -> dict:
 
 def update_discord_info(event: dict, _context: object) -> dict:
     """Discord情報をAuth0プロファイルから更新."""
-    print(f"updateDiscordInfo - Full event: {json.dumps(event, default=str)}")
 
     try:
         # HTTP API形式のオーソライザーコンテキストから取得
@@ -524,14 +451,12 @@ def update_discord_info(event: dict, _context: object) -> dict:
         lambda_context = authorizer.get("lambda", {})
         auth0_user_id = lambda_context.get("user_id")
 
-        print(f"updateDiscordInfo - Full lambda_context: {json.dumps(lambda_context, default=str)}")
 
         if not auth0_user_id:
             return create_error_response(401, "Unauthorized: user_id not found in authorizer context")
 
-        print(f"updateDiscordInfo - Using user_id: {auth0_user_id}")
     except Exception as e:
-        print(f"updateDiscordInfo - Error extracting user_id: {e}")
+        print(f"[ERROR] updateDiscordInfo - Error extracting user_id: {e}")
         return create_error_response(401, "Unauthorized: failed to extract user_id")
 
     # UserServiceを使用して現在のユーザーを取得
@@ -541,11 +466,9 @@ def update_discord_info(event: dict, _context: object) -> dict:
     if auth0_user_id.startswith("dummy|discord|"):
         # ダミーユーザーの場合
         actual_user_id = auth0_user_id.split("|")[-1]
-        print(f"updateDiscordInfo - Detected dummy user, looking up by user_id: {actual_user_id}")
     else:
         # 通常のAuth0ユーザーの場合：常にDiscord IDで検索
         actual_user_id = auth0_user_id.split("|")[-1] if "|" in auth0_user_id else auth0_user_id
-        print(f"updateDiscordInfo - Extracted Discord ID from user_id: {actual_user_id}")
 
     # Discord IDで直接検索
     user = user_service.get_user_by_user_id(actual_user_id)
@@ -557,11 +480,9 @@ def update_discord_info(event: dict, _context: object) -> dict:
     try:
         body_data = json.loads(event["body"])
         auth0_profile = body_data.get("auth0_profile", {})
-        print(f"updateDiscordInfo - Received Auth0 profile: {json.dumps(auth0_profile, default=str)}")
 
         # Discord情報を抽出
         discord_info = _extract_discord_info_from_auth0(auth0_profile)
-        print(f"updateDiscordInfo - Extracted Discord info: {discord_info}")
 
         # ユーザー情報を更新
         updated = False
@@ -576,22 +497,19 @@ def update_discord_info(event: dict, _context: object) -> dict:
             updated = True
 
         if updated:
-            print(f"updateDiscordInfo - Updating Discord info for: {user.user_id}")
             user.updated_at = int(__import__("time").time())
             if user_service.user_repository.update(user):
-                print("updateDiscordInfo - Successfully updated Discord info")
                 response_data = user.model_dump()
                 response_data["win_rate"] = user.win_rate
                 return create_success_response(response_data)
-            print("updateDiscordInfo - Failed to update Discord info")
+            print(f"[ERROR] updateDiscordInfo - Failed to update Discord info")
             return create_error_response(500, "Failed to update Discord info")
-        print("updateDiscordInfo - No Discord info to update")
         response_data = user.model_dump()
         response_data["win_rate"] = user.win_rate
         return create_success_response(response_data)
 
     except Exception as e:
-        print(f"updateDiscordInfo - Error: {e}")
+        print(f"[ERROR] updateDiscordInfo - Error: {e}")
         return create_error_response(500, f"Failed to update Discord info: {e!s}")
 
 
@@ -604,8 +522,6 @@ def debug_auth_info(event: dict, _context: object) -> dict:
         lambda_context = authorizer_context.get("lambda", {})
         auth0_user_id = lambda_context.get("user_id")
 
-        print(f"debug_auth_info - Full authorizer context: {authorizer_context}")
-        print(f"debug_auth_info - Extracted user_id: {auth0_user_id}")
 
         # リクエストボディ
         body_data = {}
@@ -625,11 +541,10 @@ def debug_auth_info(event: dict, _context: object) -> dict:
             },
         }
 
-        print(f"debug_auth_info - Full debug info: {json.dumps(debug_info, default=str, indent=2)}")
 
         return create_success_response(debug_info)
     except Exception as e:
-        print(f"debug_auth_info - Error: {e}")
+        print(f"[ERROR] debug_auth_info - Error: {e}")
         return create_error_response(500, str(e))
 
 
@@ -677,7 +592,7 @@ def get_user(event: dict, _context: object) -> dict:
         return create_success_response(public_user_info)
 
     except Exception as e:
-        print(f"get_user error: {e}")
+        print(f"[ERROR] get_user error: {e}")
         return create_error_response(500, f"Failed to retrieve user information: {e!s}")
 
 
@@ -693,7 +608,6 @@ def get_user_ranking(event: dict, _context: object) -> dict:
 
     """
     try:
-        print("get_user_ranking: Fetching pre-calculated rankings")
 
         # ランキングテーブルから事前計算されたデータを取得
         rankings_table = dynamodb.Table(os.environ.get("RANKINGS_TABLE_NAME", "unitemate-v2-rankings-dev"))
@@ -706,7 +620,6 @@ def get_user_ranking(event: dict, _context: object) -> dict:
         )
 
         items = response.get("Items", [])
-        print(f"get_user_ranking: Found {len(items)} rankings")
 
         # ランキングデータを整形（既にrank順になっている）
         rankings = []
@@ -735,7 +648,7 @@ def get_user_ranking(event: dict, _context: object) -> dict:
         return create_success_response({"rankings": rankings, "total_count": len(rankings), "updated_at": updated_at}, cache_control=cache_control)
 
     except Exception as e:
-        print(f"get_user_ranking error: {e}")
+        print(f"[ERROR] get_user_ranking error: {e}")
         # フォールバック: ランキングテーブルにデータがない場合は空のランキングを返す
         return create_success_response(
             {

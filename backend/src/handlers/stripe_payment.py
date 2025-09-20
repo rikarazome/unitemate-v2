@@ -186,18 +186,12 @@ def webhook_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     Stripe Webhookを処理する - セキュリティ強化版
     """
     try:
-        print(
-            f"Webhook received: {event.get('httpMethod')} from {event.get('headers', {}).get('user-agent', 'unknown')}"
-        )
 
         # セキュリティ: 必須ヘッダーとペイロードの検証
         payload = event.get("body")
         sig_header = event.get("headers", {}).get("stripe-signature")
         endpoint_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
 
-        print(
-            f"Payload exists: {payload is not None}, Signature exists: {sig_header is not None}, Secret exists: {endpoint_secret is not None}"
-        )
 
         if not payload:
             logger.error("Missing payload in webhook")
@@ -213,34 +207,26 @@ def webhook_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
         # セキュリティ: Webhookの署名検証（改ざん防止）
         try:
-            print(f"Attempting to construct Stripe event...")
             stripe_event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
-            print(f"Stripe event constructed successfully")
         except stripe.error.SignatureVerificationError as e:
-            print(f"Webhook signature verification failed: {str(e)}")
             logger.error(f"Webhook signature verification failed: {str(e)}")
             return {"statusCode": 400, "body": json.dumps({"error": "Invalid signature"})}
         except Exception as e:
-            print(f"Error constructing Stripe event: {str(e)}")
             logger.error(f"Error constructing Stripe event: {str(e)}")
             return {"statusCode": 400, "body": json.dumps({"error": "Event construction failed"})}
 
-        print(f"Webhook received: {stripe_event['type']}")
         logger.info(f"Webhook received: {stripe_event['type']}")
 
         # 支払い完了の処理（セキュリティ強化）
         if stripe_event["type"] == "checkout.session.completed":
             session = stripe_event["data"]["object"]
 
-            print(f"Session data: {json.dumps(session, default=str)}")
 
             # セキュリティ: メタデータの検証
             metadata = session.get("metadata", {})
-            print(f"Metadata: {metadata}")
             badge_id = metadata.get("badge_id")
             user_id = metadata.get("user_id")
             source = metadata.get("source")
-            print(f"Badge ID: {badge_id}, User ID: {user_id}, Source: {source}")
 
             # セキュリティ: 必須フィールドの確認
             if not badge_id or not user_id:
@@ -259,11 +245,8 @@ def webhook_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
             # DynamoDBに勲章を付与する処理
             try:
-                print(f"Table name from env: {os.environ.get('USERS_TABLE_NAME', 'NOT SET')}")
-                print(f"Attempting to get user from DynamoDB: namespace='default', user_id='{user_id}'")
                 # ユーザー情報を取得（正しいキー構造を使用）
                 response = users_table.get_item(Key={"namespace": "default", "user_id": user_id})
-                print(f"DynamoDB response: {response}")
 
                 if "Item" not in response:
                     logger.error(f"User {user_id} not found in database")
@@ -289,13 +272,9 @@ def webhook_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     ExpressionAttributeValues={":badges": owned_badges, ":now": Decimal(int(datetime.now().timestamp()))},
                 )
 
-                print(f"Successfully granted badge {badge_id} to user {user_id}")
                 logger.info(f"Successfully granted badge {badge_id} to user {user_id}")
 
             except Exception as e:
-                print(f"Failed to grant badge to user: {str(e)}")
-                print(f"Error type: {type(e)}")
-                print(f"Traceback: {traceback.format_exc()}")
                 logger.error(f"Failed to grant badge to user: {str(e)}")
                 # Webhookは成功として処理（再送を防ぐため）
                 return {"statusCode": 200, "body": json.dumps({"received": True, "error": "Database error"})}

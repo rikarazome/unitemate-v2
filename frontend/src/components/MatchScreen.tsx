@@ -66,13 +66,6 @@ const MatchScreen: React.FC<MatchScreenProps> = ({
 }) => {
   const { unitemateApi } = useUnitemateApi();
 
-  // デバッグ用ログ
-  console.log("MatchScreen: matchData:", matchData);
-  console.log("MatchScreen: currentUser:", currentUser);
-  console.log("MatchScreen: team_a players:", matchData.team_a?.players);
-  console.log("MatchScreen: team_b players:", matchData.team_b?.players);
-  console.log("MatchScreen: vc_link_a:", matchData.vc_link_a);
-  console.log("MatchScreen: vc_link_b:", matchData.vc_link_b);
 
   // チームをレート順にソート
   const sortPlayersByRate = (players: MatchPlayer[]) => {

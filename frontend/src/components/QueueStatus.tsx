@@ -1,20 +1,31 @@
 import React from "react";
 import { useQueueInfo, useMatchQueue } from "../hooks/useUnitemateApi";
+import type { QueueInfo } from "../hooks/useUnitemateApi";
 import { QueueVisualization } from "./QueueVisualization";
 import type { LfgRole } from "../types/lfg";
 
 interface QueueStatusProps {
   selectedRoles: LfgRole[];
   onRoleChange: (roles: LfgRole[]) => void;
+  externalQueueInfo?: QueueInfo | null; // 外部から渡されるキュー情報（差分更新用）
 }
 
-export const QueueStatus: React.FC<QueueStatusProps> = ({ selectedRoles }) => {
+export const QueueStatus: React.FC<QueueStatusProps> = ({ selectedRoles, externalQueueInfo }) => {
   const {
-    queueInfo,
+    queueInfo: internalQueueInfo,
     loading: queueLoading,
     error: queueError,
   } = useQueueInfo();
   const { error: actionError, isInQueue, queueEntry } = useMatchQueue();
+
+  // externalQueueInfoが渡された場合はそれを優先、そうでなければinternalを使用
+  const queueInfo = externalQueueInfo || internalQueueInfo;
+
+  // デバッグ用ログ追加
+  React.useEffect(() => {
+    console.log("[QueueStatus] queueInfo updated:", queueInfo);
+    console.log("[QueueStatus] Source:", externalQueueInfo ? "external" : "internal");
+  }, [queueInfo, externalQueueInfo]);
 
   // インキュー中の選択ロールを取得
   // インキュー中のみロールをハイライトする

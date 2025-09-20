@@ -59,36 +59,29 @@ def check_admin_permission(event: dict) -> tuple[bool, str | None]:
 
     """
     try:
-        print(f"DEBUG: check_admin_permission - event requestContext: {event.get('requestContext', {})}")
-
         # 認証情報を取得
         auth0_user_id = event["requestContext"]["authorizer"]["lambda"]["user_id"]
-        print(f"DEBUG: check_admin_permission - auth0_user_id: {auth0_user_id}")
 
         # Auth0 user_idからDiscord IDを抽出
         if "|" in auth0_user_id:
             user_id = auth0_user_id.split("|")[-1]
         else:
             user_id = auth0_user_id
-        print(f"DEBUG: check_admin_permission - extracted user_id: {user_id}")
 
         # ユーザー情報を取得
         user_repo = UserRepository()
         user = user_repo.get_by_user_id(user_id)
-        print(f"DEBUG: check_admin_permission - user found: {user is not None}")
 
         if not user:
             return False, "ユーザーが見つかりません"
 
-        print(f"DEBUG: check_admin_permission - user.is_admin: {user.is_admin}")
         if not user.is_admin:
             return False, "管理者権限がありません"
 
         return True, None
 
     except Exception as e:
-        print(f"check_admin_permission error: {e}")
-        print(f"check_admin_permission traceback: {traceback.format_exc()}")
+        print(f"[ERROR] Admin permission check failed: {e}")
         return False, f"権限チェックエラー: {e!s}"
 
 
@@ -98,29 +91,21 @@ def search_users(event: dict, _context: object) -> dict:
     POST /api/admin/users/search エンドポイントで呼び出される
     """
     # デバッグ用ログ（イベント全体は大きすぎるので、必要な部分のみ）
-    print(f"DEBUG: search_users called")
-    print(f"DEBUG: HTTP method: {event.get('httpMethod', 'N/A')}")
-    print(f"DEBUG: Request body: {event.get('body', 'N/A')}")
-    print(f"DEBUG: Headers: {event.get('headers', {})}")
-
     # 管理者権限チェック
     has_permission, error_msg = check_admin_permission(event)
     if not has_permission:
-        print(f"DEBUG: Permission check failed: {error_msg}")
         return create_error_response(403, error_msg)
 
     try:
         # リクエストボディを解析
         body_data = json.loads(event.get("body", "{}"))
-        print(f"DEBUG: Parsed body data: {body_data}")
         request_data = UserSearchRequest(**body_data)
-        print(f"DEBUG: Validated request data: {request_data}")
 
     except ValidationError as e:
-        print(f"DEBUG: Validation error: {e}")
+        print(f"[ERROR] Validation error: {e}")
         return create_error_response(422, f"Validation error: {e}")
     except Exception as e:
-        print(f"DEBUG: Request parsing error: {e}")
+        print(f"[ERROR] Request parsing error: {e}")
         return create_error_response(400, f"Invalid request: {e}")
 
     try:
@@ -195,7 +180,7 @@ def search_users(event: dict, _context: object) -> dict:
         )
 
     except Exception as e:
-        print(f"search_users error: {e}")
+        print(f"[ERROR] Admin search users failed: {e}")
         return create_error_response(500, f"Failed to search users: {e!s}")
 
 
@@ -230,7 +215,7 @@ def search_users_by_discord_name(query: str, limit: int) -> list:
                     users.append(user)
 
         except Exception as e:
-            print(f"GSI query failed, falling back to scan: {e}")
+            pass  # GSIクエリ失敗時はScanにフォールバック
 
         # 完全一致で見つからない場合、部分一致検索（Scan）にフォールバック
         if not users:
@@ -248,7 +233,7 @@ def search_users_by_discord_name(query: str, limit: int) -> list:
         return users
 
     except Exception as e:
-        print(f"search_users_by_discord_name error: {e}")
+        print(f"[ERROR] Discord name search failed: {e}")
         return []
 
 
@@ -283,7 +268,7 @@ def search_users_by_trainer_name(query: str, limit: int) -> list:
                     users.append(user)
 
         except Exception as e:
-            print(f"GSI query failed, falling back to scan: {e}")
+            pass  # GSIクエリ失敗時はScanにフォールバック
 
         # 完全一致で見つからない場合、部分一致検索（Scan）にフォールバック
         if not users:
@@ -301,7 +286,7 @@ def search_users_by_trainer_name(query: str, limit: int) -> list:
         return users
 
     except Exception as e:
-        print(f"search_users_by_trainer_name error: {e}")
+        print(f"[ERROR] Trainer name search failed: {e}")
         return []
 
 
@@ -365,7 +350,7 @@ def get_user_details(event: dict, _context: object) -> dict:
         return create_success_response(user_details)
 
     except Exception as e:
-        print(f"get_user_details error: {e}")
+        print(f"[ERROR] Get user details failed: {e}")
         return create_error_response(500, f"Failed to get user details: {e!s}")
 
 
@@ -449,7 +434,6 @@ def update_user(event: dict, _context: object) -> dict:
 
         # 操作ログを出力
         admin_user_id = event["requestContext"]["authorizer"]["lambda"]["user_id"]
-        print(f"Admin operation: {admin_user_id} updated user {target_user_id}: {', '.join(changes)}")
 
         return create_success_response(
             {
@@ -461,7 +445,7 @@ def update_user(event: dict, _context: object) -> dict:
         )
 
     except Exception as e:
-        print(f"update_user error: {e}")
+        print(f"[ERROR] Update user failed: {e}")
         return create_error_response(500, f"Failed to update user: {e!s}")
 
 
@@ -488,7 +472,7 @@ def get_penalty_status(event: dict, _context: object) -> dict:
         return create_success_response(penalty_status)
 
     except Exception as e:
-        print(f"get_penalty_status error: {e}")
+        print(f"[ERROR] Get penalty status failed: {e}")
         return create_error_response(500, f"Failed to get penalty status: {e!s}")
 
 
@@ -518,7 +502,6 @@ def apply_penalty(event: dict, _context: object) -> dict:
 
         # 操作ログを出力
         admin_user_id = event["requestContext"]["authorizer"]["lambda"]["user_id"]
-        print(f"Admin operation: {admin_user_id} applied penalty to user {target_user_id}, reason: {reason}")
 
         # 更新後のペナルティ状況を取得
         penalty_status = penalty_service.get_penalty_status(target_user_id)
@@ -533,5 +516,5 @@ def apply_penalty(event: dict, _context: object) -> dict:
         )
 
     except Exception as e:
-        print(f"apply_penalty error: {e}")
+        print(f"[ERROR] Apply penalty failed: {e}")
         return create_error_response(500, f"Failed to apply penalty: {e!s}")

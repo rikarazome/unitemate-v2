@@ -24,6 +24,7 @@ from boto3.dynamodb.conditions import Key
 
 from src.utils.response import create_error_response, create_success_response
 from src.services.penalty_service import PenaltyService
+from src.handlers.websocket import broadcast_queue_update
 
 
 # DynamoDB設定 - Legacy準拠の複合キー構造
@@ -43,7 +44,6 @@ def ensure_meta_exists():
     try:
         resp = queue_table.get_item(Key={"namespace": NAMESPACE, "user_id": "#META#"})
         if "Item" not in resp:
-            print("ensure_meta_exists: Creating missing #META# item")
             queue_table.put_item(
                 Item={
                     "namespace": NAMESPACE,
@@ -61,11 +61,8 @@ def ensure_meta_exists():
                     "ongoing_match_players": [],  # マッチに参加中のプレイヤーID
                 }
             )
-            print("ensure_meta_exists: #META# item created successfully")
-        else:
-            print("ensure_meta_exists: #META# item already exists")
-    except Exception as e:
-        print(f"ensure_meta_exists error: {e}")
+        except Exception as e:
+        print(f"[ERROR] ensure_meta_exists error: {e}")
         # エラーが発生してもプロセスは継続
 
 
@@ -84,7 +81,7 @@ def is_locked():
             # #META#アイテムが存在しない場合はロックなしとみなす
             return False
     except Exception as e:
-        print(f"is_locked error: {e}")
+        print(f"[ERROR] is_locked error: {e}")
         return False
 
 
@@ -132,7 +129,7 @@ def get_queue_status(event: dict, _context: object) -> dict:
         )
 
     except Exception as e:
-        print(f"get_queue_status error: {e}")
+        print(f"[ERROR] get_queue_status error: {e}")
         return create_error_response(500, f"Failed to get queue status: {str(e)}")
 
 
@@ -148,25 +145,20 @@ def join_queue(event: dict, _context: object) -> dict:
         return create_error_response(423, "Match making in progress, please retry later.")
 
     try:
-        print("joinQueue: Starting to process request")
-
         # 認証情報を取得
         auth0_user_id = event["requestContext"]["authorizer"]["lambda"]["user_id"]
-        print(f"joinQueue: Auth0 user_id: {auth0_user_id}")
 
         # Auth0 user_idからDiscord IDを抽出
         if "|" in auth0_user_id:
             user_id = auth0_user_id.split("|")[-1]
         else:
             user_id = auth0_user_id
-        print(f"joinQueue: Final user_id: {user_id}")
 
         # リクエストボディをパース
         try:
             body = json.loads(event.get("body", "{}"))
-            print(f"joinQueue: Request body: {body}")
         except (json.JSONDecodeError, TypeError):
-            print("joinQueue: Invalid or missing request body")
+            print("[ERROR] Invalid queue join request body")
             return create_error_response(400, "Invalid request body")
 
         blocking = body.get("blocking", [])
@@ -175,13 +167,12 @@ def join_queue(event: dict, _context: object) -> dict:
         # すでにキューにいるか確認
         existing = queue_table.get_item(Key={"namespace": NAMESPACE, "user_id": user_id})
         if "Item" in existing:
-            print(f"joinQueue: User {user_id} is already in queue")
             return create_error_response(409, "Already in queue")
 
         # ユーザー情報を取得してペナルティチェック
         user_resp = user_table.get_item(Key={"namespace": NAMESPACE, "user_id": user_id})
         if "Item" not in user_resp:
-            print(f"joinQueue: User {user_id} not found")
+            print(f"[ERROR] Queue join: User {user_id} not found")
             return create_error_response(404, "User not found")
 
         user_item = user_resp["Item"]
@@ -189,29 +180,26 @@ def join_queue(event: dict, _context: object) -> dict:
         # 既に試合にアサインされているかチェック
         assigned_match_id = user_item.get("assigned_match_id", 0)
         if assigned_match_id != 0:
-            print(f"joinQueue: User {user_id} is already assigned to match {assigned_match_id}")
+            print(f"[ERROR] User {user_id} already in match {assigned_match_id}")
             return create_error_response(409, f"既に試合 {assigned_match_id} にアサインされています")
 
         # ペナルティチェック
         penalty_service = PenaltyService()
         can_join, reason = penalty_service.can_join_matchmaking(user_id)
         if not can_join:
-            print(f"joinQueue: User {user_id} cannot join due to penalty: {reason}")
+            print(f"[ERROR] User {user_id} blocked by penalty: {reason}")
             return create_error_response(403, f"マッチングに参加できません: {reason}")
 
         # ロール情報を解析
         if not selected_roles:
-            print("joinQueue: No roles selected")
             return create_error_response(400, "ロールを2つ以上選択してください")
 
         # 2つ以上のロール選択を必須とする
         if len(selected_roles) < 2:
-            print(f"joinQueue: Only {len(selected_roles)} role(s) selected, need at least 2")
             return create_error_response(
                 400, "ロールを2つ以上選択してください（現在: {}個）".format(len(selected_roles))
             )
 
-        print(f"joinQueue: Selected roles: {selected_roles}")
 
         # キューエントリを作成 (簡素化済み)
         queue_entry = {
@@ -221,22 +209,24 @@ def join_queue(event: dict, _context: object) -> dict:
             "selected_roles": selected_roles,  # 希望ロールのリスト
             "inqueued_at": Decimal(int(__import__("time").time())),
         }
-        print(f"joinQueue: Created queue entry: {json.dumps(queue_entry, default=str)}")
 
         # キューに追加
-        print("joinQueue: Adding to queue")
         queue_table.put_item(Item=queue_entry)
 
         # メタ情報を更新（ユーザーIDとロール情報のみ）
-        print("joinQueue: Updating queue meta")
         update_queue_meta_on_join(user_id, selected_roles)
 
-        print("joinQueue: Successfully joined queue")
+        # ✅ DynamoDB Streamsが自動でブロードキャスト処理を行うためコメントアウト
+        # try:
+        #     broadcast_queue_update()
+        #     print(f"[Queue] Broadcasted queue update after {user_id} joined")
+        # except Exception as e:
+        #     print(f"[Queue] Failed to broadcast queue update: {e}")
+
         return create_success_response({"message": "Successfully joined queue"})
 
     except Exception as e:
-        print(f"join_queue error: {e}")
-        print(f"join_queue traceback: {traceback.format_exc()}")
+        print(f"[ERROR] join_queue error: {e}")
         return create_error_response(500, f"Failed to join queue: {str(e)}")
 
 
@@ -274,10 +264,17 @@ def leave_queue(event: dict, _context: object) -> dict:
         # メタ情報を更新（ユーザーIDとロール情報のみ）
         update_queue_meta_on_leave(user_id, selected_roles)
 
+        # ✅ DynamoDB Streamsが自動でブロードキャスト処理を行うためコメントアウト
+        # try:
+        #     broadcast_queue_update()
+        #     print(f"[Queue] Broadcasted queue update after {user_id} left")
+        # except Exception as e:
+        #     print(f"[Queue] Failed to broadcast queue update: {e}")
+
         return create_success_response({"message": "Successfully left queue"})
 
     except Exception as e:
-        print(f"leave_queue error: {e}")
+        print(f"[ERROR] leave_queue error: {e}")
         return create_error_response(500, f"Failed to leave queue: {str(e)}")
 
 
@@ -324,7 +321,7 @@ def get_my_queue_status(event: dict, _context: object) -> dict:
             return create_success_response({"in_queue": False})
 
     except Exception as e:
-        print(f"get_my_queue_status error: {e}")
+        print(f"[ERROR] get_my_queue_status error: {e}")
         return create_error_response(500, f"Failed to get queue status: {str(e)}")
 
 
@@ -353,7 +350,6 @@ def update_queue_meta_on_join(user_id: str, selected_roles: list):
         for role in selected_roles:
             if role in role_queues and user_id not in role_queues[role]:
                 role_queues[role].append(user_id)
-                print(f"update_queue_meta_on_join: Added {user_id} to {role}, now: {role_queues[role]}")
 
         # 総待機人数を計算（ユニークなユーザーIDの数） - 修正版
         all_users = set()
@@ -369,7 +365,7 @@ def update_queue_meta_on_join(user_id: str, selected_roles: list):
         )
 
     except Exception as e:
-        print(f"update_queue_meta_on_join error: {e}")
+        print(f"[ERROR] update_queue_meta_on_join error: {e}")
         raise  # エラーを上位に伝播させる
 
 
@@ -409,7 +405,7 @@ def update_queue_meta_on_leave(user_id: str, selected_roles: list):
         )
 
     except Exception as e:
-        print(f"update_queue_meta_on_leave error: {e}")
+        print(f"[ERROR] update_queue_meta_on_leave error: {e}")
         raise  # エラーを上位に伝播させる
 
 
@@ -461,7 +457,7 @@ def update_queue_meta():
         )
 
     except Exception as e:
-        print(f"update_queue_meta error: {e}")
+        print(f"[ERROR] update_queue_meta error: {e}")
 
 
 def debug_queue_status(event: dict, _context: object) -> dict:
@@ -490,5 +486,5 @@ def debug_queue_status(event: dict, _context: object) -> dict:
         return create_success_response({"meta": meta_item, "entries": user_entries, "total_entries": len(user_entries)})
 
     except Exception as e:
-        print(f"debug_queue_status error: {e}")
+        print(f"[ERROR] debug_queue_status error: {e}")
         return create_error_response(500, f"Failed to get debug queue status: {str(e)}")

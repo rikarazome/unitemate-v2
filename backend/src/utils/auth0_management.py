@@ -109,7 +109,6 @@ def extract_discord_info_from_management_api(profile: Dict[str, Any]) -> Dict[st
             break
 
     if not discord_identity:
-        print("extract_discord_info_from_management_api - No Discord identity found")
         return {
             "discord_username": profile.get("nickname", "Unknown User"),
             "discord_discriminator": None,
@@ -171,27 +170,21 @@ def get_user_info_from_token(token: str) -> Optional[Dict[str, Any]]:
         # Auth0ドメイン取得
         domain = os.environ.get("AUTH0_DOMAIN")
         if not domain:
-            print("get_user_info_from_token - AUTH0_DOMAIN not found in environment")
+            print("[ERROR] AUTH0_DOMAIN not found in environment")
             return None
 
         # Auth0のUserInfoエンドポイントを使用（シンプルで確実）
         url = f"https://{domain}/userinfo"
         headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
-        print(f"get_user_info_from_token - Calling Auth0 userinfo endpoint: {url}")
-
         response = requests.get(url, headers=headers, timeout=10)
-        print(f"get_user_info_from_token - Response status: {response.status_code}")
 
         if response.status_code == 200:
-            user_info = response.json()
-            print(f"get_user_info_from_token - Successfully got user info for: {user_info.get('sub', 'unknown')}")
-            return user_info
+            return response.json()
         else:
-            print(f"get_user_info_from_token - Auth0 userinfo failed: {response.status_code} - {response.text}")
+            print(f"[ERROR] Auth0 userinfo failed: {response.status_code}")
             return None
 
     except Exception as e:
-        print(f"get_user_info_from_token - Error: {e}")
-        traceback.print_exc()
+        print(f"[ERROR] Auth0 userinfo error: {e}")
         return None
