@@ -555,7 +555,7 @@ export const useUserInfo = () => {
     loading,
     error,
     needsRegistration,
-    refetch: () => fetchUserInfo(true), // refetch時は常にキャッシュバスティングを有効化
+    refetch: (bustCache = true) => fetchUserInfo(bustCache), // refetch時はデフォルトでキャッシュバスティングを有効化
   };
 };
 

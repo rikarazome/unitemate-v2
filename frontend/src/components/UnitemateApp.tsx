@@ -475,15 +475,13 @@ const MyPageTab: React.FC = () => {
                   onClick={async () => {
                     console.log("Edit button clicked", { userInfo });
                     try {
-                      // プロフィール編集を開く前に、ユーザーが存在しない場合は再取得を試行
-                      if (!userInfo) {
-                        console.log("No user info, refetching...");
-                        await refetchUserInfo();
-                        // 再取得後も少し待つ
-                        await new Promise((resolve) =>
-                          setTimeout(resolve, 500),
-                        );
-                      }
+                      // プロフィール編集を開く前に、最新のユーザー情報を取得
+                      console.log("Fetching latest user info before profile edit...");
+                      await refetchUserInfo(true); // キャッシュを破棄して最新データを取得
+                      // 再取得後も少し待つ
+                      await new Promise((resolve) =>
+                        setTimeout(resolve, 500),
+                      );
                       console.log("Opening profile edit modal");
                       setIsProfileEditOpen(true);
                     } catch (error) {
@@ -698,7 +696,7 @@ const MyPageTab: React.FC = () => {
         user={userInfo}
         onSuccess={async () => {
           setIsProfileEditOpen(false);
-          await refetchUserInfo(); // ユーザー情報を再取得
+          await refetchUserInfo(true); // キャッシュを破棄してユーザー情報を再取得
         }}
       />
 
