@@ -723,7 +723,7 @@ const MatchTab: React.FC<MatchTabProps> = ({
   const { isAuthenticated, user } = useAuth0();
   const dummyAuth = useDummyAuth();
   const { userInfo, refetch: _refetchUserInfo } = useUserInfo();
-  const { queueInfo, error: queueError, refetch: refetchQueueInfo, updateQueueInfo } = useQueueInfo();
+  const { queueInfo, error: queueError, updateQueueInfo } = useQueueInfo();
   const { unitemateApi } = useUnitemateApi();
   const { seasonInfo } = useSeasonInfo();
   
