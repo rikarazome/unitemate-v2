@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useUpdateProfile, type UserInfo } from "../hooks/useUnitemateApi";
+import { useProfileStore } from "../hooks/useProfileStore";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useDummyAuth } from "../hooks/useDummyAuth";
 import { getPokemonById } from "../data/pokemon";
@@ -29,6 +30,7 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   const { user: auth0User } = useAuth0();
   const dummyAuth = useDummyAuth();
   const { updateProfile, loading: updateLoading } = useUpdateProfile();
+  const { updateStaticData, updateEquippedBadges } = useProfileStore();
 
   const [formData, setFormData] = useState<UpdateProfileRequest>({
     trainer_name: user?.trainer_name || "",
@@ -150,13 +152,33 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
       );
       console.log("ProfileEditModal - Selected roles:", selectedRoles);
       console.log("ProfileEditModal - Pokemon slots:", pokemonSlots);
+
+      // 楽観的更新: サーバーリクエスト前にUIを即座に更新
+      updateStaticData({
+        trainer_name: formData.trainer_name,
+        twitter_id: formData.twitter_id || null,
+        preferred_roles: formData.preferred_roles,
+        favorite_pokemon: formData.favorite_pokemon,
+        bio: formData.bio || null,
+      });
+
+      // 装備勲章も更新
+      updateEquippedBadges(formData.current_badge, formData.current_badge_2);
+
+      console.log("ProfileEditModal - Applied optimistic update");
+
+      // サーバーに実際の更新リクエストを送信
       await updateProfile(formData);
-      console.log("ProfileEditModal - Profile update successful");
+      console.log("ProfileEditModal - Server update successful");
+
       onSuccess();
       onClose();
     } catch (error) {
       console.error("ProfileEditModal - Profile update failed:", error);
-      alert("プロフィールの更新に失敗しました。");
+
+      // TODO: 楽観的更新の巻き戻し処理を追加
+      // 現在は単純にページリフレッシュでサーバー状態を復元
+      alert("プロフィールの更新に失敗しました。ページを再読み込みしてください。");
     }
   };
 

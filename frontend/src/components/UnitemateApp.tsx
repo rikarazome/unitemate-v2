@@ -14,6 +14,7 @@ import {
   usePublicSystemData,
   type UserInfo,
 } from "../hooks/useUnitemateApi";
+import { useProfileStore } from "../hooks/useProfileStore";
 import { useSeasonInfo } from "../hooks/useSeasonInfo";
 import ProfileEditModal from "./ProfileEditModal";
 import SeasonDataModal from "./SeasonDataModal";
@@ -475,9 +476,11 @@ const MyPageTab: React.FC = () => {
                   onClick={async () => {
                     console.log("Edit button clicked", { userInfo });
                     try {
-                      // プロフィール編集を開く前に、最新のユーザー情報を取得
-                      console.log("Fetching latest user info before profile edit...");
-                      await refetchUserInfo(true); // キャッシュを破棄して最新データを取得
+                      // プロフィール編集を開く前に、ユーザー情報を確認
+                      if (!userInfo) {
+                        console.log("No user info, fetching from cache or server...");
+                        await refetchUserInfo(); // キャッシュファーストで取得
+                      }
                       // 再取得後も少し待つ
                       await new Promise((resolve) =>
                         setTimeout(resolve, 500),
@@ -695,8 +698,10 @@ const MyPageTab: React.FC = () => {
         onClose={() => setIsProfileEditOpen(false)}
         user={userInfo}
         onSuccess={async () => {
+          // プロフィール更新が完了したことをコールバックで受け取る
+          // 新しいuseProfileStoreでは楽観的更新により、UIは既に更新済み
+          console.log('[UnitemateApp] Profile edit completed successfully');
           setIsProfileEditOpen(false);
-          await refetchUserInfo(true); // キャッシュを破棄してユーザー情報を再取得
         }}
       />
 
@@ -720,7 +725,16 @@ const MatchTab: React.FC<MatchTabProps> = ({
 }) => {
   const { isAuthenticated, user } = useAuth0();
   const dummyAuth = useDummyAuth();
-  const { userInfo, refetch: _refetchUserInfo } = useUserInfo();
+  // 新しい統一プロフィールストアを使用
+  const {
+    completeUserData: userInfo,
+    loading: userInfoLoading,
+    error: userInfoError,
+    fetchUserData: refetchUserInfo,
+    updateStaticData,
+    addOwnedBadge,
+    hasValidCache
+  } = useProfileStore();
   const { queueInfo, error: queueError, updateQueueInfo } = useQueueInfo();
   const { unitemateApi } = useUnitemateApi();
   const { seasonInfo } = useSeasonInfo();
