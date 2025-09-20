@@ -7,7 +7,8 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useDummyAuth } from './useDummyAuth';
 import { useApi } from './useApi';
-import type { User } from '../types/user';
+import type { SeasonData } from '../types/user';
+import type { UserInfo, MatchRecord } from './useUnitemateApi';
 
 // キャッシュ設定
 const CACHE_KEYS = {
@@ -31,13 +32,13 @@ interface StaticProfileData {
   trainer_name: string;
   twitter_id?: string | null;
   preferred_roles?: string[];
-  favorite_pokemon?: string[] | null;
+  favorite_pokemon?: string[];
   current_badge?: string;
   current_badge_2?: string;
   owned_badges?: string[];
   bio?: string | null;
-  is_admin: boolean;
-  is_banned: boolean;
+  // is_admin: boolean; // UserInfo型にないため削除
+  // is_banned: boolean; // UserInfo型にないため削除
   created_at: number;
   updated_at: number;
 }
@@ -51,9 +52,10 @@ interface DynamicProfileData {
   win_rate: number;
   penalty_count: number;
   penalty_correction: number;
-  last_penalty_time?: number | null;
+  // last_penalty_time?: number | null; // UserInfo型にないため削除
   penalty_timeout_until?: number | null;
-  season_data?: any[];
+  season_data?: SeasonData[];
+  latest_matches?: MatchRecord[];
 }
 
 interface ProfileStoreState {
@@ -108,7 +110,7 @@ const cacheUtils = {
 };
 
 export const useProfileStore = () => {
-  const { isAuthenticated, user: auth0User, getAccessTokenSilently } = useAuth0();
+  const { isAuthenticated, getAccessTokenSilently } = useAuth0();
   const dummyAuth = useDummyAuth();
   const { callApi } = useApi();
 
@@ -123,7 +125,7 @@ export const useProfileStore = () => {
   const initializeAttempted = useRef(false);
 
   // サーバーデータを静的・動的に分離
-  const separateUserData = useCallback((serverData: User) => {
+  const separateUserData = useCallback((serverData: UserInfo) => {
     const staticData: StaticProfileData = {
       user_id: serverData.user_id,
       auth0_sub: serverData.auth0_sub,
@@ -133,13 +135,13 @@ export const useProfileStore = () => {
       trainer_name: serverData.trainer_name,
       twitter_id: serverData.twitter_id,
       preferred_roles: serverData.preferred_roles,
-      favorite_pokemon: serverData.favorite_pokemon,
+      favorite_pokemon: serverData.favorite_pokemon || [],
       current_badge: serverData.current_badge,
       current_badge_2: serverData.current_badge_2,
       owned_badges: serverData.owned_badges,
       bio: serverData.bio,
-      is_admin: serverData.is_admin,
-      is_banned: serverData.is_banned,
+      // is_admin: serverData.is_admin, // UserInfo型にないため削除
+      // is_banned: serverData.is_banned, // UserInfo型にないため削除
       created_at: serverData.created_at,
       updated_at: serverData.updated_at,
     };
@@ -152,9 +154,13 @@ export const useProfileStore = () => {
       win_rate: serverData.win_rate,
       penalty_count: serverData.penalty_count,
       penalty_correction: serverData.penalty_correction,
-      last_penalty_time: serverData.last_penalty_time,
+      // last_penalty_time: serverData.last_penalty_time, // UserInfo型にないため削除
       penalty_timeout_until: serverData.penalty_timeout_until,
-      season_data: serverData.season_data,
+      season_data: serverData.season_data?.map(season => ({
+        ...season,
+        win_count: season.wins // UserInfoのwinsをSeasonDataのwin_countにマップ
+      })),
+      latest_matches: serverData.latest_matches,
     };
 
     return { staticData, dynamicData };
@@ -199,7 +205,7 @@ export const useProfileStore = () => {
       }
 
       // 現在は統一APIを使用（Phase 2で分離予定）
-      const response = await callApi<User>('/api/users/me', {
+      const response = await callApi<UserInfo>('/api/users/me', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -301,11 +307,11 @@ export const useProfileStore = () => {
   }, [updateStaticData]);
 
   // 完全なユーザーデータを取得
-  const getCompleteUserData = useCallback((): User | null => {
+  const getCompleteUserData = useCallback((): UserInfo | null => {
     const { staticData, dynamicData } = state;
     if (!staticData || !dynamicData) return null;
 
-    return { ...staticData, ...dynamicData } as User;
+    return { ...staticData, ...dynamicData } as UserInfo;
   }, [state]);
 
   // 初期化

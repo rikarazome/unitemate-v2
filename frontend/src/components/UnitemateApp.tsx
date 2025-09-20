@@ -7,14 +7,33 @@ import { getBadgeSync } from "../hooks/useBadges";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useUser } from "../hooks/useUser";
 import {
-  useUserInfo,
   useQueueInfo,
   useMatchQueue,
   useMasterData,
   usePublicSystemData,
   type UserInfo,
+  type QueueInfo,
 } from "../hooks/useUnitemateApi";
 import { useProfileStore } from "../hooks/useProfileStore";
+
+// Queue差分データの型定義
+interface QueueDiffChange {
+  old?: number;
+  new?: number | string[];
+  joined?: string[];
+  left?: string[];
+  old_count?: number;
+  new_count?: number;
+}
+
+interface QueueDiffData {
+  total_waiting?: QueueDiffChange;
+  ongoing_matches?: QueueDiffChange;
+  ongoing_match_players?: QueueDiffChange;
+  role_queues?: {
+    [role: string]: QueueDiffChange;
+  };
+}
 import { useSeasonInfo } from "../hooks/useSeasonInfo";
 import ProfileEditModal from "./ProfileEditModal";
 import SeasonDataModal from "./SeasonDataModal";
@@ -267,10 +286,10 @@ const MyPageTab: React.FC = () => {
   const { isAuthenticated, user, loginWithRedirect, logout } = useAuth0();
   const dummyAuth = useDummyAuth();
   const {
-    userInfo,
+    completeUserData: userInfo,
     loading: userInfoLoading,
-    refetch: refetchUserInfo,
-  } = useUserInfo();
+    fetchUserData: refetchUserInfo,
+  } = useProfileStore();
 
   const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
   const [isSeasonDataOpen, setIsSeasonDataOpen] = useState(false);
@@ -696,7 +715,6 @@ const MyPageTab: React.FC = () => {
       <ProfileEditModal
         isOpen={isProfileEditOpen}
         onClose={() => setIsProfileEditOpen(false)}
-        user={userInfo}
         onSuccess={async () => {
           // プロフィール更新が完了したことをコールバックで受け取る
           // 新しいuseProfileStoreでは楽観的更新により、UIは既に更新済み
@@ -708,7 +726,6 @@ const MyPageTab: React.FC = () => {
       <SeasonDataModal
         isOpen={isSeasonDataOpen}
         onClose={() => setIsSeasonDataOpen(false)}
-        user={userInfo}
       />
     </div>
   );
@@ -727,13 +744,7 @@ const MatchTab: React.FC<MatchTabProps> = ({
   const dummyAuth = useDummyAuth();
   // 新しい統一プロフィールストアを使用
   const {
-    completeUserData: userInfo,
-    loading: userInfoLoading,
-    error: userInfoError,
-    fetchUserData: refetchUserInfo,
-    updateStaticData,
-    addOwnedBadge,
-    hasValidCache
+    completeUserData: userInfo
   } = useProfileStore();
   const { queueInfo, error: queueError, updateQueueInfo } = useQueueInfo();
   const { unitemateApi } = useUnitemateApi();
@@ -743,7 +754,7 @@ const MatchTab: React.FC<MatchTabProps> = ({
   const isSeasonInactive = !seasonInfo?.is_season_active;
 
   // キュー差分更新関数
-  const updateQueueInfoFromDiff = useCallback((changes: any) => {
+  const updateQueueInfoFromDiff = useCallback((changes: QueueDiffData) => {
     try {
       console.log("[QueueDiff] Starting diff update");
 
@@ -775,15 +786,14 @@ const MatchTab: React.FC<MatchTabProps> = ({
         // ロール別キューの更新
         if (changes.role_queues && updatedQueueInfo.role_counts) {
           for (const [role, roleChange] of Object.entries(changes.role_queues)) {
-            const change = roleChange as any;
-            if (change && typeof change.new_count === 'number') {
-              updatedQueueInfo.role_counts[role] = change.new_count;
+            if (roleChange && typeof roleChange.new_count === 'number') {
+              updatedQueueInfo.role_counts[role] = roleChange.new_count;
 
-              if (change.joined && change.joined.length > 0) {
-                console.log(`[QueueDiff] ${role}: ${change.joined.join(', ')} joined (${change.old_count} → ${change.new_count})`);
+              if (roleChange.joined && roleChange.joined.length > 0) {
+                console.log(`[QueueDiff] ${role}: ${roleChange.joined.join(', ')} joined (${roleChange.old_count} → ${roleChange.new_count})`);
               }
-              if (change.left && change.left.length > 0) {
-                console.log(`[QueueDiff] ${role}: ${change.left.join(', ')} left (${change.old_count} → ${change.new_count})`);
+              if (roleChange.left && roleChange.left.length > 0) {
+                console.log(`[QueueDiff] ${role}: ${roleChange.left.join(', ')} left (${roleChange.old_count} → ${roleChange.new_count})`);
               }
             }
           }
@@ -796,13 +806,13 @@ const MatchTab: React.FC<MatchTabProps> = ({
         }
 
         // 進行中マッチプレイヤーの更新
-        if (changes.ongoing_match_players) {
-          updatedQueueInfo.ongoing_match_players = changes.ongoing_match_players.new;
+        if (changes.ongoing_match_players && changes.ongoing_match_players.new) {
+          updatedQueueInfo.ongoing_match_players = changes.ongoing_match_players.new as string[];
           console.log(`[QueueDiff] Updated ongoing_match_players:`);
-          if (changes.ongoing_match_players.joined?.length > 0) {
+          if (changes.ongoing_match_players.joined && changes.ongoing_match_players.joined.length > 0) {
             console.log(`  Joined match: ${changes.ongoing_match_players.joined.join(', ')}`);
           }
-          if (changes.ongoing_match_players.left?.length > 0) {
+          if (changes.ongoing_match_players.left && changes.ongoing_match_players.left.length > 0) {
             console.log(`  Left match: ${changes.ongoing_match_players.left.join(', ')}`);
           }
         }
@@ -820,7 +830,7 @@ const MatchTab: React.FC<MatchTabProps> = ({
 
   // WebSocket接続とリアルタイム更新
   const { 
-    isConnected: _wsConnected, 
+    isConnected: _wsConnected,
     subscribeMatch,
     unsubscribeMatch,
     matchDynamicData: _matchDynamicData
@@ -830,13 +840,13 @@ const MatchTab: React.FC<MatchTabProps> = ({
       // ✅ HTTP呼び出しをコメントアウト: WebSocket経由でaskQueueInfoメッセージで取得
       // refetchQueueInfo?.();
     },
-    onQueueInfo: (queueData: any) => {
+    onQueueInfo: (queueData: unknown) => {
       console.log("[WebSocket] Initial queue info received via WebSocket:", queueData);
       console.log("[WebSocket] Current queueInfo before update:", queueInfo);
       console.log("[WebSocket] updateQueueInfo function:", updateQueueInfo);
       // WebSocket経由で受信した初期キュー情報を設定
       if (queueData && updateQueueInfo) {
-        updateQueueInfo(queueData);
+        updateQueueInfo(queueData as QueueInfo);
         console.log("[WebSocket] Queue info initialized from WebSocket");
         console.log("[WebSocket] Queue info should now be:", queueData);
       }
@@ -846,10 +856,10 @@ const MatchTab: React.FC<MatchTabProps> = ({
       // ✅ HTTPリクエストによる再取得をコメントアウト: WebSocketイベントドリブンに移行
       // refetchQueueInfo?.();
     },
-    onQueueDiff: (changes) => {
+    onQueueDiff: (changes: unknown) => {
       console.log("[WebSocket] Queue diff received:", changes);
       // 差分データを使ってキュー情報を効率的に更新
-      updateQueueInfoFromDiff(changes);
+      updateQueueInfoFromDiff(changes as QueueDiffData);
     },
     onMatchUpdate: (dynamicData) => {
       console.log("[WebSocket] Match dynamic update received:", dynamicData);
@@ -1645,7 +1655,7 @@ const UnitemateApp: React.FC = () => {
   const { isAuthenticated, user, loginWithRedirect, logout, isLoading } =
     useAuth0();
   const { loading: isUserLoading } = useUser();
-  const { userInfo } = useUserInfo();
+  const { completeUserData: userInfo } = useProfileStore();
   const dummyAuth = useDummyAuth();
 
   const handleLogin = () => {

@@ -17,20 +17,18 @@ import type { LfgRole, RolePokemonSlots, PokemonSlot } from "../types/lfg";
 interface ProfileEditModalProps {
   isOpen: boolean;
   onClose: () => void;
-  user: UserInfo | null;
   onSuccess: () => void;
 }
 
 const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   isOpen,
   onClose,
-  user,
   onSuccess,
 }) => {
   const { user: auth0User } = useAuth0();
   const dummyAuth = useDummyAuth();
   const { updateProfile, loading: updateLoading } = useUpdateProfile();
-  const { updateStaticData, updateEquippedBadges } = useProfileStore();
+  const { completeUserData: user, updateStaticData, updateEquippedBadges } = useProfileStore();
 
   const [formData, setFormData] = useState<UpdateProfileRequest>({
     trainer_name: user?.trainer_name || "",
@@ -110,6 +108,7 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
     return { roles, slots };
   };
 
+  // モーダルが開かれた時のみフォームを初期化
   useEffect(() => {
     if (isOpen && user) {
       setFormData({
@@ -129,7 +128,7 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
 
       setErrors({});
     }
-  }, [isOpen, user]);
+  }, [isOpen]); // userを依存配列から削除
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -61,7 +61,7 @@ def ensure_meta_exists():
                     "ongoing_match_players": [],  # マッチに参加中のプレイヤーID
                 }
             )
-        except Exception as e:
+    except Exception as e:
         print(f"[ERROR] ensure_meta_exists error: {e}")
         # エラーが発生してもプロセスは継続
 
@@ -145,8 +145,10 @@ def join_queue(event: dict, _context: object) -> dict:
         return create_error_response(423, "Match making in progress, please retry later.")
 
     try:
+        print(f"[DEBUG] join_queue event: {json.dumps(event, default=str)}")
         # 認証情報を取得
         auth0_user_id = event["requestContext"]["authorizer"]["lambda"]["user_id"]
+        print(f"[DEBUG] join_queue auth0_user_id: {auth0_user_id}")
 
         # Auth0 user_idからDiscord IDを抽出
         if "|" in auth0_user_id:
@@ -290,8 +292,10 @@ def get_my_queue_status(event: dict, _context: object) -> dict:
     {in_queue: false}として扱うことがある。
     """
     try:
+        print(f"[DEBUG] get_my_queue_status event: {json.dumps(event, default=str)}")
         # 認証情報を取得
         auth0_user_id = event["requestContext"]["authorizer"]["lambda"]["user_id"]
+        print(f"[DEBUG] get_my_queue_status auth0_user_id: {auth0_user_id}")
 
         # Auth0 user_idからDiscord IDを抽出
         if "|" in auth0_user_id:

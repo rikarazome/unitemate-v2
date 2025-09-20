@@ -1,17 +1,16 @@
 import React, { useState } from "react";
-import type { UserInfo } from "../hooks/useUnitemateApi";
+import { useProfileStore } from "../hooks/useProfileStore";
 
 interface SeasonDataModalProps {
   isOpen: boolean;
   onClose: () => void;
-  user: UserInfo | null;
 }
 
 const SeasonDataModal: React.FC<SeasonDataModalProps> = ({
   isOpen,
   onClose,
-  user,
 }) => {
+  const { completeUserData: user } = useProfileStore();
   const [selectedSeasonId, setSelectedSeasonId] = useState<string>("");
 
   const seasonData = user?.season_data || [];
