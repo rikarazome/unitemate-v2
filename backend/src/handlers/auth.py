@@ -20,10 +20,8 @@ def get_jwks() -> dict:
     domain = os.environ["AUTH0_DOMAIN"]
     jwks_url = f"https://{domain}/.well-known/jwks.json"
 
-    print(f"Fetching JWKS from: {jwks_url}")
     response = requests.get(jwks_url, timeout=10)
     response.raise_for_status()
-    print("JWKS fetched successfully")
     return response.json()
 
 
@@ -62,16 +60,12 @@ def authorize(event: dict, _context: object) -> dict:
     try:
         # HTTP APIでは routeArn を使用、REST APIでは methodArn を使用
         route_arn = event.get("routeArn") or event.get("methodArn", "unknown")
-        print(f"AUTH: Starting authorization for event: {route_arn}")
 
         # トークンの抽出
         token = extract_token(event)
-        print(f"AUTH: Token extracted successfully: {token[:20]}...")
 
         # JWT検証 (ローカル開発時は署名検証のみスキップ)
         payload = verify_jwt_token(token)
-        print(f"AUTH: JWT verification successful for user: {payload.get('sub', 'unknown')}")
-        print(f"AUTH: Full JWT payload: {json.dumps(payload, default=str)}")
 
         # HTTP APIかどうかを判定(routeArnまたはversion 2.0の存在で判定)
         is_http_api = event.get("routeArn") is not None or event.get("version") == "2.0"
@@ -89,12 +83,10 @@ def authorize(event: dict, _context: object) -> dict:
                 resource=event["methodArn"],
                 context=payload,
             )
-        print("AUTH: Authorization successful, returning Allow response")
-        print(f"AUTH: Final auth response: {json.dumps(auth_response, default=str)}")
         return auth_response
 
     except Exception as e:
-        print(f"AUTH: Authorization failed with error: {e}")
+        print(f"[ERROR] Auth failed: {e}")
         traceback.print_exc()
 
         # Return Deny response instead of letting the exception propagate
@@ -148,7 +140,6 @@ def verify_jwt_token(token: str) -> dict:
 
     dummy_payload = validate_dummy_token(token)
     if dummy_payload:
-        print("AUTH: Using dummy token validation")
         return dummy_payload
     # 通常のAuth0トークン検証
     # ヘッダーの取得

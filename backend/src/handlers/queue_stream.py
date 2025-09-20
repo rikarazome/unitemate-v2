@@ -15,8 +15,7 @@ def process_queue_changes(event: Dict[str, Any], _context: Any) -> Dict[str, Any
     #META#レコードのMODIFYイベントのみを処理する。
     """
     try:
-        print(f"[QueueStream] Processing {len(event.get('Records', []))} stream records")
-
+        # 高頻度実行のため、エラー以外のログを削除
         for record in event.get('Records', []):
             event_name = record.get('eventName')
 
@@ -26,8 +25,6 @@ def process_queue_changes(event: Dict[str, Any], _context: Any) -> Dict[str, Any
                 user_id = keys.get('user_id', {}).get('S', '')
 
                 if user_id == '#META#':
-                    print(f"[QueueStream] Processing #META# modification")
-
                     # 変更前後のデータを取得
                     old_image = record.get('dynamodb', {}).get('OldImage', {})
                     new_image = record.get('dynamodb', {}).get('NewImage', {})
@@ -36,17 +33,12 @@ def process_queue_changes(event: Dict[str, Any], _context: Any) -> Dict[str, Any
                     changes = _calculate_queue_diff(old_image, new_image)
 
                     if changes:
-                        print(f"[QueueStream] Queue changes detected: {changes}")
                         _broadcast_queue_diff(changes)
-                    else:
-                        print(f"[QueueStream] No significant changes detected")
 
         return {"statusCode": 200, "body": "Stream processed successfully"}
 
     except Exception as e:
-        print(f"[QueueStream] Error processing stream: {e}")
-        import traceback
-        print(f"[QueueStream] Traceback: {traceback.format_exc()}")
+        print(f"[ERROR] QueueStream processing failed: {e}")
         return {"statusCode": 500, "body": f"Stream processing failed: {str(e)}"}
 
 
@@ -119,7 +111,7 @@ def _calculate_queue_diff(old_image: Dict[str, Any], new_image: Dict[str, Any]) 
         return changes
 
     except Exception as e:
-        print(f"[QueueStream] Error calculating diff: {e}")
+        print(f"[ERROR] Queue diff calculation failed: {e}")
         return {}
 
 
@@ -179,8 +171,6 @@ def _broadcast_queue_diff(changes: Dict[str, Any]) -> None:
             "timestamp": int(__import__("datetime").datetime.now().timestamp())
         }
 
-        print(f"[QueueStream] Broadcasting diff to {len(connections)} connections: {message}")
-
         sent_count = 0
         for connection in connections:
             connection_id = connection["connection_id"]
@@ -193,19 +183,14 @@ def _broadcast_queue_diff(changes: Dict[str, Any]) -> None:
                 sent_count += 1
 
             except Exception as e:
-                print(f"[QueueStream] Failed to send to {connection_id}: {e}")
-
-                # 無効な接続を削除
+                # 無効な接続を削除（エラーログのみ）
                 if "GoneException" in str(type(e)) or "410" in str(e):
                     try:
                         connections_table.delete_item(Key={"connection_id": connection_id})
-                        print(f"[QueueStream] Removed stale connection: {connection_id}")
                     except Exception:
                         pass
-
-        print(f"[QueueStream] Diff broadcast complete: {sent_count}/{len(connections)} sent")
+                else:
+                    print(f"[ERROR] WebSocket send failed to {connection_id}: {e}")
 
     except Exception as e:
-        print(f"[QueueStream] Error broadcasting diff: {e}")
-        import traceback
-        print(f"[QueueStream] Broadcast traceback: {traceback.format_exc()}")
+        print(f"[ERROR] Queue diff broadcast failed: {e}")

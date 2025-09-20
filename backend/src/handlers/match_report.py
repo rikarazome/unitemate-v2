@@ -91,7 +91,6 @@ def remove_player_from_ongoing_match_players(user_id: str) -> bool:
         response = queue_table.get_item(Key={"namespace": "default", "user_id": "#META#"})
 
         if "Item" not in response:
-            print(f"META item not found when trying to remove player {user_id}")
             return True  # METAが存在しない場合は成功とする
 
         meta_item = response["Item"]
@@ -99,7 +98,6 @@ def remove_player_from_ongoing_match_players(user_id: str) -> bool:
 
         # プレイヤーIDが含まれていない場合は何もしない
         if user_id not in ongoing_match_players:
-            print(f"Player {user_id} not found in ongoing_match_players")
             return True
 
         # プレイヤーIDを除いた新しいリストを作成
@@ -112,11 +110,10 @@ def remove_player_from_ongoing_match_players(user_id: str) -> bool:
             ExpressionAttributeValues={":players": updated_ongoing_players},
         )
 
-        print(f"Removed player {user_id} from ongoing_match_players. Remaining: {len(updated_ongoing_players)} players")
         return True
 
     except Exception as e:
-        print(f"Failed to remove player {user_id} from ongoing_match_players: {e}")
+        print(f"[ERROR] Failed to remove player {user_id} from ongoing_match_players: {e}")
         return False
 
 
@@ -125,7 +122,6 @@ def report_match_result(event: dict, _context: object) -> dict:
     試合結果を報告（Legacyのreport関数と同等）
     POST /api/matches/{matchId}/report エンドポイントで呼び出される
     """
-    print("event")
 
     try:
         # 認証情報を取得
@@ -142,9 +138,7 @@ def report_match_result(event: dict, _context: object) -> dict:
 
         # リクエストボディを解析
         body_data = json.loads(event.get("body", "{}"))
-        print(f"report_match_result - Raw body_data: {body_data}")
         request_data = MatchReportRequest(**body_data)
-        print(f"report_match_result - Parsed request_data.violation_report: '{request_data.violation_report}'")
 
         # Legacy形式のモデルに変換（result はそのまま A-win/B-win/invalid として保存）
         model = MatchReportModel(
@@ -157,7 +151,6 @@ def report_match_result(event: dict, _context: object) -> dict:
             pokemon_move1=request_data.pokemon_move1,
             pokemon_move2=request_data.pokemon_move2,
         )
-        print(f"report_match_result - Final model.violation_report: '{model.violation_report}'")
 
     except ValidationError as e:
         return create_error_response(422, f"Validation error: {e}")
@@ -172,7 +165,6 @@ def report_match_result(event: dict, _context: object) -> dict:
             # 既に同じユーザーから報告があるか確認
             for report in existing_reports:
                 if report.get("user_id") == model.user_id:
-                    print(f"User {model.user_id} has already reported for match {model.match_id}")
                     return create_error_response(
                         409,
                         "You have already reported this match result"
@@ -205,7 +197,7 @@ def report_match_result(event: dict, _context: object) -> dict:
 
             broadcast_match_update(str(model.match_id), "match_reported")
         except Exception as ws_error:
-            print(f"Failed to broadcast match update via WebSocket: {ws_error}")
+            print(f"[ERROR] Failed to broadcast match update via WebSocket: {ws_error}")
 
         # Recordテーブルの更新（試合集計後でもポケモン情報を補完）
         try:
@@ -215,43 +207,26 @@ def report_match_result(event: dict, _context: object) -> dict:
                 "match_id": int(model.match_id)  # Number型を明示
             }
             
-            print(f"[RECORD UPDATE] Attempting to get record with key: {record_key}")
-            print(f"[RECORD UPDATE] user_id type: {type(model.user_id)}, value: {model.user_id}")
-            print(f"[RECORD UPDATE] match_id type: {type(model.match_id)}, value: {model.match_id}")
             
             record_response = records_table.get_item(Key=record_key)
             
             if "Item" in record_response:
                 record_item = record_response["Item"]
-                print(f"[RECORD UPDATE] Found existing record for user {model.user_id} in match {model.match_id}")
-                
+
                 # pokemonがnullまたは"null"の場合のみ更新
                 current_pokemon = record_item.get("pokemon", "null")
-                print(f"[RECORD UPDATE] Current pokemon value: {current_pokemon} (type: {type(current_pokemon)})")
                 
                 if current_pokemon in [None, "null", "", "unknown"]:
-                    print(f"[RECORD UPDATE] Updating pokemon from '{current_pokemon}' to '{model.picked_pokemon}'")
                     records_table.update_item(
                         Key=record_key,
                         UpdateExpression="SET pokemon = :p",
                         ExpressionAttributeValues={":p": model.picked_pokemon},
                     )
-                    print(f"[RECORD UPDATE] Successfully updated record for user {model.user_id}: pokemon '{current_pokemon}' -> '{model.picked_pokemon}'")
-                else:
-                    print(f"[RECORD UPDATE] Record already has valid pokemon data: '{current_pokemon}', skipping update")
-            else:
-                print(f"[RECORD UPDATE] No record found for user {model.user_id} in match {model.match_id}")
-                print(f"[RECORD UPDATE] This is expected if the match hasn't been aggregated yet")
-                print(f"[RECORD UPDATE] Attempted key: {record_key}")
         except Exception as e:
-            print(f"[RECORD UPDATE ERROR] Exception occurred: {type(e).__name__}: {e}")
-            print(f"[RECORD UPDATE ERROR] Key used: {record_key}")
-            print(f"[RECORD UPDATE ERROR] user_id={model.user_id} (type: {type(model.user_id)})")
-            print(f"[RECORD UPDATE ERROR] match_id={model.match_id} (type: {type(model.match_id)})")
-            print(f"[RECORD UPDATE ERROR] Traceback: {traceback.format_exc()}")
+            print(f"[ERROR] Record update failed: {e}")
 
         return create_success_response({"message": "Match result reported successfully"})
 
     except Exception as e:
-        print(f"report_match_result error: {e}")
+        print(f"[ERROR] report_match_result error: {e}")
         return create_error_response(500, f"Failed to report match result: {e!s}")

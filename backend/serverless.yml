@@ -12,11 +12,12 @@ provider:
   region: ap-northeast-1
   runtime: python3.12
   stackName: ${sls:stage}-${self:service}-stack
-  timeout: 25
+  timeout: 10          # 25→10秒に削減（60%削減）
+  memorySize: 256      # デフォルト1024MB→256MBに削減（75%削減）
   # deploymentBucket:
   #   name: juv-shun.sls-deployment-store
   #   maxPreviousDeploymentArtifacts: 3
-  logRetentionInDays: 7
+  logRetentionInDays: 3  # 7→3日に削減（CloudWatchコスト削減）
   endpointType: REGIONAL
   websocketsApiName: ${self:service}-websockets-${sls:stage}
   websocketsApiRouteSelectionExpression: $request.body.action
@@ -108,6 +109,8 @@ functions:
   # オーソライザー関数
   authHandler:
     handler: src/handlers/auth.authorize
+    memorySize: 512      # 中量関数：外部API呼び出しあり
+    timeout: 15
     environment:
       AUTH0_DOMAIN: ${env:AUTH0_DOMAIN}
       AUTH0_AUDIENCE: ${env:AUTH0_AUDIENCE}
@@ -115,6 +118,8 @@ functions:
 
   getMe:
     handler: src/handlers/users.get_me
+    memorySize: 256
+    timeout: 10
     environment:
       USERS_TABLE_NAME: ${self:custom.tableName.users}
       RECORDS_TABLE_NAME: ${self:custom.tableName.records}
@@ -128,6 +133,8 @@ functions:
   # テスト用エンドポイント（認証なし）
   testMe:
     handler: src/handlers/users.get_me
+    memorySize: 256
+    timeout: 10
     environment:
       USERS_TABLE_NAME: ${self:custom.tableName.users}
       RECORDS_TABLE_NAME: ${self:custom.tableName.records}
@@ -139,6 +146,8 @@ functions:
   # ダミーユーザーリスト取得（認証なし）
   getDummyUsers:
     handler: src/handlers/dummy_auth.get_dummy_users_list
+    memorySize: 256
+    timeout: 10
     environment:
       USERS_TABLE_NAME: ${self:custom.tableName.users}
     events:
@@ -149,6 +158,8 @@ functions:
   # ダミーユーザーログイン（認証なし）
   dummyLogin:
     handler: src/handlers/dummy_auth.dummy_login
+    memorySize: 256
+    timeout: 10
     environment:
       USERS_TABLE_NAME: ${self:custom.tableName.users}
       DUMMY_JWT_SECRET: ${env:DUMMY_JWT_SECRET, 'dummy-secret-for-testing-only'}
@@ -162,6 +173,8 @@ functions:
   matchMake:
     handler: src/handlers/matchmaking.match_make
     name: ${self:service}-${sls:stage}-match-make
+    memorySize: 1024     # 重量関数：複雑なマッチング処理
+    timeout: 25
     environment:
       QUEUE_TABLE_NAME: ${self:custom.tableName.queue}
       MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
@@ -170,22 +183,24 @@ functions:
       RANKINGS_TABLE_NAME: ${self:custom.tableName.rankings}
       MASTER_DATA_TABLE_NAME: ${self:custom.tableName.masterData}
       DISCORD_WEBHOOK_URL: ${env:DISCORD_WEBHOOK_URL, 'https://discord.com/api/webhooks/1185019044391305226/NbOT6mnrZNHS61T5ro7iu2smxyhhSPH_tecLnWmZ91kup96-mtpdcGwvvo3kjmyzR96_'}
-    timeout: 25
 
   # マッチ結果処理関数（手動実行用として保持、自動スケジューラーは削除）
   matchJudge:
     handler: src/handlers/match_judge.gather_match
     name: ${self:service}-${sls:stage}-gather-match
+    memorySize: 1024     # 重量関数：マッチ結果処理
+    timeout: 25
     environment:
       MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
       QUEUE_TABLE_NAME: ${self:custom.tableName.queue}
       USERS_TABLE_NAME: ${self:custom.tableName.users}
       RECORDS_TABLE_NAME: ${self:custom.tableName.records}
     # スケジューラーを削除：統合処理（processMatchmaking）に集約
-    timeout: 25
 
   debugQueueStatus:
     handler: src/handlers/queue.debug_queue_status
+    memorySize: 256
+    timeout: 10
     environment:
       QUEUE_TABLE_NAME: ${self:custom.tableName.queue}
       USERS_TABLE_NAME: ${self:custom.tableName.users}
@@ -196,6 +211,8 @@ functions:
 
   createUser:
     handler: src/handlers/users.create_user
+    memorySize: 256
+    timeout: 10
     environment:
       USERS_TABLE_NAME: ${self:custom.tableName.users}
       RECORDS_TABLE_NAME: ${self:custom.tableName.records}
@@ -208,6 +225,8 @@ functions:
 
   debugAuthInfo:
     handler: src/handlers/users.debug_auth_info
+    memorySize: 256
+    timeout: 10
     events:
       - httpApi:
           path: /api/debug/auth
@@ -217,6 +236,8 @@ functions:
 
   updateProfile:
     handler: src/handlers/users.update_profile
+    memorySize: 256
+    timeout: 10
     environment:
       USERS_TABLE_NAME: ${self:custom.tableName.users}
       RECORDS_TABLE_NAME: ${self:custom.tableName.records}
@@ -229,6 +250,8 @@ functions:
 
   updateDiscordInfo:
     handler: src/handlers/users.update_discord_info
+    memorySize: 512
+    timeout: 15
     environment:
       USERS_TABLE_NAME: ${self:custom.tableName.users}
       RECORDS_TABLE_NAME: ${self:custom.tableName.records}
@@ -241,6 +264,8 @@ functions:
 
   getUser:
     handler: src/handlers/users.get_user
+    memorySize: 256
+    timeout: 10
     environment:
       USERS_TABLE_NAME: ${self:custom.tableName.users}
       RECORDS_TABLE_NAME: ${self:custom.tableName.records}
@@ -253,6 +278,8 @@ functions:
 
   checkDiscordMembership:
     handler: src/handlers/discord_check.lambda_handler
+    memorySize: 512
+    timeout: 15
     environment:
       DISCORD_BOT_TOKEN: ${env:DISCORD_BOT_TOKEN}
       DISCORD_GUILD_ID: ${env:DISCORD_GUILD_ID}
@@ -267,6 +294,8 @@ functions:
 
   getUserRanking:
     handler: src/handlers/users.get_user_ranking
+    memorySize: 256
+    timeout: 10
     environment:
       USERS_TABLE_NAME: ${self:custom.tableName.users}
       RANKINGS_TABLE_NAME: ${self:custom.tableName.rankings}
@@ -284,6 +313,8 @@ functions:
 
   getUserBadges:
     handler: src/handlers/badges.get_user_badges
+    memorySize: 256
+    timeout: 10
     environment:
       USERS_TABLE_NAME: ${self:custom.tableName.users}
     events:
@@ -295,6 +326,8 @@ functions:
 
   equipBadges:
     handler: src/handlers/badges.equip_badges
+    memorySize: 256
+    timeout: 10
     environment:
       USERS_TABLE_NAME: ${self:custom.tableName.users}
     events:
@@ -306,6 +339,8 @@ functions:
 
   getMasterData:
     handler: src/handlers/master.get_master_data
+    memorySize: 256
+    timeout: 10
     environment:
       MASTER_DATA_TABLE_NAME: ${self:custom.tableName.masterData}
     events:
@@ -317,6 +352,8 @@ functions:
 
   getPublicMasterData:
     handler: src/handlers/master.get_public_master_data
+    memorySize: 256
+    timeout: 10
     environment:
       MASTER_DATA_TABLE_NAME: ${self:custom.tableName.masterData}
     events:
@@ -326,6 +363,8 @@ functions:
 
   updateSetting:
     handler: src/handlers/master.update_setting
+    memorySize: 256
+    timeout: 10
     environment:
       MASTER_DATA_TABLE_NAME: ${self:custom.tableName.masterData}
     events:
@@ -338,6 +377,8 @@ functions:
   # Match関連のエンドポイント
   getMatch:
     handler: src/handlers/matches.get_match
+    memorySize: 256
+    timeout: 10
     environment:
       MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
       USERS_TABLE_NAME: ${self:custom.tableName.users}
@@ -350,6 +391,8 @@ functions:
 
   getRecentMatches:
     handler: src/handlers/matches.get_recent_matches
+    memorySize: 256
+    timeout: 10
     environment:
       MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
       USERS_TABLE_NAME: ${self:custom.tableName.users}
@@ -362,6 +405,8 @@ functions:
 
   getUserMatches:
     handler: src/handlers/matches.get_user_matches
+    memorySize: 256
+    timeout: 10
     environment:
       MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
       USERS_TABLE_NAME: ${self:custom.tableName.users}
@@ -374,6 +419,8 @@ functions:
 
   getActiveMatches:
     handler: src/handlers/matches.get_active_matches
+    memorySize: 256
+    timeout: 10
     environment:
       MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
       USERS_TABLE_NAME: ${self:custom.tableName.users}
@@ -386,6 +433,8 @@ functions:
 
   createMatch:
     handler: src/handlers/matches.create_match
+    memorySize: 512
+    timeout: 15
     environment:
       MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
       USERS_TABLE_NAME: ${self:custom.tableName.users}
@@ -398,6 +447,8 @@ functions:
 
   startMatch:
     handler: src/handlers/matches.start_match
+    memorySize: 512
+    timeout: 15
     environment:
       MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
       USERS_TABLE_NAME: ${self:custom.tableName.users}
@@ -411,6 +462,8 @@ functions:
   # Queue関連のエンドポイント
   getQueueStatus:
     handler: src/handlers/queue.get_queue_status
+    memorySize: 256
+    timeout: 10
     environment:
       QUEUE_TABLE_NAME: ${self:custom.tableName.queue}
       MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
@@ -424,6 +477,8 @@ functions:
 
   joinQueue:
     handler: src/handlers/queue.join_queue
+    memorySize: 512
+    timeout: 15
     environment:
       QUEUE_TABLE_NAME: ${self:custom.tableName.queue}
       USERS_TABLE_NAME: ${self:custom.tableName.users}
@@ -439,6 +494,8 @@ functions:
 
   leaveQueue:
     handler: src/handlers/queue.leave_queue
+    memorySize: 512
+    timeout: 15
     environment:
       QUEUE_TABLE_NAME: ${self:custom.tableName.queue}
       USERS_TABLE_NAME: ${self:custom.tableName.users}
@@ -454,6 +511,8 @@ functions:
 
   getMyQueueStatus:
     handler: src/handlers/queue.get_my_queue_status
+    memorySize: 256
+    timeout: 10
     environment:
       QUEUE_TABLE_NAME: ${self:custom.tableName.queue}
       USERS_TABLE_NAME: ${self:custom.tableName.users}
@@ -467,6 +526,7 @@ functions:
   # 統合マッチ処理（結果集計 + ランキング計算 + マッチメイキング、2分間隔）
   processMatchmaking:
     handler: src/handlers/matchmaking.match_make
+    memorySize: 1024
     timeout: 30
     environment:
       QUEUE_TABLE_NAME: ${self:custom.tableName.queue}
@@ -526,6 +586,7 @@ functions:
   # 本番環境では削除すること
   debugGatherMatch:
     handler: src/handlers/match_judge.gather_match
+    memorySize: 1024
     timeout: 30
     environment:
       MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
@@ -543,6 +604,7 @@ functions:
   # 本番環境では削除すること
   debugTriggerMatchmaking:
     handler: src/handlers/matchmaking.debug_trigger_matchmaking
+    memorySize: 1024
     timeout: 30
     environment:
       QUEUE_TABLE_NAME: ${self:custom.tableName.queue}
@@ -563,6 +625,7 @@ functions:
   # 本番環境では削除すること
   debugUpdateQueueMeta:
     handler: src/handlers/matchmaking.debug_update_queue_meta
+    memorySize: 512
     timeout: 30
     environment:
       QUEUE_TABLE_NAME: ${self:custom.tableName.queue}
@@ -576,6 +639,8 @@ functions:
 
   getCurrentMatch:
     handler: src/handlers/matches.get_current_match
+    memorySize: 256
+    timeout: 10
     environment:
       USERS_TABLE_NAME: ${self:custom.tableName.users}
       MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
@@ -588,6 +653,8 @@ functions:
 
   reportMatchResult:
     handler: src/handlers/match_report.report_match_result
+    memorySize: 1024
+    timeout: 25
     environment:
       USERS_TABLE_NAME: ${self:custom.tableName.users}
       MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
@@ -605,6 +672,8 @@ functions:
 
   cancelMatch:
     handler: src/handlers/matches.cancel_match
+    memorySize: 256
+    timeout: 10
     environment:
       MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
       USERS_TABLE_NAME: ${self:custom.tableName.users}
@@ -617,6 +686,8 @@ functions:
 
   addPenaltyPlayer:
     handler: src/handlers/matches.add_penalty_player
+    memorySize: 256
+    timeout: 10
     environment:
       MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
       USERS_TABLE_NAME: ${self:custom.tableName.users}
@@ -630,6 +701,8 @@ functions:
   # ロビーID関連のエンドポイント
   updateLobbyId:
     handler: src/handlers/matches.update_lobby_id
+    memorySize: 512
+    timeout: 15
     environment:
       MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
       USERS_TABLE_NAME: ${self:custom.tableName.users}
@@ -645,6 +718,8 @@ functions:
 
   transferHost:
     handler: src/handlers/matches.transfer_host
+    memorySize: 512
+    timeout: 15
     environment:
       MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
       USERS_TABLE_NAME: ${self:custom.tableName.users}
@@ -661,6 +736,8 @@ functions:
   # Record関連のエンドポイント
   getUserRecords:
     handler: src/handlers/records.get_user_records
+    memorySize: 256
+    timeout: 10
     environment:
       RECORDS_TABLE_NAME: ${self:custom.tableName.records}
     events:
@@ -672,6 +749,8 @@ functions:
 
   getMatchRecords:
     handler: src/handlers/records.get_match_records
+    memorySize: 256
+    timeout: 10
     environment:
       RECORDS_TABLE_NAME: ${self:custom.tableName.records}
     events:
@@ -683,6 +762,8 @@ functions:
 
   searchRecords:
     handler: src/handlers/records.search_records
+    memorySize: 256
+    timeout: 10
     environment:
       RECORDS_TABLE_NAME: ${self:custom.tableName.records}
     events:
@@ -694,6 +775,8 @@ functions:
 
   getUserStats:
     handler: src/handlers/records.get_user_stats
+    memorySize: 256
+    timeout: 10
     environment:
       RECORDS_TABLE_NAME: ${self:custom.tableName.records}
     events:
@@ -705,6 +788,8 @@ functions:
 
   getUserRecentPerformance:
     handler: src/handlers/records.get_user_recent_performance
+    memorySize: 256
+    timeout: 10
     environment:
       RECORDS_TABLE_NAME: ${self:custom.tableName.records}
     events:
@@ -717,6 +802,8 @@ functions:
   # 管理者用API
   adminSearchUsers:
     handler: src/handlers/admin.search_users
+    memorySize: 1024
+    timeout: 25
     environment:
       USERS_TABLE_NAME: ${self:custom.tableName.users}
     events:
@@ -728,6 +815,8 @@ functions:
 
   adminGetUserDetails:
     handler: src/handlers/admin.get_user_details
+    memorySize: 512
+    timeout: 15
     environment:
       USERS_TABLE_NAME: ${self:custom.tableName.users}
     events:
@@ -739,6 +828,8 @@ functions:
 
   adminUpdateUser:
     handler: src/handlers/admin.update_user
+    memorySize: 512
+    timeout: 15
     environment:
       USERS_TABLE_NAME: ${self:custom.tableName.users}
     events:
@@ -750,6 +841,8 @@ functions:
 
   adminGetPenaltyStatus:
     handler: src/handlers/admin.get_penalty_status
+    memorySize: 256
+    timeout: 10
     environment:
       USERS_TABLE_NAME: ${self:custom.tableName.users}
     events:
@@ -761,6 +854,8 @@ functions:
 
   adminApplyPenalty:
     handler: src/handlers/admin.apply_penalty
+    memorySize: 256
+    timeout: 10
     environment:
       USERS_TABLE_NAME: ${self:custom.tableName.users}
     events:
@@ -773,6 +868,8 @@ functions:
   # ランキング計算関数（手動実行のみ - 通常は統合スケジューラーで実行）
   calculateRankings:
     handler: src/handlers/ranking_calculator.calculate_rankings
+    memorySize: 1024
+    timeout: 25
     environment:
       USERS_TABLE_NAME: ${self:custom.tableName.users}
       RANKINGS_TABLE_NAME: ${self:custom.tableName.rankings}
@@ -786,6 +883,8 @@ functions:
   # WebSocket関連の関数
   wsConnect:
     handler: src/handlers/websocket.on_connect
+    memorySize: 256
+    timeout: 10
     environment:
       CONNECTIONS_TABLE_NAME: ${self:custom.tableName.connections}
       USERS_TABLE_NAME: ${self:custom.tableName.users}
@@ -796,6 +895,8 @@ functions:
 
   wsDisconnect:
     handler: src/handlers/websocket.on_disconnect
+    memorySize: 256
+    timeout: 10
     environment:
       CONNECTIONS_TABLE_NAME: ${self:custom.tableName.connections}
       WEBSOCKET_API_ID: !Ref WebsocketsApi
@@ -805,6 +906,8 @@ functions:
 
   wsDefault:
     handler: src/handlers/websocket.on_message
+    memorySize: 512
+    timeout: 15
     environment:
       CONNECTIONS_TABLE_NAME: ${self:custom.tableName.connections}
       USERS_TABLE_NAME: ${self:custom.tableName.users}
@@ -817,6 +920,8 @@ functions:
   # DynamoDB Streams処理 - キュー状態変更の差分検知
   queueStreamProcessor:
     handler: src/handlers/queue_stream.process_queue_changes
+    memorySize: 512
+    timeout: 15
     environment:
       CONNECTIONS_TABLE_NAME: ${self:custom.tableName.connections}
       WEBSOCKET_API_ID: !Ref WebsocketsApi
@@ -831,6 +936,8 @@ functions:
   # 管理者用試合管理エンドポイント
   getAdminMatches:
     handler: src/handlers/admin_matches.get_admin_matches
+    memorySize: 512
+    timeout: 15
     environment:
       MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
       USERS_TABLE_NAME: ${self:custom.tableName.users}
@@ -843,6 +950,8 @@ functions:
 
   getAdminMatchDetail:
     handler: src/handlers/admin_matches.get_admin_match_detail
+    memorySize: 512
+    timeout: 15
     environment:
       MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
       USERS_TABLE_NAME: ${self:custom.tableName.users}
@@ -856,6 +965,8 @@ functions:
   # Stripe決済関連 - セキュリティ重視の実装
   createCheckoutSession:
     handler: src/handlers/stripe_payment.create_checkout_session
+    memorySize: 1024
+    timeout: 25
     environment:
       STRIPE_SECRET_KEY: ${env:STRIPE_SECRET_KEY} # 環境変数から安全に取得
       FRONTEND_URL: ${env:FRONTEND_URL}
@@ -869,6 +980,8 @@ functions:
 
   stripeWebhook:
     handler: src/handlers/stripe_payment.webhook_handler
+    memorySize: 1024
+    timeout: 25
     environment:
       STRIPE_SECRET_KEY: ${env:STRIPE_SECRET_KEY} # 環境変数から安全に取得
       STRIPE_WEBHOOK_SECRET: ${env:STRIPE_WEBHOOK_SECRET} # Webhook署名検証用
@@ -882,6 +995,8 @@ functions:
   # シーズン管理API
   getAllSeasons:
     handler: src/handlers/seasons.get_all_seasons
+    memorySize: 256
+    timeout: 10
     environment:
       MASTER_DATA_TABLE_NAME: ${self:custom.tableName.masterData}
     events:
@@ -893,6 +1008,8 @@ functions:
 
   getSeason:
     handler: src/handlers/seasons.get_season
+    memorySize: 256
+    timeout: 10
     environment:
       MASTER_DATA_TABLE_NAME: ${self:custom.tableName.masterData}
     events:
@@ -904,6 +1021,8 @@ functions:
 
   getActiveSeason:
     handler: src/handlers/seasons.get_active_season
+    memorySize: 256
+    timeout: 10
     environment:
       MASTER_DATA_TABLE_NAME: ${self:custom.tableName.masterData}
     events:
@@ -914,6 +1033,8 @@ functions:
 
   createSeason:
     handler: src/handlers/seasons.create_season
+    memorySize: 256
+    timeout: 10
     environment:
       MASTER_DATA_TABLE_NAME: ${self:custom.tableName.masterData}
     events:
@@ -925,6 +1046,8 @@ functions:
 
   updateSeason:
     handler: src/handlers/seasons.update_season
+    memorySize: 256
+    timeout: 10
     environment:
       MASTER_DATA_TABLE_NAME: ${self:custom.tableName.masterData}
     events:
@@ -936,6 +1059,8 @@ functions:
 
   deleteSeason:
     handler: src/handlers/seasons.delete_season
+    memorySize: 256
+    timeout: 10
     environment:
       MASTER_DATA_TABLE_NAME: ${self:custom.tableName.masterData}
     events:
@@ -947,6 +1072,8 @@ functions:
 
   activateSeason:
     handler: src/handlers/seasons.activate_season
+    memorySize: 256
+    timeout: 10
     environment:
       MASTER_DATA_TABLE_NAME: ${self:custom.tableName.masterData}
     events:
@@ -964,6 +1091,8 @@ functions:
   # BANPICKシミュレーター用ルーム作成
   createPickSimulatorRoom:
     handler: src/handlers/pick_simulator_rooms.create_pick_simulator_room
+    memorySize: 256
+    timeout: 10
     environment:
       PICK_SIMULATOR_ROOMS_TABLE_NAME: ${self:custom.tableName.pickSimulatorRooms}
     events:
@@ -975,6 +1104,8 @@ functions:
   # BANPICKシミュレーター用ルーム存在確認
   checkPickSimulatorRoom:
     handler: src/handlers/pick_simulator_rooms.check_pick_simulator_room
+    memorySize: 256
+    timeout: 10
     environment:
       PICK_SIMULATOR_ROOMS_TABLE_NAME: ${self:custom.tableName.pickSimulatorRooms}
     events:
@@ -986,6 +1117,8 @@ functions:
   # BANPICKシミュレーター用ルームデータ取得
   getPickSimulatorRoomData:
     handler: src/handlers/pick_simulator_rooms.get_pick_simulator_room_data
+    memorySize: 256
+    timeout: 10
     environment:
       PICK_SIMULATOR_ROOMS_TABLE_NAME: ${self:custom.tableName.pickSimulatorRooms}
     events:
@@ -997,6 +1130,8 @@ functions:
   # BANPICKシミュレーター用ホストオファー更新
   updatePickSimulatorRoomOffer:
     handler: src/handlers/pick_simulator_rooms.update_pick_simulator_room_offer
+    memorySize: 256
+    timeout: 10
     environment:
       PICK_SIMULATOR_ROOMS_TABLE_NAME: ${self:custom.tableName.pickSimulatorRooms}
     events:
@@ -1008,6 +1143,8 @@ functions:
   # BANPICKシミュレーター用ゲストアンサー更新
   updatePickSimulatorRoomAnswer:
     handler: src/handlers/pick_simulator_rooms.update_pick_simulator_room_answer
+    memorySize: 256
+    timeout: 10
     environment:
       PICK_SIMULATOR_ROOMS_TABLE_NAME: ${self:custom.tableName.pickSimulatorRooms}
     events:
@@ -1019,6 +1156,8 @@ functions:
   # BANPICKシミュレーター用CORS対応
   pickSimulatorRoomsOptionsHandler:
     handler: src/handlers/pick_simulator_rooms.pick_simulator_rooms_options_handler
+    memorySize: 256
+    timeout: 10
     events:
       - httpApi:
           path: /api/tools/banpick/rooms
