@@ -252,9 +252,9 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 max-[500px]:p-0">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto max-[500px]:rounded-none max-[500px]:max-h-full max-[500px]:h-full">
-        <div className="p-6 max-[500px]:px-4 max-[500px]:py-3">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 pb-24">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[calc(100vh-120px)] overflow-hidden flex flex-col">
+        <div className="p-6 max-[500px]:px-4 max-[500px]:py-3 overflow-y-auto flex-1">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl max-[500px]:text-lg font-bold text-gray-800">
               プロフィール編集
@@ -430,24 +430,25 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
               </p>
             </div>
 
-            {/* ボタン */}
-            <div className="flex justify-end space-x-3 pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 max-[500px]:px-3 max-[500px]:py-1.5 max-[500px]:text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                キャンセル
-              </button>
-              <button
-                type="submit"
-                disabled={updateLoading}
-                className="px-4 py-2 max-[500px]:px-3 max-[500px]:py-1.5 max-[500px]:text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-              >
-                {updateLoading ? "保存中..." : "保存"}
-              </button>
-            </div>
           </form>
+        </div>
+
+        {/* スティッキーフッター - 常に表示されるボタン */}
+        <div className="border-t bg-gray-50 px-6 py-4 max-[500px]:px-4 max-[500px]:py-3 flex justify-end space-x-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 max-[500px]:px-3 max-[500px]:py-1.5 max-[500px]:text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            キャンセル
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={updateLoading}
+            className="px-4 py-2 max-[500px]:px-3 max-[500px]:py-1.5 max-[500px]:text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+          >
+            {updateLoading ? "保存中..." : "保存"}
+          </button>
         </div>
       </div>
 
