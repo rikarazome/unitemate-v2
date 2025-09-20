@@ -108,6 +108,24 @@ def _calculate_queue_diff(old_image: Dict[str, Any], new_image: Dict[str, Any]) 
                 'left': list(old_players - new_players)
             }
 
+        # 前回マッチ時刻の変更をチェック
+        old_match_time = old_data.get('previous_matched_unixtime', 0)
+        new_match_time = new_data.get('previous_matched_unixtime', 0)
+        if old_match_time != new_match_time:
+            changes['previous_matched_unixtime'] = {
+                'old': old_match_time,
+                'new': new_match_time
+            }
+
+        # 前回参加人数の変更をチェック
+        old_user_count = old_data.get('previous_user_count', 0)
+        new_user_count = new_data.get('previous_user_count', 0)
+        if old_user_count != new_user_count:
+            changes['previous_user_count'] = {
+                'old': old_user_count,
+                'new': new_user_count
+            }
+
         return changes
 
     except Exception as e:

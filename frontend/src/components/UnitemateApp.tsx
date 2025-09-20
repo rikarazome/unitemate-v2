@@ -26,6 +26,12 @@ interface QueueDiffChange {
   new_count?: number;
 }
 
+// 数値専用の差分変更（タイムスタンプ、カウントなど）
+interface NumericDiffChange {
+  old: number;
+  new: number;
+}
+
 interface QueueDiffData {
   total_waiting?: QueueDiffChange;
   ongoing_matches?: QueueDiffChange;
@@ -33,6 +39,8 @@ interface QueueDiffData {
   role_queues?: {
     [role: string]: QueueDiffChange;
   };
+  previous_matched_unixtime?: NumericDiffChange;
+  previous_user_count?: NumericDiffChange;
 }
 import { useSeasonInfo } from "../hooks/useSeasonInfo";
 import ProfileEditModal from "./ProfileEditModal";
@@ -815,6 +823,18 @@ const MatchTab: React.FC<MatchTabProps> = ({
           if (changes.ongoing_match_players.left && changes.ongoing_match_players.left.length > 0) {
             console.log(`  Left match: ${changes.ongoing_match_players.left.join(', ')}`);
           }
+        }
+
+        // 前回マッチ時刻の更新
+        if (changes.previous_matched_unixtime) {
+          updatedQueueInfo.previous_matched_unixtime = changes.previous_matched_unixtime.new;
+          console.log(`[QueueDiff] Updated previous_matched_unixtime: ${changes.previous_matched_unixtime.old} → ${changes.previous_matched_unixtime.new}`);
+        }
+
+        // 前回参加人数の更新
+        if (changes.previous_user_count) {
+          updatedQueueInfo.previous_user_count = changes.previous_user_count.new;
+          console.log(`[QueueDiff] Updated previous_user_count: ${changes.previous_user_count.old} → ${changes.previous_user_count.new}`);
         }
 
         // total_waitingはバックエンドから正確な値が送信されるため、クライアント側での計算は不要
