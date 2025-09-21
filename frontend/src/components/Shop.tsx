@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useDummyAuth } from "../hooks/useDummyAuth";
 import { useProfileStore } from "../hooks/useProfileStore";
@@ -29,9 +29,10 @@ interface ShopBadge extends Badge {
 }
 
 const Shop: React.FC = () => {
+  const location = useLocation();
   const { isAuthenticated, user } = useAuth0();
   const dummyAuth = useDummyAuth();
-  const { completeUserData: userInfo } = useProfileStore();
+  const { completeUserData: userInfo, fetchUserData, clearCache } = useProfileStore();
   const { unitemateApi } = useUnitemateApi();
   // ショップページではAPIから直接バッジデータを取得（セキュリティ対策）
   const { masterData, loading: badgesLoading, error: badgesError } = usePublicMasterData();
@@ -42,6 +43,36 @@ const Shop: React.FC = () => {
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [selectedBadge, setSelectedBadge] = useState<ShopBadge | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+
+  // Stripe決済成功後の処理
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const isSuccess = searchParams.get("success") === "true";
+    const badgeId = searchParams.get("badge_id");
+
+    if (isSuccess && badgeId) {
+      console.log("[Shop] Payment success detected, clearing cache and fetching updated data");
+
+      // 成功メッセージを表示
+      setShowSuccessMessage(true);
+
+      // キャッシュをクリアして最新データを取得
+      clearCache();
+
+      // 強制的にサーバーから最新データを取得
+      fetchUserData(true);
+
+      // URLパラメータをクリーン（リロード時に再処理されないように）
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
+
+      // 5秒後に成功メッセージを非表示
+      setTimeout(() => {
+        setShowSuccessMessage(false);
+      }, 5000);
+    }
+  }, [location.search, clearCache, fetchUserData]);
 
   useEffect(() => {
     // APIから取得したマスターデータを使用
@@ -215,6 +246,27 @@ const Shop: React.FC = () => {
   return (
     <Layout className="bg-gray-50">
       <div className="container mx-auto px-4 py-8">
+        {/* 購入成功メッセージ */}
+        {showSuccessMessage && (
+          <div className="mb-6 p-4 bg-green-100 border border-green-300 rounded-lg animate-fadeIn">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-green-800">
+                  🎉 勲章の購入が完了しました！プロフィール編集から装備できます。
+                </p>
+                <p className="text-xs text-green-700 mt-1">
+                  ※ 勲章付与の反映に時間がかかる場合があります。しばらくたっても付与されていない場合、運営にお問い合わせください。
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ページタイトル */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
