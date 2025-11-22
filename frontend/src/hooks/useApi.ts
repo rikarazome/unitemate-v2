@@ -68,6 +68,7 @@ export const useApi = () => {
           method: config.method || "GET",
           headers,
           body: config.body ? JSON.stringify(config.body) : undefined,
+          cache: headers['Cache-Control'] ? 'no-store' : 'default', // ブラウザキャッシュ制御
         });
 
         const data = await response.json();

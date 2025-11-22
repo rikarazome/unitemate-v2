@@ -32,15 +32,15 @@ export interface UserInfo {
   penalty_correction: number; // ペナルティ軽減数
   penalty_timeout_until?: number | null; // ペナルティタイムアウト終了時刻
   latest_matches?: MatchRecord[]; // 直近50戦の戦績
-  season_data?: Array<{
+  past_seasons?: Array<{
     season_id: string;
     season_name: string;
     final_rate: number;
     max_rate: number;
-    win_rate: number;
-    final_rank: number;
+    final_rank: number | null;
     total_matches: number;
-    wins: number;
+    win_count: number;
+    earned_badges?: string[];
   }>;
   created_at: number;
   updated_at: number;

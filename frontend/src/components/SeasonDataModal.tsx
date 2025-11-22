@@ -1,5 +1,16 @@
 import React, { useState } from "react";
-import { useProfileStore } from "../hooks/useProfileStore";
+import { useCompleteUserData } from "../hooks/useProfileStore";
+
+interface SeasonRecord {
+  season_id: string;
+  season_name: string;
+  total_matches: number;
+  win_count: number;
+  final_rate: number;
+  max_rate: number;
+  final_rank: number | null;
+  earned_badges?: string[];
+}
 
 interface SeasonDataModalProps {
   isOpen: boolean;
@@ -10,13 +21,19 @@ const SeasonDataModal: React.FC<SeasonDataModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  const { completeUserData: user } = useProfileStore();
+  const user = useCompleteUserData();
   const [selectedSeasonId, setSelectedSeasonId] = useState<string>("");
 
-  const seasonData = user?.season_data || [];
+  const seasonData = user?.past_seasons || [];
   const selectedSeason = seasonData.find(
     (s) => s.season_id === selectedSeasonId,
   );
+
+  // 勝率を計算（backend には win_rate フィールドがないため）
+  const calculateWinRate = (season: SeasonRecord) => {
+    if (!season || season.total_matches === 0) return 0;
+    return Math.round((season.win_count / season.total_matches) * 100 * 10) / 10;
+  };
 
   if (!isOpen) return null;
 
@@ -86,7 +103,7 @@ const SeasonDataModal: React.FC<SeasonDataModalProps> = ({
                     <div className="bg-white rounded-lg p-3">
                       <div className="text-sm text-gray-600">勝率</div>
                       <div className="text-xl font-bold text-gray-900">
-                        {selectedSeason.win_rate}%
+                        {calculateWinRate(selectedSeason)}%
                       </div>
                     </div>
 
@@ -109,35 +126,11 @@ const SeasonDataModal: React.FC<SeasonDataModalProps> = ({
                     <div className="bg-white rounded-lg p-3">
                       <div className="text-sm text-gray-600">勝利数</div>
                       <div className="text-lg font-semibold text-gray-900">
-                        {selectedSeason.wins}勝
+                        {selectedSeason.win_count}勝
                       </div>
                     </div>
                   </div>
 
-                  {/* レートの変化を可視化 */}
-                  <div className="mt-4 bg-white rounded-lg p-3">
-                    <div className="text-sm text-gray-600 mb-2">レート推移</div>
-                    <div className="flex items-center justify-between">
-                      <div className="text-center">
-                        <div className="text-xs text-gray-500">開始時</div>
-                        <div className="text-sm font-medium">1500</div>
-                      </div>
-                      <div className="flex-1 mx-2 h-2 bg-gray-200 rounded-full relative">
-                        <div
-                          className="h-full bg-gradient-to-r from-blue-400 to-green-400 rounded-full"
-                          style={{
-                            width: `${Math.min((selectedSeason.max_rate / 2000) * 100, 100)}%`,
-                          }}
-                        />
-                      </div>
-                      <div className="text-center">
-                        <div className="text-xs text-gray-500">最終</div>
-                        <div className="text-sm font-medium">
-                          {selectedSeason.final_rate}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               )}
             </div>

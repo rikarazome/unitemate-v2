@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useUpdateProfile, type UserInfo } from "../hooks/useUnitemateApi";
-import { useProfileStore } from "../hooks/useProfileStore";
+import { useCompleteUserData, useProfileStore } from "../hooks/useProfileStore";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useDummyAuth } from "../hooks/useDummyAuth";
+import { useApi } from "../hooks/useApi";
 import { getPokemonById } from "../data/pokemon";
 import RoleSelector from "./RoleSelector";
 import FavPokemonButton from "./FavPokemonButton";
@@ -25,10 +26,16 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   onClose,
   onSuccess,
 }) => {
-  const { user: auth0User } = useAuth0();
+  const { user: auth0User, getAccessTokenSilently } = useAuth0();
   const dummyAuth = useDummyAuth();
+  const { callApi } = useApi();
   const { updateProfile, loading: updateLoading } = useUpdateProfile();
-  const { completeUserData: user, updateStaticData, updateEquippedBadges } = useProfileStore();
+
+  // 🔧 Zustandストアから直接取得
+  const user = useCompleteUserData();
+  const clearCache = useProfileStore((state) => state.clearCache);
+  const fetchUserData = useProfileStore((state) => state.fetchUserData);
+  const updateStaticData = useProfileStore((state) => state.updateStaticData);
 
   const [formData, setFormData] = useState<UpdateProfileRequest>({
     trainer_name: user?.trainer_name || "",
@@ -145,39 +152,31 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
     }
 
     try {
-      console.log(
-        "ProfileEditModal - Updating profile with formData:",
-        formData,
-      );
-      console.log("ProfileEditModal - Selected roles:", selectedRoles);
-      console.log("ProfileEditModal - Pokemon slots:", pokemonSlots);
-
-      // 楽観的更新: サーバーリクエスト前にUIを即座に更新
-      updateStaticData({
-        trainer_name: formData.trainer_name,
-        twitter_id: formData.twitter_id || null,
-        preferred_roles: formData.preferred_roles,
-        favorite_pokemon: formData.favorite_pokemon,
-        bio: formData.bio || null,
-      });
-
-      // 装備勲章も更新
-      updateEquippedBadges(formData.current_badge, formData.current_badge_2);
-
-      console.log("ProfileEditModal - Applied optimistic update");
-
-      // サーバーに実際の更新リクエストを送信
+      // 🔧 Zustandストアでプロフィール更新
+      // 1. サーバーに更新リクエストを送信
       await updateProfile(formData);
-      console.log("ProfileEditModal - Server update successful");
+
+      // 2. 成功時はキャッシュのみクリア（楽観的更新により既にUIは更新済み）
+      clearCache();
+
+      console.log('[ProfileEditModal] Profile update successful, UI already updated via optimistic update');
 
       onSuccess();
       onClose();
     } catch (error) {
       console.error("ProfileEditModal - Profile update failed:", error);
 
-      // TODO: 楽観的更新の巻き戻し処理を追加
-      // 現在は単純にページリフレッシュでサーバー状態を復元
-      alert("プロフィールの更新に失敗しました。ページを再読み込みしてください。");
+      // エラー時のみサーバーから再取得して状態を修正
+      clearCache();
+      const getToken = async () => {
+        if (dummyAuth.isAuthenticated && dummyAuth.accessToken) {
+          return dummyAuth.accessToken;
+        }
+        return await getAccessTokenSilently();
+      };
+      await fetchUserData(false, getToken, callApi); // forceFetch=false でCORS回避
+
+      alert("プロフィールの更新に失敗しました。最新の情報を再読み込みしました。");
     }
   };
 
@@ -470,6 +469,10 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
           ownedBadgeIds={user?.owned_badges || []}
           onSelect={(badgeId) => {
             setFormData({ ...formData, current_badge: badgeId });
+
+            // 🔧 即座にZustandストアを更新（楽観的更新）
+            updateStaticData({ current_badge: badgeId });
+
             setIsBadge1ModalOpen(false);
           }}
           title="1つ目の勲章を選択"
@@ -484,6 +487,10 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
           ownedBadgeIds={user?.owned_badges || []}
           onSelect={(badgeId) => {
             setFormData({ ...formData, current_badge_2: badgeId });
+
+            // 🔧 即座にZustandストアを更新（楽観的更新）
+            updateStaticData({ current_badge_2: badgeId });
+
             setIsBadge2ModalOpen(false);
           }}
           title="2つ目の勲章を選択"

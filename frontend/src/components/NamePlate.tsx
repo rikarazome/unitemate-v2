@@ -135,15 +135,15 @@ const NamePlate: React.FC<NamePlateProps> = ({
 
   // 文字色の決定
   const textColor = (() => {
-    // char_colorが指定されている場合はそれを使用
+    // 1つ目の勲章のchar_colorを優先、次に2つ目の勲章のchar_color
     const badgeCharColor =
       primaryBadge?.char_color || secondaryBadge?.char_color;
     if (badgeCharColor) {
       return badgeCharColor;
     }
 
-    // char_colorが指定されていない場合は常にデフォルト（黒文字）
-    return "#000000";
+    // 勲章が設定されていない、またはchar_colorが指定されていない場合はデフォルト（濃いグレー）
+    return "#1f2937"; // Tailwind gray-800
   })();
 
   // 背景スタイルの決定

@@ -14,7 +14,9 @@ import {
   type UserInfo,
   type QueueInfo,
 } from "../hooks/useUnitemateApi";
-import { useProfileStore } from "../hooks/useProfileStore";
+import { useCompleteUserData, useProfileStore } from "../hooks/useProfileStore";
+import { useProfileStoreInit } from "../hooks/useProfileStoreInit";
+import { useApi } from "../hooks/useApi";
 
 // Queue差分データの型定義
 interface QueueDiffChange {
@@ -291,13 +293,14 @@ const RulesTab: React.FC = () => {
 };
 
 const MyPageTab: React.FC = () => {
-  const { isAuthenticated, user, loginWithRedirect, logout } = useAuth0();
+  const { isAuthenticated, user, loginWithRedirect, logout, getAccessTokenSilently } = useAuth0();
   const dummyAuth = useDummyAuth();
-  const {
-    completeUserData: userInfo,
-    loading: userInfoLoading,
-    fetchUserData: refetchUserInfo,
-  } = useProfileStore();
+  const { callApi } = useApi();
+
+  // 🔧 Zustandストアから直接取得
+  const userInfo = useCompleteUserData();
+  const userInfoLoading = useProfileStore((state) => state.loading);
+  const fetchUserData = useProfileStore((state) => state.fetchUserData);
 
   const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
   const [isSeasonDataOpen, setIsSeasonDataOpen] = useState(false);
@@ -506,7 +509,13 @@ const MyPageTab: React.FC = () => {
                       // プロフィール編集を開く前に、ユーザー情報を確認
                       if (!userInfo) {
                         console.log("No user info, fetching from cache or server...");
-                        await refetchUserInfo(); // キャッシュファーストで取得
+                        const getToken = async () => {
+                          if (dummyAuth.isAuthenticated && dummyAuth.accessToken) {
+                            return dummyAuth.accessToken;
+                          }
+                          return await getAccessTokenSilently();
+                        };
+                        await fetchUserData(false, getToken, callApi);
                       }
                       // 再取得後も少し待つ
                       await new Promise((resolve) =>
@@ -750,10 +759,8 @@ const MatchTab: React.FC<MatchTabProps> = ({
 }) => {
   const { isAuthenticated, user } = useAuth0();
   const dummyAuth = useDummyAuth();
-  // 新しい統一プロフィールストアを使用
-  const {
-    completeUserData: userInfo
-  } = useProfileStore();
+  // 🔧 Zustandストアから直接取得
+  const userInfo = useCompleteUserData();
   const { queueInfo, error: queueError, updateQueueInfo } = useQueueInfo();
   const { unitemateApi } = useUnitemateApi();
   const { seasonInfo } = useSeasonInfo();
@@ -1675,7 +1682,10 @@ const UnitemateApp: React.FC = () => {
   const { isAuthenticated, user, loginWithRedirect, logout, isLoading } =
     useAuth0();
   const { loading: isUserLoading } = useUser();
-  const { completeUserData: userInfo } = useProfileStore();
+
+  // 🔧 Zustandストアの初期化とユーザーデータ取得
+  useProfileStoreInit();
+  const userInfo = useCompleteUserData();
   const dummyAuth = useDummyAuth();
 
   const handleLogin = () => {

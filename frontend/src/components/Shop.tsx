@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth0 } from "@auth0/auth0-react";
 import { useDummyAuth } from "../hooks/useDummyAuth";
-import { useProfileStore } from "../hooks/useProfileStore";
+import { useCompleteUserData } from "../hooks/useProfileStore";
 import { useUnitemateApi } from "../hooks/useUnitemateApi";
 import { usePublicMasterData } from "../hooks/useUnitemateApi";
 import Layout from "./Layout";
@@ -31,7 +31,8 @@ interface ShopBadge extends Badge {
 const Shop: React.FC = () => {
   const { isAuthenticated, user } = useAuth0();
   const dummyAuth = useDummyAuth();
-  const { completeUserData: userInfo } = useProfileStore();
+  // 🔧 Zustandストアから直接取得
+  const userInfo = useCompleteUserData();
   const { unitemateApi } = useUnitemateApi();
   // ショップページではAPIから直接バッジデータを取得（セキュリティ対策）
   const { masterData, loading: badgesLoading, error: badgesError } = usePublicMasterData();
