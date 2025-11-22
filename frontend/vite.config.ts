@@ -16,4 +16,13 @@ export default defineConfig({
       "127.0.0.1",
     ],
   },
+  build: {
+    minify: "terser",
+    terserOptions: {
+      compress: {
+        drop_console: true, // 本番環境ではconsole.logを削除
+        drop_debugger: true,
+      },
+    },
+  },
 });
