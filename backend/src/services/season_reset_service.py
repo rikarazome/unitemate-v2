@@ -11,6 +11,13 @@ from src.models.season import Season
 from src.models.user import SeasonRecord, User
 
 
+def _log(message: str) -> None:
+    """ログ出力（本番環境では抑制）."""
+    stage = os.environ.get("STAGE", "dev")
+    if stage != "prod":
+        print(message)
+
+
 class SeasonResetService:
     """シーズンリセット処理サービス."""
 
@@ -20,6 +27,23 @@ class SeasonResetService:
         self.users_table = self.dynamodb.Table(os.environ["USERS_TABLE_NAME"])
         self.rankings_table = self.dynamodb.Table(os.environ["RANKINGS_TABLE_NAME"])
         self.namespace = "default"
+
+    def _batch_write_users(self, items: list[dict]) -> None:
+        """ユーザーデータをバッチ書き込み.
+
+        Args:
+            items: 書き込むユーザーデータのリスト（最大25件）
+        """
+        if not items:
+            return
+
+        try:
+            with self.users_table.batch_writer() as batch:
+                for item in items:
+                    batch.put_item(Item=item)
+        except ClientError as e:
+            print(f"Error in batch write: {e}")
+            raise
 
     def get_current_rankings(self) -> list[dict]:
         """現在のランキングを取得.
@@ -36,7 +60,7 @@ class SeasonResetService:
             )
             return response.get("Items", [])
         except ClientError as e:
-            print(f"Error getting rankings: {e}")
+            _log(f"Error getting rankings: {e}")
             return []
 
     def determine_badges_for_user(
@@ -334,6 +358,8 @@ class SeasonResetService:
 
         processed_count = 0
         error_count = 0
+        batch_items = []
+        BATCH_SIZE = 25  # DynamoDBバッチ書き込みの最大サイズ
 
         # ステップ3: 各ユーザーの処理（勲章付与のみ）
         for user_data in users:
@@ -361,17 +387,25 @@ class SeasonResetService:
 
                 # ⚠️ レート・試合数はリセットしない（execute_rate_reset で実行）
 
-                # DynamoDBに保存
-                self.users_table.put_item(Item=user.model_dump())
+                # バッチ用にアイテムを追加
+                batch_items.append(user.model_dump())
                 processed_count += 1
 
-                if processed_count % 10 == 0:
-                    print(f"Processed {processed_count} users...")
+                # バッチサイズに達したら書き込み
+                if len(batch_items) >= BATCH_SIZE:
+                    self._batch_write_users(batch_items)
+                    print(f"Batch write completed. Processed {processed_count} users...")
+                    batch_items = []
 
             except Exception as e:
                 print(f"Error processing user {user_data.get('user_id', 'unknown')}: {e}")
                 error_count += 1
                 continue
+
+        # 残りのアイテムを書き込み
+        if batch_items:
+            self._batch_write_users(batch_items)
+            print(f"Final batch write completed. Total processed: {processed_count} users")
 
         print(f"Badge grant completed. Processed: {processed_count}, Errors: {error_count}")
 
@@ -436,6 +470,8 @@ class SeasonResetService:
 
         processed_count = 0
         error_count = 0
+        batch_items = []
+        BATCH_SIZE = 25  # DynamoDBバッチ書き込みの最大サイズ
 
         # ステップ2: 各ユーザーの統計情報をリセット
         for user_data in users:
@@ -445,17 +481,25 @@ class SeasonResetService:
                 # 統計情報をリセット
                 user = self.reset_user_stats(user)
 
-                # DynamoDBに保存
-                self.users_table.put_item(Item=user.model_dump())
+                # バッチ用にアイテムを追加
+                batch_items.append(user.model_dump())
                 processed_count += 1
 
-                if processed_count % 10 == 0:
-                    print(f"Processed {processed_count} users...")
+                # バッチサイズに達したら書き込み
+                if len(batch_items) >= BATCH_SIZE:
+                    self._batch_write_users(batch_items)
+                    print(f"Batch write completed. Processed {processed_count} users...")
+                    batch_items = []
 
             except Exception as e:
                 print(f"Error processing user {user_data.get('user_id', 'unknown')}: {e}")
                 error_count += 1
                 continue
+
+        # 残りのアイテムを書き込み
+        if batch_items:
+            self._batch_write_users(batch_items)
+            print(f"Final batch write completed. Total processed: {processed_count} users")
 
         # ステップ3: 全試合レコードを削除
         deleted_records = self.delete_all_match_records()
@@ -503,23 +547,24 @@ class SeasonResetService:
                 items = response.get("Items", [])
                 print(f"Page {page_count}: Found {len(items)} match records")
 
-                # 各レコードを削除
-                for item in items:
+                # バッチ削除を使用
+                if items:
                     try:
-                        # プライマリキーを取得（namespace + match_id）
-                        namespace = item.get("namespace")
-                        match_id = item.get("match_id")
-                        if namespace and match_id is not None:
-                            matches_table.delete_item(Key={
-                                "namespace": namespace,
-                                "match_id": match_id
-                            })
-                            deleted_count += 1
+                        with matches_table.batch_writer() as batch:
+                            for item in items:
+                                namespace = item.get("namespace")
+                                match_id = item.get("match_id")
+                                if namespace and match_id is not None:
+                                    batch.delete_item(Key={
+                                        "namespace": namespace,
+                                        "match_id": match_id
+                                    })
+                                    deleted_count += 1
 
-                            if deleted_count % 100 == 0:
-                                print(f"Deleted {deleted_count} match records...")
+                        if deleted_count % 100 == 0:
+                            print(f"Deleted {deleted_count} match records...")
                     except Exception as e:
-                        print(f"Error deleting match record {item.get('match_id', 'unknown')}: {e}")
+                        print(f"Error in batch delete: {e}")
                         continue
 
                 last_evaluated_key = response.get("LastEvaluatedKey")
@@ -617,6 +662,8 @@ class SeasonResetService:
 
         processed_count = 0
         error_count = 0
+        batch_items = []
+        BATCH_SIZE = 25  # DynamoDBバッチ書き込みの最大サイズ
 
         # ステップ3: 各ユーザーの処理
         for user_data in users:
@@ -654,18 +701,25 @@ class SeasonResetService:
                 # - ペナルティは条件付きリセット（実効ペナルティ≤5）
                 user = self.reset_user_stats(user)
 
-                # DynamoDBに保存
-                self.users_table.put_item(Item=user.model_dump())
+                # バッチ用にアイテムを追加
+                batch_items.append(user.model_dump())
                 processed_count += 1
 
-                # 進捗ログ（10ユーザーごと）
-                if processed_count % 10 == 0:
-                    print(f"Processed {processed_count} users...")
+                # バッチサイズに達したら書き込み
+                if len(batch_items) >= BATCH_SIZE:
+                    self._batch_write_users(batch_items)
+                    print(f"Batch write completed. Processed {processed_count} users...")
+                    batch_items = []
 
             except Exception as e:
                 print(f"Error processing user {user_data.get('user_id', 'unknown')}: {e}")
                 error_count += 1
                 continue
+
+        # 残りのアイテムを書き込み
+        if batch_items:
+            self._batch_write_users(batch_items)
+            print(f"Final batch write completed. Total processed: {processed_count} users")
 
         print(f"Season reset completed. Processed: {processed_count}, Errors: {error_count}")
 

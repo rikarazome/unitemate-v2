@@ -4,6 +4,26 @@ from decimal import Decimal
 from pydantic import BaseModel, Field, field_serializer
 
 
+class SeasonRecord(BaseModel):
+    """過去シーズンデータ."""
+
+    season_id: str = Field(..., description="シーズンID")
+    season_name: str = Field(..., description="シーズン名")
+    total_matches: int = Field(..., description="試合数")
+    win_count: int = Field(..., description="勝利数")
+    final_rate: int = Field(..., description="最終レート")
+    max_rate: int = Field(..., description="シーズン中の最高レート")
+    final_rank: int | None = Field(None, description="最終順位")
+    earned_badges: list[str] = Field(default_factory=list, description="獲得した勲章IDリスト")
+
+    @field_serializer('total_matches', 'win_count', 'final_rate', 'max_rate', 'final_rank')
+    def serialize_int_fields(self, value):
+        """Convert integer fields to Decimal for DynamoDB compatibility"""
+        if value is None:
+            return None
+        return Decimal(int(value))
+
+
 class User(BaseModel):
     namespace: str = Field(default="default", description="名前空間（Legacy準拠）")
     user_id: str = Field(..., description="ユーザーのプライマリキー（Discord ID）")
@@ -18,6 +38,7 @@ class User(BaseModel):
     current_badge: str | None = Field(None, description="現在設定している勲章ID")
     current_badge_2: str | None = Field(None, description="2つ目の勲章ID")
     bio: str | None = Field(None, description="プロフィールの一言")
+    past_seasons: list[dict] = Field(default_factory=list, description="過去シーズンデータのリスト")
     rate: int = Field(default=1500, description="現在のレート")
     max_rate: int = Field(default=1500, description="最高レート")
     match_count: int = Field(default=0, description="総試合数")
@@ -75,15 +96,15 @@ class User(BaseModel):
         if trainer_name is not None:
             self.trainer_name = trainer_name
         if twitter_id is not None:
-            self.twitter_id = twitter_id
+            self.twitter_id = twitter_id if twitter_id else None
         if preferred_roles is not None:
             self.preferred_roles = preferred_roles
         if favorite_pokemon is not None:
             self.favorite_pokemon = favorite_pokemon
         if current_badge is not None:
-            self.current_badge = current_badge
+            self.current_badge = current_badge if current_badge else None
         if current_badge_2 is not None:
-            self.current_badge_2 = current_badge_2
+            self.current_badge_2 = current_badge_2 if current_badge_2 else None
         if bio is not None:
             self.bio = bio
         self.updated_at = int(datetime.now().timestamp())
