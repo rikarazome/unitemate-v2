@@ -14,10 +14,11 @@ export interface SeasonData {
   season_name: string;
   final_rate: number;
   max_rate: number;
-  win_rate: number;
-  final_rank: number;
+  win_rate?: number; // バックエンドから送られてこない場合がある
+  final_rank: number | null; // ランク外の場合はnull
   total_matches: number;
   win_count: number;
+  earned_badges?: string[]; // 獲得バッジ
 }
 
 export interface Auth0UserProfile {

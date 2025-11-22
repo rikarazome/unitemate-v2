@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useApi } from "../hooks/useApi";
+import SeasonResetModal from "./SeasonResetModal";
 
 interface Season {
   id: string;
@@ -24,6 +25,25 @@ interface SeasonCreateRequest {
   theme_color?: string;
 }
 
+interface BadgeMapping {
+  rank_1st?: string;
+  rank_2nd?: string;
+  rank_3rd?: string;
+  rank_top10?: string;
+  rank_top100?: string;
+  battle_100?: string;
+  battle_200?: string;
+  battle_300?: string;
+  battle_400?: string;
+  battle_500?: string;
+  battle_600?: string;
+  battle_700?: string;
+  battle_800?: string;
+  battle_900?: string;
+  battle_1000?: string;
+  gold_license?: string;
+}
+
 const AdminSeasonManagement: React.FC = () => {
   const { callApi } = useApi();
   const [seasons, setSeasons] = useState<Season[]>([]);
@@ -31,6 +51,10 @@ const AdminSeasonManagement: React.FC = () => {
   const [message, setMessage] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingSeason, setEditingSeason] = useState<Season | null>(null);
+
+  // リセットモーダル用の状態
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [resetTargetSeason, setResetTargetSeason] = useState<{ id: string; name: string } | null>(null);
 
   // フォーム状態
   const [formData, setFormData] = useState<SeasonCreateRequest>({
@@ -181,6 +205,115 @@ const AdminSeasonManagement: React.FC = () => {
       }
     } catch (error) {
       setMessage(`アクティベートエラー: ${error}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * シーズンリセットモーダルを開く
+   *
+   * 処理フロー:
+   * 1. ユーザーが非アクティブシーズンの「リセット」ボタンをクリック
+   * 2. このハンドラーが呼ばれ、モーダルを開く
+   * 3. モーダルでバッジマッピングを設定
+   * 4. 「リセット実行」ボタンで handleResetSeason が呼ばれる
+   */
+  const openResetModal = (seasonId: string, seasonName: string) => {
+    setResetTargetSeason({ id: seasonId, name: seasonName });
+    setIsResetModalOpen(true);
+  };
+
+  /**
+   * 勲章付与実行
+   *
+   * 処理フロー:
+   * 1. モーダルから badgeMapping を受け取る
+   * 2. APIエンドポイント /api/admin/seasons/grant-badges にPOST
+   * 3. バックエンドで全ユーザーの処理を実行:
+   *    - 現在のランキングを取得
+   *    - 各ユーザーの戦績に応じてバッジを付与
+   *    - シーズンデータを past_seasons に保存
+   * 4. 結果を表示
+   */
+  const handleGrantBadges = async (seasonId: string, badgeMapping: BadgeMapping): Promise<boolean> => {
+    setLoading(true);
+    try {
+      // バックエンドAPIを呼び出し
+      const response = await callApi("/api/admin/seasons/grant-badges", {
+        method: "POST",
+        body: {
+          season_id: seasonId,
+          badge_mapping: badgeMapping,
+        },
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.status === 200 && response.data) {
+        const result = (response.data as { result: { processed_users: number; error_count: number; rankings_count: number } }).result;
+        setMessage(
+          `✅ 勲章付与が完了しました\n` +
+          `処理ユーザー数: ${result.processed_users}\n` +
+          `エラー数: ${result.error_count}\n` +
+          `ランキング取得数: ${result.rankings_count || 0}`
+        );
+        await fetchSeasons();
+        return true;
+      } else {
+        setMessage(`勲章付与エラー: ${response.error || 'Unknown error'}`);
+        return false;
+      }
+    } catch (error) {
+      setMessage(`勲章付与エラー: ${error}`);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * レートリセット実行
+   *
+   * 処理フロー:
+   * 1. APIエンドポイント /api/admin/seasons/reset-rates にPOST
+   * 2. バックエンドで全ユーザーのリセット処理を実行:
+   *    - レート・最高レート・試合数・勝利数をリセット
+   *    - 全試合記録を削除
+   *    - ペナルティをリセット(条件付き)
+   * 3. 結果を表示してモーダルを閉じる
+   */
+  const handleResetRates = async (seasonId: string) => {
+    setLoading(true);
+    try {
+      const response = await callApi("/api/admin/seasons/reset-rates", {
+        method: "POST",
+        body: {
+          season_id: seasonId,
+        },
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.status === 200 && response.data) {
+        const result = (response.data as { result: { processed_users: number; error_count: number; deleted_records: number } }).result;
+        setMessage(
+          `✅ レートリセットが完了しました\n` +
+          `処理ユーザー数: ${result.processed_users}\n` +
+          `削除レコード数: ${result.deleted_records || 0}\n` +
+          `エラー数: ${result.error_count}`
+        );
+        await fetchSeasons();
+        // モーダルを閉じる
+        setIsResetModalOpen(false);
+        setResetTargetSeason(null);
+      } else {
+        setMessage(`レートリセットエラー: ${response.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      setMessage(`レートリセットエラー: ${error}`);
     } finally {
       setLoading(false);
     }
@@ -467,6 +600,14 @@ const AdminSeasonManagement: React.FC = () => {
                           アクティブ化
                         </button>
                       )}
+                      {!season.is_active && (
+                        <button
+                          onClick={() => openResetModal(season.id, season.name)}
+                          className="text-purple-600 hover:text-purple-900 font-semibold"
+                        >
+                          リセット
+                        </button>
+                      )}
                       <button
                         onClick={() => handleDeleteSeason(season.id)}
                         className="text-red-600 hover:text-red-900"
@@ -481,6 +622,22 @@ const AdminSeasonManagement: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* シーズンリセットモーダル */}
+      {resetTargetSeason && (
+        <SeasonResetModal
+          seasonId={resetTargetSeason.id}
+          seasonName={resetTargetSeason.name}
+          isOpen={isResetModalOpen}
+          onClose={() => {
+            setIsResetModalOpen(false);
+            setResetTargetSeason(null);
+          }}
+          onGrantBadges={handleGrantBadges}
+          onResetRates={handleResetRates}
+          loading={loading}
+        />
+      )}
     </div>
   );
 };
