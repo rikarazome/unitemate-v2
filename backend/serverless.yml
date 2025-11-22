@@ -1092,6 +1092,49 @@ functions:
           authorizer:
             name: authHandler
 
+  resetSeason:
+    handler: src/handlers/season_reset.reset_season
+    memorySize: 1024     # 重量関数：全ユーザー処理
+    timeout: 60          # 最大60秒（多数のユーザー処理のため）
+    environment:
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+      RANKINGS_TABLE_NAME: ${self:custom.tableName.rankings}
+    events:
+      - httpApi:
+          path: /api/admin/seasons/reset
+          method: post
+          authorizer:
+            name: authHandler
+
+  grantBadges:
+    handler: src/handlers/season_reset.grant_badges
+    memorySize: 1024     # 重量関数：全ユーザー処理
+    timeout: 60          # 最大60秒（多数のユーザー処理のため）
+    environment:
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+      RANKINGS_TABLE_NAME: ${self:custom.tableName.rankings}
+    events:
+      - httpApi:
+          path: /api/admin/seasons/grant-badges
+          method: post
+          authorizer:
+            name: authHandler
+
+  resetRates:
+    handler: src/handlers/season_reset.reset_rates
+    memorySize: 1024     # 重量関数：全ユーザー処理 + レコード削除
+    timeout: 60          # 最大60秒（多数のユーザー処理のため）
+    environment:
+      USERS_TABLE_NAME: ${self:custom.tableName.users}
+      RANKINGS_TABLE_NAME: ${self:custom.tableName.rankings}
+      MATCHES_TABLE_NAME: ${self:custom.tableName.matches}
+    events:
+      - httpApi:
+          path: /api/admin/seasons/reset-rates
+          method: post
+          authorizer:
+            name: authHandler
+
   # ===========================================
   # BANPICKシミュレーターツール専用API（認証不要）
   # ※メインアプリとは完全に独立したツール機能※
