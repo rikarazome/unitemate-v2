@@ -54,7 +54,7 @@ export interface User {
   penalty_timeout_until?: number | null; // ペナルティタイムアウト終了時刻
   is_admin: boolean; // 管理者権限フラグ
   is_banned: boolean; // アカウント凍結フラグ
-  season_data?: SeasonData[]; // 過去シーズンデータ
+  past_seasons?: SeasonData[]; // 過去シーズンデータ
   created_at: number; // タイムスタンプ
   updated_at: number; // タイムスタンプ
 }

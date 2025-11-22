@@ -36,7 +36,7 @@ export interface DynamicUserData {
   penalty_correction: number;
   last_penalty_time?: number | null;
   penalty_timeout_until?: number | null;
-  season_data?: SeasonData[];
+  past_seasons?: SeasonData[];
 }
 
 // 完全なユーザーデータ（結合された形）
